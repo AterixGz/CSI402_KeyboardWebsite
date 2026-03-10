@@ -1,0 +1,110 @@
+@{
+    Layout = null;
+    ViewData["Title"] = "Login";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - KBShop</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</head>
+<body style="overflow: hidden;">
+
+    <div class="auth-container">
+        <div class="auth-split">
+            <!-- Left Side: Visual (On Login, visual is Left in image) -->
+             <div class="auth-visual">
+                <div class="keyboard-visual mb-5" style="transform: scale(0.8);">
+                    <div class="key-grid">
+                        <div class="key"></div> <div class="key"></div> <div class="key"></div> <div class="key"></div>
+                        <div class="key"></div> <div class="key"></div> <div class="key accent-2"></div> <div class="key"></div>
+                        <div class="key"></div> <div class="key"></div> <div class="key"></div> <div class="key"></div>
+                         <div class="key accent-1"></div> <div class="key"></div> <div class="key"></div> <div class="key accent-1"></div>
+                        <div class="key"></div> <div class="key"></div> <div class="key"></div> <div class="key"></div>
+                         <div class="key"></div> <div class="key"></div> <div class="key space"></div> <div class="key"></div>
+                    </div>
+                </div>
+
+                <h1 class="auth-visual-title">Welcome Back, <span style="color: var(--primary-color);">Enthusiast</span></h1>
+                <p class="auth-visual-desc">Your perfect typing experience awaits. Access exclusive group buys, track your orders, and discover premium keyboards.</p>
+                
+                <div class="auth-stat-row mt-4">
+                    <div class="auth-stat auth-stat-active text-center">
+                        <h3>50+</h3>
+                        <small>Premium Brands</small>
+                    </div>
+                     <div class="auth-stat text-center">
+                        <h3 style="color: var(--accent-purple);">1000+</h3>
+                        <small>Keycap Sets</small>
+                    </div>
+                     <div class="auth-stat auth-stat-active text-center">
+                        <h3>24h</h3>
+                        <small>Fast Dispatch</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side: Form -->
+            <div class="auth-form-side">
+                <div class="d-flex justify-content-between align-items-center mb-5">
+                    <div class="auth-logo">
+                        <span class="brand-icon"><i class="bi bi-keyboard"></i></span> KBShop
+                    </div>
+                </div>
+
+                <h2 class="auth-title">Sign in to your account</h2>
+                <p class="auth-subtitle">Don't have an account? <a href="/Account/Register" class="auth-link">Create one</a></p>
+
+                <form>
+                    <div class="mb-4">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control-auth" placeholder="you@example.com">
+                    </div>
+                    
+                    <div class="mb-4">
+                         <div class="d-flex justify-content-between">
+                            <label class="form-label">Password</label>
+                            <a href="#" class="auth-link small">Forgot password?</a>
+                        </div>
+                         <div class="position-relative">
+                            <input type="password" class="form-control-auth" placeholder="••••••••">
+                            <i class="bi bi-eye position-absolute top-50 end-0 translate-middle-y me-3 text-secondary" style="cursor: pointer;"></i>
+                        </div>
+                    </div>
+
+                    <div class="mb-4 form-check">
+                        <input type="checkbox" class="form-check-input bg-dark border-secondary" id="rememberMe">
+                        <label class="form-check-label text-secondary" for="rememberMe">Remember me for 30 days</label>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-2 mb-4">Sign in</button>
+
+                    <div class="auth-divider">Or continue with</div>
+
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <button type="button" class="social-btn">
+                                <i class="bi bi-google"></i> Google
+                            </button>
+                        </div>
+                        <div class="col-6">
+                            <button type="button" class="social-btn">
+                                <i class="bi bi-github"></i> GitHub
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                
+                <div class="mt-auto pt-5 text-center text-secondary small">
+                    By signing in, you agree to our <a href="#" class="text-success">Terms of Service</a> and <a href="#" class="text-success">Privacy Policy</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
