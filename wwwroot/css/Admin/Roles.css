@@ -1,0 +1,784 @@
+/* ========================================
+   ROLES & ADMIN MANAGEMENT PAGE STYLES
+   ======================================== */
+
+/* ─────────────────────────────────────────
+   ROLES PAGE COLOR PALETTE
+   ────────────────────────────────────────── */
+:root {
+    --bg: #f3f4f6;
+    --white: #ffffff;
+    --border: #e5e7eb;
+    --text-primary: #111827;
+    --text-muted: #6b7280;
+    --blue: #2563eb;
+    --blue-bg: #eff6ff;
+    --blue-text: #1d4ed8;
+    --green-bg: #dcfce7;
+    --green-text: #16a34a;
+    --red-bg: #fef2f2;
+    --red-text: #dc2626;
+    --orange-bg: #fff7ed;
+    --orange-text: #ea580c;
+    --gray-bg: #f3f4f6;
+    --radius: 14px;
+}
+
+/* ─────────────────────────────────────────
+   PAGE CONTAINER
+   ────────────────────────────────────────── */
+.page {
+    max-width: 100%;
+    padding: 36px 32px 80px;
+}
+
+/* ─────────────────────────────────────────
+   TOP BAR
+   ────────────────────────────────────────── */
+.topbar {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 28px;
+}
+
+.topbar h1 {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -.4px;
+}
+
+.topbar p {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+.create-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: var(--blue);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 11px 22px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, .28);
+}
+
+.create-btn:hover {
+    background: var(--blue-text);
+}
+
+/* ─────────────────────────────────────────
+   STAT CARDS GRID
+   ────────────────────────────────────────── */
+.stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+}
+
+.stat-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px 22px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.stat-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.si-blue {
+    background: var(--blue-bg);
+}
+
+.si-green {
+    background: var(--green-bg);
+}
+
+.si-red {
+    background: var(--red-bg);
+}
+
+.stat-value {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -.5px;
+}
+
+.stat-label {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+/* ─────────────────────────────────────────
+   TABS
+   ────────────────────────────────────────── */
+.tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 24px;
+}
+
+.tab {
+    padding: 12px 4px;
+    margin-right: 28px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color .15s, border-color .15s;
+    white-space: nowrap;
+}
+
+.tab.active {
+    color: var(--blue);
+    border-bottom-color: var(--blue);
+    font-weight: 600;
+}
+
+.tab:hover:not(.active) {
+    color: var(--text-primary);
+}
+
+/* ─────────────────────────────────────────
+   TAB PANELS
+   ────────────────────────────────────────── */
+.tab-panel {
+    display: none;
+}
+
+.tab-panel.active {
+    display: block;
+}
+
+/* ─────────────────────────────────────────
+   SEARCH
+   ────────────────────────────────────────── */
+.search-wrap {
+    position: relative;
+    max-width: 440px;
+    margin-bottom: 24px;
+}
+
+.search-wrap svg {
+    position: absolute;
+    left: 13px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    pointer-events: none;
+}
+
+.search-wrap input {
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 11px 14px 11px 38px;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--text-primary);
+    outline: none;
+    background: var(--white);
+    transition: border-color .15s, box-shadow .15s;
+}
+
+.search-wrap input:focus {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, .1);
+}
+
+.search-wrap input::placeholder {
+    color: var(--text-muted);
+}
+
+/* ─────────────────────────────────────────
+   ROLES GRID
+   ────────────────────────────────────────── */
+.roles-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+
+.role-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px 22px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    transition: box-shadow .15s, transform .15s;
+}
+
+.role-card:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, .07);
+    transform: translateY(-1px);
+}
+
+.role-card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+
+.role-icon-name {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.role-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.ri-red {
+    background: var(--red-bg);
+}
+
+.ri-blue {
+    background: var(--blue-bg);
+}
+
+.ri-green {
+    background: var(--green-bg);
+}
+
+.ri-orange {
+    background: var(--orange-bg);
+}
+
+.ri-gray {
+    background: var(--gray-bg);
+}
+
+.role-name {
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.role-desc {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.role-menu-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 20px;
+    padding: 2px 6px;
+    border-radius: 6px;
+    line-height: 1;
+    flex-shrink: 0;
+    transition: background .12s, color .12s;
+}
+
+.role-menu-btn:hover {
+    background: var(--bg);
+    color: var(--text-primary);
+}
+
+.role-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+}
+
+.role-users {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.role-users svg {
+    flex-shrink: 0;
+}
+
+.view-perms-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    padding: 0;
+    transition: color .15s;
+}
+
+.view-perms-btn:hover {
+    color: var(--blue);
+}
+
+/* ─────────────────────────────────────────
+   ADMIN USERS TABLE
+   ────────────────────────────────────────── */
+.table-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+.table-toolbar {
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid var(--border);
+}
+
+.table-toolbar .search-wrap {
+    margin-bottom: 0;
+    flex: 1;
+    max-width: 300px;
+}
+
+.invite-btn {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: var(--blue);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 9px 18px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s;
+}
+
+.invite-btn:hover {
+    background: var(--blue-text);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+thead th {
+    padding: 12px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+}
+
+tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background .1s;
+}
+
+tbody tr:last-child {
+    border-bottom: none;
+}
+
+tbody tr:hover {
+    background: #fafafa;
+}
+
+tbody td {
+    padding: 14px 16px;
+    font-size: 13px;
+    vertical-align: middle;
+}
+
+/* ─────────────────────────────────────────
+   USER CELL
+   ────────────────────────────────────────── */
+.user-cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.av {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.av-blue {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.av-green {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.av-purple {
+    background: #ede9fe;
+    color: #5b21b6;
+}
+
+.av-orange {
+    background: #ffedd5;
+    color: #c2410c;
+}
+
+.av-teal {
+    background: #ccfbf1;
+    color: #0f766e;
+}
+
+.av-pink {
+    background: #fce7f3;
+    color: #be185d;
+}
+
+.u-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.u-email {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 1px;
+}
+
+/* ─────────────────────────────────────────
+   ROLE TAGS
+   ────────────────────────────────────────── */
+.role-tag {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.rt-red {
+    background: var(--red-bg);
+    color: var(--red-text);
+}
+
+.rt-blue {
+    background: var(--blue-bg);
+    color: var(--blue-text);
+}
+
+.rt-green {
+    background: var(--green-bg);
+    color: var(--green-text);
+}
+
+.rt-orange {
+    background: var(--orange-bg);
+    color: var(--orange-text);
+}
+
+.rt-gray {
+    background: var(--gray-bg);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+}
+
+/* ─────────────────────────────────────────
+   STATUS INDICATORS
+   ────────────────────────────────────────── */
+.status-dot {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+}
+
+.dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.dot-active {
+    background: #16a34a;
+}
+
+.dot-inactive {
+    background: #9ca3af;
+}
+
+/* ─────────────────────────────────────────
+   ACTIONS BUTTON
+   ────────────────────────────────────────── */
+.axbtn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 18px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    line-height: 1;
+    transition: background .12s, color .12s;
+}
+
+.axbtn:hover {
+    background: var(--bg);
+    color: var(--text-primary);
+}
+
+/* ─────────────────────────────────────────
+   PERMISSIONS MODAL
+   ────────────────────────────────────────── */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .45);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-overlay.open {
+    display: flex;
+}
+
+.modal {
+    background: var(--white);
+    border-radius: var(--radius);
+    padding: 32px 28px;
+    width: 500px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, .15);
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.modal-title {
+    font-size: 17px;
+    font-weight: 700;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 20px;
+    padding: 4px;
+}
+
+.perm-section {
+    margin-bottom: 20px;
+}
+
+.perm-section h3 {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    margin-bottom: 10px;
+}
+
+.perm-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 9px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.perm-item:last-child {
+    border-bottom: none;
+}
+
+.perm-name {
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.perm-check {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.perm-yes {
+    background: var(--green-bg);
+}
+
+.perm-no {
+    background: var(--gray-bg);
+}
+
+/* ─────────────────────────────────────────
+   CREATE ROLE MODAL
+   ────────────────────────────────────────── */
+.mrow {
+    display: grid;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.mrow.one {
+    grid-template-columns: 1fr;
+}
+
+.mrow.two {
+    grid-template-columns: 1fr 1fr;
+}
+
+.fg {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.fg label {
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.fg input,
+.fg select,
+.fg textarea {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 13px;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--text-primary);
+    background: var(--white);
+    outline: none;
+    transition: border-color .15s;
+}
+
+.fg input:focus,
+.fg select:focus,
+.fg textarea:focus {
+    border-color: var(--blue);
+}
+
+.fg textarea {
+    resize: vertical;
+    min-height: 68px;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 24px;
+}
+
+.cancel-btn {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    background: var(--white);
+    color: var(--text-primary);
+    cursor: pointer;
+}
+
+.cancel-btn:hover {
+    background: var(--bg);
+}
+
+.submit-btn {
+    background: var(--blue);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 22px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s;
+}
+
+.submit-btn:hover {
+    background: var(--blue-text);
+}
+
+/* ─────────────────────────────────────────
+   TOAST NOTIFICATION
+   ────────────────────────────────────────── */
+.toast {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    background: #111827;
+    color: #fff;
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-size: 13px;
+    font-weight: 500;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity .25s, transform .25s;
+    pointer-events: none;
+    z-index: 999;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}

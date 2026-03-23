@@ -1,0 +1,263 @@
+@{
+    ViewData["Title"] = "Settings";
+    Layout = "_AdminLayout";
+}
+<div class="page">
+
+    <!-- Page header -->
+    <div class="page-header">
+        <h1>Settings</h1>
+        <p>Manage your store settings and preferences</p>
+    </div>
+
+    <div class="layout">
+
+        <!-- ── Side Nav ── -->
+        <nav class="sidenav">
+            <a class="nav-item active" onclick="switchTab(this, 'profile')">
+                <!-- Profile icon -->
+                <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                    <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+                </svg>
+                Profile
+            </a>
+            <a class="nav-item" onclick="switchTab(this, 'store')">
+                <!-- Store icon -->
+                <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+                </svg>
+                Store
+            </a>
+            <a class="nav-item" onclick="switchTab(this, 'notifications')">
+                <!-- Bell icon -->
+                <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                    <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/>
+                </svg>
+                Notifications
+            </a>
+            <a class="nav-item" onclick="switchTab(this, 'security')">
+                <!-- Shield icon -->
+                <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                Security
+            </a>
+            <a class="nav-item" onclick="switchTab(this, 'payments')">
+                <!-- Card icon -->
+                <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                    <rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>
+                </svg>
+                Payments
+            </a>
+            <a class="nav-item" onclick="switchTab(this, 'shipping')">
+                <!-- Truck icon -->
+                <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                    <rect x="1" y="3" width="15" height="13" rx="1.5"/>
+                    <path d="M16 8h4l3 5v3h-7V8z"/>
+                    <circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+                </svg>
+                Shipping
+            </a>
+        </nav>
+
+        <!-- ── Main Panel ── -->
+        <div class="settings-panel" id="panel-profile">
+            <div class="panel-title">Profile Information</div>
+            <div class="panel-sub">Update your account profile information and email address</div>
+
+            <hr class="divider" />
+
+            <!-- Avatar -->
+            <div class="avatar-row">
+                <div class="avatar" id="avatarEl" onclick="document.getElementById('photoInput').click()">
+                    <span id="avatarInitials">JD</span>
+                    <img id="avatarImg" src="" style="display:none;" alt="avatar" />
+                </div>
+                <div class="upload-col">
+                    <button class="upload-btn" onclick="document.getElementById('photoInput').click()">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                        Upload Photo
+                    </button>
+                    <input type="file" id="photoInput" accept="image/*" style="display:none;" onchange="previewPhoto(event)" />
+                    <div class="upload-hint">JPG, PNG or GIF. Max 2MB.</div>
+                </div>
+            </div>
+
+            <hr class="divider" />
+
+            <!-- First + Last name -->
+            <div class="form-row two-col">
+                <div class="form-group">
+                    <label for="firstName">First Name</label>
+                    <input type="text" id="firstName" value="John" placeholder="First name" />
+                </div>
+                <div class="form-group">
+                    <label for="lastName">Last Name</label>
+                    <input type="text" id="lastName" value="Doe" placeholder="Last name" />
+                </div>
+            </div>
+
+            <!-- Email -->
+            <div class="form-row one-col">
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" value="john.doe@keycraft.com" placeholder="Email address" />
+                </div>
+            </div>
+
+            <!-- Phone + Role -->
+            <div class="form-row two-col">
+                <div class="form-group">
+                    <label for="phone">Phone Number</label>
+                    <input type="tel" id="phone" value="+1 (555) 123-4567" placeholder="Phone number" />
+                </div>
+                <div class="form-group">
+                    <label for="role">Role</label>
+                    <input type="text" id="role" value="" placeholder="Store Administrator" readonly />
+                </div>
+            </div>
+
+            <!-- Save -->
+            <div class="panel-footer">
+                <button class="save-btn" onclick="saveChanges()">
+                    <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                        <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+                        <polyline points="17 21 17 13 7 13 7 21"/>
+                        <polyline points="7 3 7 8 15 8"/>
+                    </svg>
+                    Save Changes
+                </button>
+            </div>
+        </div>
+
+        <!-- Placeholder panels for other tabs -->
+        <div class="settings-panel" id="panel-store" style="display:none;">
+            <div class="panel-title">Store Settings</div>
+            <div class="panel-sub">Configure your store name, currency, and other preferences.</div>
+            <hr class="divider"/>
+            <div class="form-row one-col">
+                <div class="form-group">
+                    <label>Store Name</label>
+                    <input type="text" value="KeyCraft Store" />
+                </div>
+            </div>
+            <div class="form-row two-col">
+                <div class="form-group">
+                    <label>Currency</label>
+                    <input type="text" value="USD" />
+                </div>
+                <div class="form-group">
+                    <label>Timezone</label>
+                    <input type="text" value="UTC-5 (EST)" />
+                </div>
+            </div>
+            <div class="panel-footer">
+                <button class="save-btn" onclick="saveChanges()">
+                    <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                    Save Changes
+                </button>
+            </div>
+        </div>
+
+        <div class="settings-panel" id="panel-notifications" style="display:none;">
+            <div class="panel-title">Notification Preferences</div>
+            <div class="panel-sub">Choose how and when you receive notifications.</div>
+            <hr class="divider"/>
+            <p style="font-size:14px;color:var(--text-muted);">Notification settings coming soon.</p>
+        </div>
+
+        <div class="settings-panel" id="panel-security" style="display:none;">
+            <div class="panel-title">Security</div>
+            <div class="panel-sub">Manage your password and two-factor authentication.</div>
+            <hr class="divider"/>
+            <div class="form-row one-col">
+                <div class="form-group">
+                    <label>Current Password</label>
+                    <input type="password" placeholder="••••••••" />
+                </div>
+            </div>
+            <div class="form-row two-col">
+                <div class="form-group">
+                    <label>New Password</label>
+                    <input type="password" placeholder="••••••••" />
+                </div>
+                <div class="form-group">
+                    <label>Confirm Password</label>
+                    <input type="password" placeholder="••••••••" />
+                </div>
+            </div>
+            <div class="panel-footer">
+                <button class="save-btn" onclick="saveChanges()">
+                    <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                    Update Password
+                </button>
+            </div>
+        </div>
+
+        <div class="settings-panel" id="panel-payments" style="display:none;">
+            <div class="panel-title">Payment Methods</div>
+            <div class="panel-sub">Manage payment gateways and billing settings.</div>
+            <hr class="divider"/>
+            <p style="font-size:14px;color:var(--text-muted);">Payment settings coming soon.</p>
+        </div>
+
+        <div class="settings-panel" id="panel-shipping" style="display:none;">
+            <div class="panel-title">Shipping</div>
+            <div class="panel-sub">Configure shipping zones, rates, and carriers.</div>
+            <hr class="divider"/>
+            <p style="font-size:14px;color:var(--text-muted);">Shipping settings coming soon.</p>
+        </div>
+
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">Changes saved successfully!</div>
+
+<script>
+    const tabs = ['profile','store','notifications','security','payments','shipping'];
+
+    function switchTab(el, tab) {
+        // Update nav active state
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        el.classList.add('active');
+
+        // Show correct panel
+        tabs.forEach(t => {
+            const p = document.getElementById('panel-' + t);
+            if (p) p.style.display = (t === tab) ? 'block' : 'none';
+        });
+    }
+
+    function saveChanges() {
+        const toast = document.getElementById('toast');
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2800);
+    }
+
+    function previewPhoto(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (file.size > 2 * 1024 * 1024) { alert('File exceeds 2MB limit.'); return; }
+        const reader = new FileReader();
+        reader.onload = ev => {
+            const img = document.getElementById('avatarImg');
+            img.src = ev.target.result;
+            img.style.display = 'block';
+            document.getElementById('avatarInitials').style.display = 'none';
+        };
+        reader.readAsDataURL(file);
+    }
+
+    // Update initials dynamically
+    ['firstName','lastName'].forEach(id => {
+        document.getElementById(id).addEventListener('input', () => {
+            const f = document.getElementById('firstName').value.charAt(0).toUpperCase();
+            const l = document.getElementById('lastName').value.charAt(0).toUpperCase();
+            document.getElementById('avatarInitials').textContent = f + l;
+        });
+    });
+</script>

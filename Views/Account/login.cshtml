@@ -8,18 +8,18 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Login - KBShop</title>
+    <title>Login - KeyCraft</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 </head>
-<body style="overflow: hidden;">
+<body>
 
     <div class="auth-container">
         <div class="auth-split">
             <!-- Left Side: Visual (On Login, visual is Left in image) -->
              <div class="auth-visual">
-                <div class="keyboard-visual mb-5" style="transform: scale(0.8);">
+                @* <div class="keyboard-visual mb-5" style="transform: scale(0.8);">
                     <div class="key-grid">
                         <div class="key"></div> <div class="key"></div> <div class="key"></div> <div class="key"></div>
                         <div class="key"></div> <div class="key"></div> <div class="key accent-2"></div> <div class="key"></div>
@@ -28,7 +28,7 @@
                         <div class="key"></div> <div class="key"></div> <div class="key"></div> <div class="key"></div>
                          <div class="key"></div> <div class="key"></div> <div class="key space"></div> <div class="key"></div>
                     </div>
-                </div>
+                </div> *@
 
                 <h1 class="auth-visual-title">Welcome Back, <span style="color: var(--primary-color);">Enthusiast</span></h1>
                 <p class="auth-visual-desc">Your perfect typing experience awaits. Access exclusive group buys, track your orders, and discover premium keyboards.</p>
@@ -51,9 +51,14 @@
 
             <!-- Right Side: Form -->
             <div class="auth-form-side">
+                <div class="mb-4">
+                    <a href="/" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-arrow-left"></i> Back to Home
+                    </a>
+                </div>
                 <div class="d-flex justify-content-between align-items-center mb-5">
                     <div class="auth-logo">
-                        <span class="brand-icon"><i class="bi bi-keyboard"></i></span> KBShop
+                        <span class="brand-icon"><i class="bi bi-keyboard"></i></span> KeyCraft
                     </div>
                 </div>
 

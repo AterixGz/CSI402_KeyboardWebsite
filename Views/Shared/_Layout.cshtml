@@ -3,48 +3,103 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - KBShop</title>
+    <title>@ViewData["Title"] - KeyCraft</title>
+    <link rel="icon" type="image/png" href="~/image/Logo2.png">
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/KeyboardWebsiteProject.styles.css" asp-append-version="true" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@100..900&display=swap" rel="stylesheet">
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm fixed-top">
-            <div class="container">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">
-                    <span class="brand-icon"><i class="bi bi-keyboard"></i></span> KBShop
-                </a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex">
-                    <ul class="navbar-nav mx-auto mb-2 mb-lg-0">
-                        <li class="nav-item">
-                            <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#">Shop</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#">Group Buys</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#">Privacy</a>
-                        </li>
-                    </ul>
-                    <div class="d-flex align-items-center">
-                        <a asp-controller="Account" asp-action="Login" class="btn-login">Login</a>
-                        <a asp-controller="Account" asp-action="Register" class="btn btn-primary">Sign up</a>
-                    </div>
+    @{
+        var controller = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+        var action = ViewContext.RouteData.Values["action"]?.ToString() ?? "";
+        bool isHome = controller == "Home" && action == "Index";
+    }
+    
+    <!-- NAVBAR WRAPPER -->
+    <div class="navbar-wrapper">
+        <!-- ANNOUNCEMENT BAR -->
+        <div class="announcement-bar">
+            <div class="announcement-content">
+                <div class="announcement-item active ">
+                    <span class="announcement-badge">🎁</span>
+                    <span><strong>โปรคนซื้อเยอะ:</strong> ซื้อเกิน 2,000 บาท ลดเลย 100 บาท</span>
+                </div>
+                <div class="announcement-item">
+                    <span class="announcement-badge">🎯</span>
+                    <span><strong>โปรจับคู่:</strong> ซื้อคีย์บอร์ด + Keycap เดียวกัน ลด Keycap 10%</span>
+                </div>
+                <div class="announcement-item">
+                    <span class="announcement-badge">✨</span>
+                    <span><strong>โปรลูกค้าใหม่:</strong> พิมพ์โค้ด "HELLO" ลด 5% (ใช้ครั้งเดียว)</span>
+                </div>
+                <div class="announcement-item">
+                    <span class="announcement-badge">📦</span>
+                    <span><strong>ราคาส่ง:</strong> สวิตช์ 3 แพ็คขึ้นไป ปรับราคาขายส่งอัตโนมัติ</span>
+                </div>
+                <div class="announcement-item">
+                    <span class="announcement-badge">🚚</span>
+                    <span><strong>โปรส่งฟรี:</strong> ซื้อครบ 1,500 บาท ส่งฟรี</span>
                 </div>
             </div>
-        </nav>
-    </header>
+        </div>
+        
+        <header>
+            <nav class="navbar navbar-expand-sm navbar-toggleable-sm">
+                <div class="container">
+                    <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">
+                        <img src="~/image/Brand.png" alt="KeyCraft" class="brand-logo" style="max-width: 200px;">
+                    </a>
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                            aria-expanded="false" aria-label="Toggle navigation">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                    <div class="navbar-collapse collapse d-sm-inline-flex">
+                        <ul class="navbar-nav mx-auto mb-2 mb-lg-0">
+                            <li class="nav-item">
+                                <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Shop">Shop</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#">Keyboards</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#">Keycaps</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#">Switches</a>
+                            </li>
+                            @* admin btn *@
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-area="" asp-controller="Admin" asp-action="Dashboard">Admin</a>
+                                </li>
+                        </ul>
+                        <div class="d-flex align-items-center">
+                            @if (!isHome)
+                            {
+                                <a asp-controller="Home" asp-action="Cart" title="Shopping Cart" style="margin-right: 25px;">
+                                    <i class="bi bi-bag text-dark"></i>
+                                </a>
+                            }
+                            <a asp-controller="Account" asp-action="Login" class="btn-login">Login</a>
+                            @if (isHome)
+                            {
+                                <a asp-controller="Account" asp-action="Register" class="btn btn-primary">Sign up</a>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </header>
+    </div>
     
-    <div style="padding-top: 80px;">
+    <div style="padding-top: calc(var(--announcement-height) + var(--navbar-height));">
         @RenderBody()
     </div>
 
@@ -53,7 +108,7 @@
             <div class="row">
                 <div class="col-md-3 mb-4">
                     <div class="navbar-brand mb-3">
-                        <span class="brand-icon"><i class="bi bi-keyboard"></i></span> KBShop
+                        <img src="~/image/Brand.png" alt="KeyCraft" class="brand-logo w-120" style="max-width: 200px;">
                     </div>
                     <p class="text-secondary small" style="max-width: 250px;">Premium mechanical keyboards, keycaps, and switches for enthusiasts.</p>
                 </div>
@@ -86,6 +141,29 @@
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    
+    <!-- ANNOUNCEMENT CAROUSEL SCRIPT -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const items = document.querySelectorAll('.announcement-item');
+            let currentIndex = 0;
+
+            function rotateAnnouncement() {
+                // Remove active class from current item
+                items[currentIndex].classList.remove('active');
+                
+                // Move to next item
+                currentIndex = (currentIndex + 1) % items.length;
+                
+                // Add active class to new item
+                items[currentIndex].classList.add('active');
+            }
+
+            // Change announcement every 5 seconds
+            setInterval(rotateAnnouncement, 5000);
+        });
+    </script>
+    
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

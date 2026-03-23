@@ -1,15 +1,124 @@
 /* Google Fonts Import */
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
 
+/* ========================================
+   SCROLL FADE-IN ANIMATION
+   ======================================== */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in-section {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+}
+
+.fade-in-section.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* ========================================
+   ANNOUNCEMENT BAR & NAVBAR WRAPPER
+   ======================================== */
+:root {
+    --announcement-height: 40px;
+    --navbar-height: 60px;
+}
+
+.navbar-wrapper {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1020;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.announcement-bar {
+    background: linear-gradient(90deg, #2a2a2a 0%, #1f1f1f 100%);
+    color: #ffffff;
+    padding: 0;
+    font-size: 13px;
+    overflow: hidden;
+    height: var(--announcement-height);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Noto Sans Thai', sans-serif;
+}
+
+.announcement-content {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.announcement-item {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: auto;
+    opacity: 0;
+    transition: opacity 0.6s ease-in-out;
+    white-space: nowrap;
+    font-weight: 400;
+    letter-spacing: 0.3px;
+}
+
+.announcement-item.active {
+    opacity: 1;
+}
+
+.announcement-badge {
+    font-size: 16px;
+    display: inline-block;
+    min-width: 20px;
+    flex-shrink: 0;
+}
+
+.announcement-bar strong {
+    color: #00df9a;
+    font-weight: 500;
+    letter-spacing: 0.2px;
+}
+
+.navbar {
+    background-color: var(--bg-primary);
+    height: var(--navbar-height);
+    display: flex !important;
+    align-items: center;
+    flex-shrink: 0;
+    border-bottom: 1px solid #e0e0e0;
+}
+
 :root {
     /* Color Palette - High Fidelity */
-    --bg-primary: #050505;
+    --bg-primary: #ffffff;
     /* Pure Black-ish */
-    --bg-surface: #0f0f0f;
+    --bg-surface: #e4e4e4;
     /* Dark Grey Surface */
-    --bg-card: #0a0a0a;
+    --bg-card: #ffffff;
 
-    --text-primary: #ffffff;
+    --text-primary: #2f2f2f;
     --text-secondary: #a1a1aa;
     /* Light Grey */
 
@@ -66,15 +175,16 @@ a:hover {
 /* Navbar */
 .navbar {
     background-color: var(--bg-primary);
-    padding: 1.25rem 0;
+    padding: 2.5rem 0;
     border-bottom: 1px solid var(--border-color);
+    border-color: rgb(227, 227, 227);
 }
 
 .navbar-brand {
     font-family: 'Space Grotesk', sans-serif;
     font-weight: 700;
     font-size: 1.25rem;
-    color: white !important;
+    color: var(--text-primary) !important;
     display: flex;
     align-items: center;
     gap: 0.5rem;
@@ -101,14 +211,14 @@ a:hover {
 
 .nav-link:hover,
 .nav-link.active {
-    color: white !important;
+    color: rgb(27, 27, 27) !important;
 }
 
 /* Buttons */
 .btn-primary {
     background-color: var(--primary-color);
     border-color: var(--primary-color);
-    color: #000;
+    color: rgb(0, 0, 0);
     font-weight: 600;
     border-radius: 8px;
     padding: 0.6rem 1.5rem;
@@ -121,7 +231,7 @@ a:hover {
 }
 
 .btn-outline-light {
-    color: white;
+    color: rgb(0, 0, 0);
     border-color: var(--border-color);
     background: transparent;
     border-radius: 8px;
@@ -132,13 +242,14 @@ a:hover {
 .btn-outline-light:hover {
     background: var(--bg-surface);
     border-color: var(--text-secondary);
-    color: white;
+    color: rgb(4, 4, 4);
 }
 
 .btn-login {
-    color: white;
+    color: rgb(0, 0, 0);
     background: transparent;
     border: 1px solid var(--border-color);
+    border-color: rgb(181, 181, 181);
     border-radius: 8px;
     padding: 0.5rem 1.25rem;
     font-weight: 500;
@@ -146,8 +257,8 @@ a:hover {
 }
 
 .btn-login:hover {
-    border-color: white;
-    color: white;
+    border-color: rgb(0, 0, 0);
+    color: rgb(0, 0, 0);
 }
 
 /* Hero Section */
@@ -311,8 +422,9 @@ a:hover {
 
 /* Footer */
 footer {
-    background-color: black;
+    background-color: rgb(255, 255, 255);
     border-top: 1px solid var(--border-color);
+    border-color: rgb(227, 227, 227);
     padding: 4rem 0;
 }
 
@@ -382,7 +494,7 @@ footer {
 
 .auth-visual {
     flex: 1;
-    background: linear-gradient(135deg, #050505 0%, #0a0e17 50%, #050505 100%);
+    background: white;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -419,7 +531,7 @@ footer {
 
 .auth-form-side {
     flex: 1;
-    background: var(--bg-primary);
+    background: var(--b-primary);
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -434,7 +546,7 @@ footer {
     font-weight: 700;
     font-size: 1.25rem;
     margin-bottom: 3rem;
-    color: white;
+    color: rgb(44, 44, 44);
 }
 
 .auth-title {
@@ -456,7 +568,7 @@ footer {
 .form-control-auth {
     background: var(--bg-surface);
     border: 1px solid var(--border-color);
-    color: white;
+    color: black;
     padding: 0.75rem 1rem;
     border-radius: 8px;
     width: 100%;
@@ -469,7 +581,7 @@ footer {
 }
 
 .form-control-auth::placeholder {
-    color: #4a4a4a;
+    color: #a8a8a8;
 }
 
 .auth-divider {
@@ -500,7 +612,7 @@ footer {
     width: 100%;
     background: transparent;
     border: 1px solid var(--border-color);
-    color: white;
+    color: rgb(37, 37, 37);
     padding: 0.75rem;
     border-radius: 8px;
     font-weight: 500;

@@ -1,0 +1,314 @@
+@{
+    ViewData["Title"] = "Products";
+    Layout = "_AdminLayout";
+}
+
+<div class="page">
+
+    <!-- ── Top bar ── -->
+    <div class="topbar">
+        <div>
+            <h1>Products</h1>
+            <p>Manage your keyboard and keycap inventory</p>
+        </div>
+        <button class="add-btn" onclick="openModal()">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Add Product
+        </button>
+    </div>
+
+    <!-- ── Stat cards ── -->
+    <div class="stat-grid">
+        <div class="stat-card">
+            <div class="stat-icon si-blue">
+                <svg width="22" height="22" fill="none" stroke="#2563eb" stroke-width="1.8" viewBox="0 0 24 24">
+                    <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                    <line x1="12" y1="22.08" x2="12" y2="12"/>
+                </svg>
+            </div>
+            <div>
+                <div class="stat-label">Total Products</div>
+                <div class="stat-value" id="statTotal">248</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon si-green">
+                <svg width="22" height="22" fill="none" stroke="#16a34a" stroke-width="1.8" viewBox="0 0 24 24">
+                    <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                    <line x1="12" y1="22.08" x2="12" y2="12"/>
+                </svg>
+            </div>
+            <div>
+                <div class="stat-label">In Stock</div>
+                <div class="stat-value">186</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon si-orange">
+                <svg width="22" height="22" fill="none" stroke="#ea580c" stroke-width="1.8" viewBox="0 0 24 24">
+                    <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                    <line x1="12" y1="22.08" x2="12" y2="12"/>
+                </svg>
+            </div>
+            <div>
+                <div class="stat-label">Low Stock</div>
+                <div class="stat-value">42</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon si-red">
+                <svg width="22" height="22" fill="none" stroke="#dc2626" stroke-width="1.8" viewBox="0 0 24 24">
+                    <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                    <line x1="12" y1="22.08" x2="12" y2="12"/>
+                </svg>
+            </div>
+            <div>
+                <div class="stat-label">Out of Stock</div>
+                <div class="stat-value">20</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Filter bar ── -->
+    <div class="filter-bar">
+        <div class="search-wrap">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+            </svg>
+            <input type="text" id="searchInput" placeholder="Search products..." oninput="filterTable()" />
+        </div>
+
+        <select class="filter-select" id="catFilter" onchange="filterTable()">
+            <option value="">All Categories</option>
+            <option value="Mechanical Keyboard">Mechanical Keyboard</option>
+            <option value="Custom Keyboard">Custom Keyboard</option>
+            <option value="Keycaps">Keycaps</option>
+            <option value="Switches">Switches</option>
+            <option value="Accessories">Accessories</option>
+        </select>
+
+        <select class="filter-select" id="statusFilter" onchange="filterTable()">
+            <option value="">All Status</option>
+            <option value="In Stock">In Stock</option>
+            <option value="Low Stock">Low Stock</option>
+            <option value="Out of Stock">Out of Stock</option>
+        </select>
+
+        <div class="filter-bar-right">
+            <button class="icon-btn">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/>
+                </svg>
+                More Filters
+            </button>
+            <button class="icon-btn" onclick="exportProducts()">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                </svg>
+                Export
+            </button>
+        </div>
+    </div>
+
+    <!-- ── Table card ── -->
+    <div class="table-card">
+        <div class="table-header">All Products</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>SKU</th>
+                    <th>Category</th>
+                    <th>Price</th>
+                    <th>Stock</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="productsTable"></tbody>
+        </table>
+
+        <div class="pagination">
+            <span id="pageInfo">Showing 1–8 of 14 products</span>
+            <div class="page-btns">
+                <button class="pb" id="prevBtn" onclick="changePage(-1)">‹</button>
+                <button class="pb active" id="p1" onclick="goPage(1)">1</button>
+                <button class="pb" id="p2" onclick="goPage(2)">2</button>
+                <button class="pb" id="nextBtn" onclick="changePage(1)">›</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Add Product Modal ── -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOutside(event)">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title">Add New Product</div>
+            <button class="modal-close" onclick="closeModal()">✕</button>
+        </div>
+        <div class="mrow one">
+            <div class="fg"><label>Product Name</label><input type="text" id="mName" placeholder="e.g. Keychron K2 Pro" /></div>
+        </div>
+        <div class="mrow two">
+            <div class="fg"><label>SKU</label><input type="text" id="mSku" placeholder="e.g. KB-K2P-001" /></div>
+            <div class="fg">
+                <label>Category</label>
+                <select id="mCat">
+                    <option value="Mechanical Keyboard">Mechanical Keyboard</option>
+                    <option value="Custom Keyboard">Custom Keyboard</option>
+                    <option value="Keycaps">Keycaps</option>
+                    <option value="Switches">Switches</option>
+                    <option value="Accessories">Accessories</option>
+                </select>
+            </div>
+        </div>
+        <div class="mrow two">
+            <div class="fg"><label>Price ($)</label><input type="number" id="mPrice" placeholder="0.00" min="0" /></div>
+            <div class="fg"><label>Stock Quantity</label><input type="number" id="mStock" placeholder="0" min="0" /></div>
+        </div>
+        <div class="mrow one">
+            <div class="fg"><label>Description (optional)</label><textarea id="mDesc" placeholder="Brief product description..."></textarea></div>
+        </div>
+        <div class="modal-footer">
+            <button class="cancel-btn" onclick="closeModal()">Cancel</button>
+            <button class="submit-btn" onclick="addProduct()">Add Product</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">Product added successfully!</div>
+
+<script>
+    const products = [
+        { name:'Keychron K2 Pro',        sub:'Wireless / Hot-swap / RGB',         sku:'KB-K2P-001',  cat:'Mechanical Keyboard', price:89,  stock:45, status:'In Stock'    },
+        { name:'GMK Botanical Keycaps',   sub:'Cherry Profile / PBT',              sku:'KC-GMK-BOT',  cat:'Keycaps',             price:159, stock:12, status:'Low Stock'   },
+        { name:'GMMK Pro Barebones',      sub:'75% / Gasket Mount',                sku:'KB-GMMK-PRO', cat:'Custom Keyboard',     price:169, stock:0,  status:'Out of Stock'},
+        { name:'Gateron G Pro Switches',  sub:'Linear / 45g / Lubed',              sku:'SW-GAT-GPR',  cat:'Switches',            price:38,  stock:200,status:'In Stock'    },
+        { name:'Zoom75 Essential',        sub:'Gasket Mount / Hot-swappable',       sku:'KB-Z75-ESS',  cat:'Mechanical Keyboard', price:169, stock:8,  status:'Low Stock'   },
+        { name:'GMK Nord Keycaps',        sub:'Cherry Profile / PBT / Nordic',     sku:'KC-GMK-NRD',  cat:'Keycaps',             price:145, stock:30, status:'In Stock'    },
+        { name:'Boba U4T Switches',       sub:'Tactile / 62g / 10-pack',           sku:'SW-BOB-U4T',  cat:'Switches',            price:8,   stock:0,  status:'Out of Stock'},
+        { name:'Coiled Cable Pro',        sub:'Aviator / USB-C / 1.8m',            sku:'AC-CBL-PRO',  cat:'Accessories',         price:45,  stock:22, status:'In Stock'    },
+        { name:'Mode Sonnet 75%',         sub:'Multi-mount / Premium 75%',         sku:'KB-MOD-SON',  cat:'Custom Keyboard',     price:389, stock:5,  status:'Low Stock'   },
+        { name:'KAT Milkshake Keycaps',   sub:'KAT Profile / PBT / 140 keys',     sku:'KC-KAT-MLK',  cat:'Keycaps',             price:145, stock:18, status:'In Stock'    },
+        { name:'Krytox 205g0',            sub:'Switch Lubricant / 5ml',            sku:'AC-KRY-205',  cat:'Accessories',         price:12,  stock:85, status:'In Stock'    },
+        { name:'Durock V2 Stabilizers',   sub:'PCB Mount / Gold Plated',           sku:'AC-DUR-V2',   cat:'Accessories',         price:20,  stock:0,  status:'Out of Stock'},
+        { name:'QK65 V2',                 sub:'Bluetooth / Gasket / 65%',          sku:'KB-QK65-V2',  cat:'Mechanical Keyboard', price:145, stock:14, status:'Low Stock'   },
+        { name:'Desk Mat Midnight',        sub:'900×400mm / Stitched Edges',       sku:'AC-DSK-MDN',  cat:'Accessories',         price:29,  stock:40, status:'In Stock'    },
+    ];
+
+    const PER_PAGE = 8;
+    let currentPage = 1;
+    let filtered = [...products];
+
+    function statusCls(s) {
+        if (s === 'In Stock')     return 'badge-instock';
+        if (s === 'Low Stock')    return 'badge-low';
+        return 'badge-out';
+    }
+
+    function renderTable() {
+        const start = (currentPage - 1) * PER_PAGE;
+        const page  = filtered.slice(start, start + PER_PAGE);
+
+        document.getElementById('productsTable').innerHTML = page.map(p => `
+            <tr>
+                <td>
+                    <div class="prod-cell">
+                        <div class="prod-thumb">
+                            <svg width="22" height="22" fill="none" stroke="#d1d5db" stroke-width="1.5" viewBox="0 0 24 24">
+                                <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+                                <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                                <line x1="12" y1="22.08" x2="12" y2="12"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="prod-name">${p.name}</div>
+                            <div class="prod-sub">${p.sub}</div>
+                        </div>
+                    </div>
+                </td>
+                <td class="sku-cell">${p.sku}</td>
+                <td class="cat-cell">${p.cat}</td>
+                <td class="price-cell">$${p.price.toLocaleString()}</td>
+                <td class="stock-cell">${p.stock}</td>
+                <td><span class="badge ${statusCls(p.status)}">${p.status}</span></td>
+                <td><button class="axbtn">···</button></td>
+            </tr>
+        `).join('');
+
+        const total = filtered.length;
+        const end   = Math.min(start + PER_PAGE, total);
+        document.getElementById('pageInfo').textContent =
+            `Showing ${start + 1}–${end} of ${total} products`;
+
+        const pages = Math.ceil(total / PER_PAGE);
+        document.getElementById('p1').classList.toggle('active', currentPage === 1);
+        document.getElementById('p2').classList.toggle('active', currentPage === 2);
+        document.getElementById('p2').style.display = pages >= 2 ? '' : 'none';
+        document.getElementById('prevBtn').disabled = currentPage === 1;
+        document.getElementById('nextBtn').disabled = currentPage >= pages;
+    }
+
+    function filterTable() {
+        const q   = document.getElementById('searchInput').value.toLowerCase();
+        const cat = document.getElementById('catFilter').value;
+        const st  = document.getElementById('statusFilter').value;
+
+        filtered = products.filter(p => {
+            const matchQ  = !q  || p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q);
+            const matchC  = !cat || p.cat === cat;
+            const matchS  = !st  || p.status === st;
+            return matchQ && matchC && matchS;
+        });
+
+        currentPage = 1;
+        renderTable();
+    }
+
+    function changePage(d) { currentPage = Math.max(1, currentPage + d); renderTable(); }
+    function goPage(p)     { currentPage = p; renderTable(); }
+
+    // ── Modal ──
+    function openModal()  { document.getElementById('modalOverlay').classList.add('open'); }
+    function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+    function closeModalOutside(e) { if (e.target === document.getElementById('modalOverlay')) closeModal(); }
+
+    function addProduct() {
+        const name  = document.getElementById('mName').value.trim();
+        const sku   = document.getElementById('mSku').value.trim();
+        const cat   = document.getElementById('mCat').value;
+        const price = parseFloat(document.getElementById('mPrice').value) || 0;
+        const stock = parseInt(document.getElementById('mStock').value) || 0;
+        if (!name || !sku) return;
+
+        const status = stock === 0 ? 'Out of Stock' : stock <= 10 ? 'Low Stock' : 'In Stock';
+        products.unshift({ name, sub: cat, sku, cat, price, stock, status });
+        document.getElementById('statTotal').textContent = products.length;
+        filterTable();
+        closeModal();
+        ['mName','mSku','mPrice','mStock','mDesc'].forEach(id => document.getElementById(id).value = '');
+
+        const toast = document.getElementById('toast');
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2600);
+    }
+
+    function exportProducts() {
+        const toast = document.getElementById('toast');
+        toast.textContent = 'Products exported successfully!';
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2600);
+    }
+
+    renderTable();
+</script>

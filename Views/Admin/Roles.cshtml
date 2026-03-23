@@ -1,0 +1,394 @@
+@{
+    ViewData["Title"] = "Roles & Admin Management";
+    Layout = "_AdminLayout";
+}
+
+<div class="page">
+
+    <!-- ── Top bar ── -->
+    <div class="topbar">
+        <div>
+            <h1>Roles &amp; Admin Management</h1>
+            <p>Manage admin roles and user permissions</p>
+        </div>
+        <button class="create-btn" onclick="openCreateModal()">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Create Role
+        </button>
+    </div>
+
+    <!-- ── Stat cards ── -->
+    <div class="stat-grid">
+        <div class="stat-card">
+            <div class="stat-icon si-blue">
+                <svg width="22" height="22" fill="none" stroke="#2563eb" stroke-width="1.8" viewBox="0 0 24 24">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+            </div>
+            <div>
+                <div class="stat-value" id="statTotalRoles">5</div>
+                <div class="stat-label">Total Roles</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon si-green">
+                <svg width="22" height="22" fill="none" stroke="#16a34a" stroke-width="1.8" viewBox="0 0 24 24">
+                    <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
+                </svg>
+            </div>
+            <div>
+                <div class="stat-value">7</div>
+                <div class="stat-label">Total Admins</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon si-green">
+                <svg width="22" height="22" fill="none" stroke="#16a34a" stroke-width="1.8" viewBox="0 0 24 24">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    <polyline points="9 12 11 14 15 10"/>
+                </svg>
+            </div>
+            <div>
+                <div class="stat-value">6</div>
+                <div class="stat-label">Active Admins</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon si-red">
+                <svg width="22" height="22" fill="none" stroke="#dc2626" stroke-width="1.8" viewBox="0 0 24 24">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+            </div>
+            <div>
+                <div class="stat-value">1</div>
+                <div class="stat-label">Super Admins</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Tabs ── -->
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('roles', this)">Roles</div>
+        <div class="tab" onclick="switchTab('admins', this)">Admin Users</div>
+    </div>
+
+    <!-- ── ROLES PANEL ── -->
+    <div class="tab-panel active" id="panel-roles">
+        <div class="search-wrap">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+            </svg>
+            <input type="text" id="roleSearch" placeholder="Search roles..." oninput="filterRoles()" />
+        </div>
+
+        <div class="roles-grid" id="rolesGrid"></div>
+    </div>
+
+    <!-- ── ADMIN USERS PANEL ── -->
+    <div class="tab-panel" id="panel-admins">
+        <div class="table-card">
+            <div class="table-toolbar">
+                <div class="search-wrap">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+                    </svg>
+                    <input type="text" placeholder="Search admins..." id="adminSearch" oninput="filterAdmins()" />
+                </div>
+                <button class="invite-btn">
+                    <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                        <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                        <circle cx="8.5" cy="7" r="4"/>
+                        <line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/>
+                    </svg>
+                    Invite Admin
+                </button>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Admin</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Last Active</th>
+                        <th>Joined</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="adminsTable"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ── Permissions Modal ── -->
+<div class="modal-overlay" id="permModal" onclick="closePermOutside(event)">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title" id="permModalTitle">Permissions</div>
+            <button class="modal-close" onclick="closePermModal()">✕</button>
+        </div>
+        <div id="permModalBody"></div>
+    </div>
+</div>
+
+<!-- ── Create Role Modal ── -->
+<div class="modal-overlay" id="createModal" onclick="closeCreateOutside(event)">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title">Create New Role</div>
+            <button class="modal-close" onclick="closeCreateModal()">✕</button>
+        </div>
+        <div class="mrow one">
+            <div class="fg"><label>Role Name</label><input type="text" id="crName" placeholder="e.g. Marketing Manager" /></div>
+        </div>
+        <div class="mrow one">
+            <div class="fg"><label>Description</label><textarea id="crDesc" placeholder="Brief description of this role..."></textarea></div>
+        </div>
+        <div class="mrow two">
+            <div class="fg">
+                <label>Icon Color</label>
+                <select id="crColor">
+                    <option value="ri-blue">Blue</option>
+                    <option value="ri-green">Green</option>
+                    <option value="ri-red">Red</option>
+                    <option value="ri-orange">Orange</option>
+                    <option value="ri-gray">Gray</option>
+                </select>
+            </div>
+            <div class="fg">
+                <label>Initial Users</label>
+                <input type="number" id="crUsers" value="0" min="0" />
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="cancel-btn" onclick="closeCreateModal()">Cancel</button>
+            <button class="submit-btn" onclick="createRole()">Create Role</button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">Role created successfully!</div>
+
+<script>
+    /* ── DATA ── */
+    const roles = [
+        {
+            name: 'Super Admin', desc: 'Full access to all features and settings',
+            icon: 'ri-red', iconStroke: '#dc2626', users: 2,
+            perms: {
+                'Products': ['View Products','Add Products','Edit Products','Delete Products'],
+                'Orders':   ['View Orders','Manage Orders','Refund Orders'],
+                'Users':    ['View Users','Manage Users','Delete Users'],
+                'Settings': ['Access Settings','Manage Roles'],
+            }
+        },
+        {
+            name: 'Store Manager', desc: 'Manage products, orders, and customers',
+            icon: 'ri-blue', iconStroke: '#2563eb', users: 5,
+            perms: {
+                'Products': ['View Products','Add Products','Edit Products'],
+                'Orders':   ['View Orders','Manage Orders'],
+                'Users':    ['View Users'],
+                'Settings': [],
+            }
+        },
+        {
+            name: 'Sales Staff', desc: 'Handle orders and customer inquiries',
+            icon: 'ri-green', iconStroke: '#16a34a', users: 12,
+            perms: {
+                'Products': ['View Products'],
+                'Orders':   ['View Orders','Manage Orders'],
+                'Users':    ['View Users'],
+                'Settings': [],
+            }
+        },
+        {
+            name: 'Inventory Manager', desc: 'Manage product inventory and stock',
+            icon: 'ri-orange', iconStroke: '#ea580c', users: 3,
+            perms: {
+                'Products': ['View Products','Add Products','Edit Products'],
+                'Orders':   ['View Orders'],
+                'Users':    [],
+                'Settings': [],
+            }
+        },
+        {
+            name: 'Viewer', desc: 'Read-only access to dashboard',
+            icon: 'ri-gray', iconStroke: '#6b7280', users: 8,
+            perms: {
+                'Products': ['View Products'],
+                'Orders':   ['View Orders'],
+                'Users':    [],
+                'Settings': [],
+            }
+        },
+    ];
+
+    const ALL_PERMS = {
+        'Products': ['View Products','Add Products','Edit Products','Delete Products'],
+        'Orders':   ['View Orders','Manage Orders','Refund Orders'],
+        'Users':    ['View Users','Manage Users','Delete Users'],
+        'Settings': ['Access Settings','Manage Roles'],
+    };
+
+    const admins = [
+        { f:'James',  l:'Wilson',  e:'james.wilson@keycraft.com', role:'Super Admin',       rtag:'rt-red',    status:'Active',   last:'Mar 23, 2026', joined:'Jan 15, 2024', av:'av-blue'   },
+        { f:'Sarah',  l:'Chen',    e:'sarah.chen@keycraft.com',   role:'Store Manager',     rtag:'rt-blue',   status:'Active',   last:'Mar 23, 2026', joined:'Feb 22, 2024', av:'av-green'  },
+        { f:'Michael',l:'Brown',   e:'m.brown@keycraft.com',      role:'Sales Staff',       rtag:'rt-green',  status:'Active',   last:'Mar 22, 2026', joined:'Mar 10, 2024', av:'av-purple' },
+        { f:'Emily',  l:'Davis',   e:'emily.davis@keycraft.com',  role:'Store Manager',     rtag:'rt-blue',   status:'Active',   last:'Mar 21, 2026', joined:'Nov 5, 2023',  av:'av-orange' },
+        { f:'Daniel', l:'Martinez',e:'d.martinez@keycraft.com',   role:'Inventory Manager', rtag:'rt-orange', status:'Active',   last:'Mar 20, 2026', joined:'Apr 18, 2024', av:'av-teal'   },
+        { f:'Olivia', l:'Taylor',  e:'olivia.t@keycraft.com',     role:'Viewer',            rtag:'rt-gray',   status:'Inactive', last:'Feb 10, 2026', joined:'May 30, 2024', av:'av-pink'   },
+        { f:'William',l:'Johnson', e:'will.j@keycraft.com',       role:'Sales Staff',       rtag:'rt-green',  status:'Active',   last:'Mar 19, 2026', joined:'Jan 3, 2024',  av:'av-blue'   },
+    ];
+
+    let filteredRoles = [...roles];
+    let filteredAdmins = [...admins];
+
+    /* ── Render Roles ── */
+    function shieldIcon(stroke) {
+        return `<svg width="20" height="20" fill="none" stroke="${stroke}" stroke-width="1.8" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`;
+    }
+
+    function renderRoles() {
+        document.getElementById('rolesGrid').innerHTML = filteredRoles.map((r, i) => `
+            <div class="role-card">
+                <div class="role-card-top">
+                    <div class="role-icon-name">
+                        <div class="role-icon ${r.icon}">${shieldIcon(r.iconStroke)}</div>
+                        <div>
+                            <div class="role-name">${r.name}</div>
+                            <div class="role-desc">${r.desc}</div>
+                        </div>
+                    </div>
+                    <button class="role-menu-btn">···</button>
+                </div>
+                <div class="role-card-footer">
+                    <div class="role-users">
+                        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
+                        </svg>
+                        ${r.users} users
+                    </div>
+                    <button class="view-perms-btn" onclick="openPermModal(${roles.indexOf(r)})">View Permissions</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function filterRoles() {
+        const q = document.getElementById('roleSearch').value.toLowerCase();
+        filteredRoles = roles.filter(r =>
+            r.name.toLowerCase().includes(q) || r.desc.toLowerCase().includes(q)
+        );
+        renderRoles();
+    }
+
+    /* ── Render Admins ── */
+    function renderAdmins() {
+        document.getElementById('adminsTable').innerHTML = filteredAdmins.map(a => `
+            <tr>
+                <td>
+                    <div class="user-cell">
+                        <div class="av ${a.av}">${a.f[0]}${a.l[0]}</div>
+                        <div>
+                            <div class="u-name">${a.f} ${a.l}</div>
+                            <div class="u-email">${a.e}</div>
+                        </div>
+                    </div>
+                </td>
+                <td><span class="role-tag ${a.rtag}">${a.role}</span></td>
+                <td>
+                    <div class="status-dot">
+                        <div class="dot ${a.status === 'Active' ? 'dot-active' : 'dot-inactive'}"></div>
+                        ${a.status}
+                    </div>
+                </td>
+                <td style="color:var(--text-muted);font-size:13px">${a.last}</td>
+                <td style="color:var(--text-muted);font-size:13px">${a.joined}</td>
+                <td><button class="axbtn">···</button></td>
+            </tr>
+        `).join('');
+    }
+
+    function filterAdmins() {
+        const q = document.getElementById('adminSearch').value.toLowerCase();
+        filteredAdmins = admins.filter(a =>
+            `${a.f} ${a.l} ${a.e} ${a.role}`.toLowerCase().includes(q)
+        );
+        renderAdmins();
+    }
+
+    /* ── Tabs ── */
+    function switchTab(tab, el) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        el.classList.add('active');
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        document.getElementById('panel-' + tab).classList.add('active');
+    }
+
+    /* ── Permissions Modal ── */
+    function openPermModal(idx) {
+        const r = roles[idx];
+        document.getElementById('permModalTitle').textContent = r.name + ' — Permissions';
+        const body = Object.entries(ALL_PERMS).map(([section, allPerms]) => {
+            const granted = r.perms[section] || [];
+            const items = allPerms.map(p => `
+                <div class="perm-item">
+                    <div class="perm-name">${p}</div>
+                    <div class="perm-check ${granted.includes(p) ? 'perm-yes' : 'perm-no'}">
+                        ${granted.includes(p)
+                            ? `<svg width="12" height="12" fill="none" stroke="#16a34a" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>`
+                            : `<svg width="12" height="12" fill="none" stroke="#9ca3af" stroke-width="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`
+                        }
+                    </div>
+                </div>
+            `).join('');
+            return `<div class="perm-section"><h3>${section}</h3>${items}</div>`;
+        }).join('');
+        document.getElementById('permModalBody').innerHTML = body;
+        document.getElementById('permModal').classList.add('open');
+    }
+    function closePermModal()         { document.getElementById('permModal').classList.remove('open'); }
+    function closePermOutside(e)      { if (e.target === document.getElementById('permModal')) closePermModal(); }
+
+    /* ── Create Role Modal ── */
+    function openCreateModal()        { document.getElementById('createModal').classList.add('open'); }
+    function closeCreateModal()       { document.getElementById('createModal').classList.remove('open'); }
+    function closeCreateOutside(e)    { if (e.target === document.getElementById('createModal')) closeCreateModal(); }
+
+    function createRole() {
+        const name  = document.getElementById('crName').value.trim();
+        const desc  = document.getElementById('crDesc').value.trim();
+        const color = document.getElementById('crColor').value;
+        const users = parseInt(document.getElementById('crUsers').value) || 0;
+        if (!name) return;
+
+        const strokeMap = { 'ri-blue':'#2563eb','ri-green':'#16a34a','ri-red':'#dc2626','ri-orange':'#ea580c','ri-gray':'#6b7280' };
+        roles.unshift({ name, desc: desc || 'Custom role', icon: color, iconStroke: strokeMap[color], users, perms:{} });
+        document.getElementById('statTotalRoles').textContent = roles.length;
+        filteredRoles = [...roles];
+        renderRoles();
+        closeCreateModal();
+        ['crName','crDesc','crUsers'].forEach(id => document.getElementById(id).value = id === 'crUsers' ? '0' : '');
+        showToast('Role created successfully!');
+    }
+
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 2600);
+    }
+
+    /* ── Init ── */
+    renderRoles();
+    renderAdmins();
+</script>

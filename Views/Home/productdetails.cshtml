@@ -1,0 +1,379 @@
+@{
+    ViewData["Title"] = "productName";
+
+    var switchTypes = new[] { "Gateron Red", "Gateron Brown", "Gateron Blue", "Gateron Yellow" };
+    var layouts = new[] { "ANSI (US)", "ISO (EU)", "JIS (JP)" };
+
+    var specs = new[]
+    {
+        ("Layout",         "75% (84 keys)"),
+        ("Switch Type",    "Hot-swappable (3-pin / 5-pin)"),
+        ("Keycaps",        "PBT Double-shot, Cherry Profile"),
+        ("Backlight",      "RGB Per-key, 16.8M colors"),
+        ("Connectivity",   "USB-C Wired / Bluetooth 5.0 / 2.4GHz Wireless"),
+        ("Battery",        "4000mAh (up to 200 hours)"),
+        ("Frame Material", "Aluminum alloy, CNC machined"),
+        ("Weight",         "950g (without cable)"),
+        ("Dimensions",     "325 x 145 x 40mm"),
+        ("Software",       "KeyCraft Studio (Windows/macOS)"),
+        ("Included",       "USB-C cable, keycap puller, switch puller, extra keycaps"),
+    };
+
+    var reviews = new[]
+    {
+        new {
+            Initial     = "A",
+            Name        = "Alex Chen",
+            Date        = "March 15, 2026",
+            Stars       = 5,
+            Title       = "Best keyboard I've ever owned!",
+            Body        = "The build quality is exceptional. The aluminum frame feels premium and the typing experience with Gateron Yellow switches is incredibly smooth. RGB lighting is vibrant and the software allows for extensive customization. Highly recommended for both work and gaming.",
+            HelpfulCount = 24
+        },
+        new {
+            Initial     = "S",
+            Name        = "Sarah Kim",
+            Date        = "March 10, 2026",
+            Stars       = 5,
+            Title       = "Perfect for programming",
+            Body        = "As a software developer, I spend 8+ hours a day typing. This keyboard has significantly reduced my fatigue. The PBT keycaps have a satisfying texture and the hot-swap feature means I can experiment with different switches without soldering.",
+            HelpfulCount = 18
+        }
+    };
+
+    var starDist = new[] { (5, 2), (4, 1), (3, 0), (2, 0), (1, 0) };
+    int maxCount = starDist.Max(x => x.Item2);
+}
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] – KeyCraft</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/Home/Productdetails.css" />
+</head>
+<body>
+
+<!-- TOAST -->
+<div class="toast" id="toast">✓ Added to cart!</div>
+
+<div class="page">
+
+    <!-- ── HERO ── -->
+    <section class="hero">
+
+        <!-- Gallery -->
+        <div class="gallery">
+            <div class="gallery-main">
+                <!-- Inline SVG keyboard illustration -->
+                <svg class="kb-placeholder" viewBox="0 0 520 190" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="8" y="16" width="504" height="158" rx="14" fill="#202020" stroke="#333" stroke-width="1.5"/>
+                    <!-- Row 1 -->
+                    <rect x="22" y="28" width="32" height="24" rx="5" fill="#F5C842"/>
+                    <rect x="60" y="28" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="90" y="28" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="120" y="28" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="150" y="28" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="180" y="28" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="210" y="28" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="240" y="28" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="270" y="28" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="300" y="28" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="330" y="28" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="360" y="28" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="390" y="28" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="420" y="28" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="454" y="28" width="30" height="24" rx="5" fill="#F5C842"/>
+                    <!-- Row 2 -->
+                    <rect x="22" y="58" width="38" height="24" rx="5" fill="#2a2a2a" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="66" y="58" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="96" y="58" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="126" y="58" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="156" y="58" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="186" y="58" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="216" y="58" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="246" y="58" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="276" y="58" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="306" y="58" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="336" y="58" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="366" y="58" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="396" y="58" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="426" y="58" width="58" height="24" rx="5" fill="#2a2a2a" stroke="#3a3a3a" stroke-width="1"/>
+                    <!-- Row 3 -->
+                    <rect x="22" y="88" width="44" height="24" rx="5" fill="#2a2a2a" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="72" y="88" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="102" y="88" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="132" y="88" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="162" y="88" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="192" y="88" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="222" y="88" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="252" y="88" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="282" y="88" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="312" y="88" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="342" y="88" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="372" y="88" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="402" y="88" width="82" height="24" rx="5" fill="#2a2a2a" stroke="#3a3a3a" stroke-width="1"/>
+                    <!-- Row 4 -->
+                    <rect x="22" y="118" width="56" height="24" rx="5" fill="#2a2a2a" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="84" y="118" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="114" y="118" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="144" y="118" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="174" y="118" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="204" y="118" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="234" y="118" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="264" y="118" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="294" y="118" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="324" y="118" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="354" y="118" width="56" height="24" rx="5" fill="#2a2a2a" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="420" y="118" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="450" y="118" width="24" height="24" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <!-- Spacebar row -->
+                    <rect x="22"  y="148" width="30" height="20" rx="5" fill="#2a2a2a" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="58"  y="148" width="30" height="20" rx="5" fill="#2a2a2a" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="94"  y="148" width="30" height="20" rx="5" fill="#2a2a2a" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="130" y="148" width="192" height="20" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="328" y="148" width="24" height="20" rx="5" fill="#2a2a2a" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="358" y="148" width="24" height="20" rx="5" fill="#2a2a2a" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="388" y="148" width="24" height="20" rx="5" fill="#2a2a2a" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="418" y="148" width="24" height="20" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <rect x="448" y="148" width="24" height="20" rx="5" fill="#2c2c2c" stroke="#3a3a3a" stroke-width="1"/>
+                    <!-- RGB glow strip -->
+                    <defs>
+                        <linearGradient id="rgb" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%"   stop-color="#ff4444" stop-opacity=".6"/>
+                            <stop offset="33%"  stop-color="#F5C842" stop-opacity=".6"/>
+                            <stop offset="66%"  stop-color="#44ff88" stop-opacity=".6"/>
+                            <stop offset="100%" stop-color="#4488ff" stop-opacity=".6"/>
+                        </linearGradient>
+                    </defs>
+                    <rect x="8" y="169" width="504" height="4" rx="2" fill="url(#rgb)" opacity=".7"/>
+                </svg>
+            </div>
+            <div class="thumbs">
+                <div class="thumb active" onclick="selThumb(this)">⌨️</div>
+                <div class="thumb" onclick="selThumb(this)">🎨</div>
+                <div class="thumb" onclick="selThumb(this)">🔲</div>
+                <div class="thumb" onclick="selThumb(this)">📐</div>
+            </div>
+        </div>
+
+        <!-- Product Info -->
+        <div class="info">
+            <span class="brand-label">KeyCraft</span>
+            <h1 class="product-name">Aurora Pro 75% Mechanical Keyboard</h1>
+
+            <div class="rating-row">
+                <div class="stars">
+                    <span class="star">★</span>
+                    <span class="star">★</span>
+                    <span class="star">★</span>
+                    <span class="star">★</span>
+                    <span class="star empty">★</span>
+                </div>
+                <span class="rating-meta">4.8 (128 reviews)</span>
+            </div>
+
+            <div class="price-row">
+                <span class="price">฿4,990</span>
+                <span class="price-orig">฿5,990</span>
+                <span class="discount-badge">-17%</span>
+            </div>
+
+            <p class="desc">
+                Experience the perfect fusion of form and function with the Aurora Pro.
+                Featuring hot-swappable switches, premium PBT keycaps, and customizable RGB lighting,
+                this 75% keyboard delivers exceptional typing comfort without sacrificing essential keys.
+            </p>
+
+            <!-- Switch Type -->
+            <div class="opt-section">
+                <span class="opt-title">Switch Type</span>
+                <div class="opt-btns" id="grp-switch">
+                    @foreach (var sw in switchTypes)
+                    {
+                        <button class="opt-btn @(sw == switchTypes[0] ? "active" : "")"
+                                onclick="selectOpt(this,'grp-switch')">@sw</button>
+                    }
+                </div>
+            </div>
+
+            <!-- Layout -->
+            <div class="opt-section">
+                <span class="opt-title">Layout</span>
+                <div class="opt-btns" id="grp-layout">
+                    @foreach (var ly in layouts)
+                    {
+                        <button class="opt-btn @(ly == layouts[0] ? "active" : "")"
+                                onclick="selectOpt(this,'grp-layout')">@ly</button>
+                    }
+                </div>
+            </div>
+
+            <!-- Quantity -->
+            <div class="opt-section">
+                <span class="opt-title">Quantity</span>
+                <div class="qty-wrap">
+                    <button class="qty-btn" onclick="changeQty(-1)">−</button>
+                    <input  class="qty-val" id="qty-val" value="1" readonly />
+                    <button class="qty-btn" onclick="changeQty(1)">+</button>
+                </div>
+            </div>
+
+            <div class="in-stock">
+                <span class="stock-dot"></span>
+                In Stock
+            </div>
+
+            <div class="cta-row">
+                <button class="btn-primary" onclick="addToCart()">Add to Cart</button>
+                <button class="btn-outline">Buy Now</button>
+            </div>
+        </div>
+    </section>
+
+    <hr class="divider" />
+
+    <!-- ── PERKS ── -->
+    <div class="perks">
+        <div class="perk">
+            <span class="perk-icon">🚚</span>
+            <div>
+                <div class="perk-title">Free Shipping</div>
+                <div class="perk-sub">Orders over ฿1,500</div>
+            </div>
+        </div>
+        <div class="perk">
+            <span class="perk-icon">🛡️</span>
+            <div>
+                <div class="perk-title">2 Year Warranty</div>
+                <div class="perk-sub">Full coverage</div>
+            </div>
+        </div>
+        <div class="perk">
+            <span class="perk-icon">↩️</span>
+            <div>
+                <div class="perk-title">30 Days Return</div>
+                <div class="perk-sub">Easy returns</div>
+            </div>
+        </div>
+    </div>
+
+    <hr class="divider" />
+
+    <!-- ── SPECIFICATIONS ── -->
+    <section>
+        <h2 class="section-title">Specifications</h2>
+        <table class="spec-table">
+            @foreach (var (label, value) in specs)
+            {
+                <tr>
+                    <td>@label</td>
+                    <td>@value</td>
+                </tr>
+            }
+        </table>
+    </section>
+
+    <hr class="divider" />
+
+    <!-- ── REVIEWS ── -->
+    <section>
+        <h2 class="section-title">Customer Reviews</h2>
+
+        <div class="rating-card">
+            <div class="rating-score">
+                <div class="rating-num">4.8</div>
+                <div class="stars" style="justify-content:center;margin-top:6px;">
+                    <span class="star">★</span>
+                    <span class="star">★</span>
+                    <span class="star">★</span>
+                    <span class="star">★</span>
+                    <span class="star">★</span>
+                </div>
+                <div class="rating-based">Based on 128 reviews</div>
+            </div>
+            <div class="bars">
+                @foreach (var (star, count) in starDist)
+                {
+                    int pct = maxCount > 0 ? count * 100 / maxCount : 0;
+                    <div class="bar-row">
+                        <span class="bar-label">@star star</span>
+                        <div class="bar-track">
+                            <div class="bar-fill" style="width:@pct%"></div>
+                        </div>
+                        <span class="bar-count">@count</span>
+                    </div>
+                }
+            </div>
+        </div>
+
+        @foreach (var r in reviews)
+        {
+            <div class="review-card">
+                <div class="review-head">
+                    <div class="reviewer-info">
+                        <div class="avatar">@r.Initial</div>
+                        <div>
+                            <div>
+                                <span class="reviewer-name">@r.Name</span>
+                                <span class="verified-badge">Verified Purchase</span>
+                            </div>
+                            <div class="review-date">@r.Date</div>
+                        </div>
+                    </div>
+                    <div class="stars">
+                        @for (int i = 0; i < r.Stars; i++)
+                        {
+                            <span class="star">★</span>
+                        }
+                    </div>
+                </div>
+                <div class="review-title">@r.Title</div>
+                <div class="review-body">@r.Body</div>
+                <button class="helpful-btn">👍 Helpful (@r.HelpfulCount)</button>
+            </div>
+        }
+
+        <button class="btn-load-more">Load More Reviews</button>
+    </section>
+
+</div><!-- /page -->
+
+<script>
+    // ── Quantity ──
+    let qty = 1;
+    function changeQty(delta) {
+        qty = Math.max(1, qty + delta);
+        document.getElementById('qty-val').value = qty;
+    }
+
+    // ── Option buttons ──
+    function selectOpt(btn, groupId) {
+        document.getElementById(groupId)
+            .querySelectorAll('.opt-btn')
+            .forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    }
+
+    // ── Gallery thumbnails ──
+    function selThumb(el) {
+        document.querySelectorAll('.thumb').forEach(t => t.classList.remove('active'));
+        el.classList.add('active');
+    }
+
+    // ── Add to Cart ──
+    function addToCart() {
+        const sw  = document.querySelector('#grp-switch .active')?.textContent ?? '';
+        const ly  = document.querySelector('#grp-layout .active')?.textContent ?? '';
+        const toast = document.getElementById('toast');
+        toast.textContent = `✓ Added ${qty}x Aurora Pro (${sw}, ${ly}) to cart!`;
+        toast.style.display = 'block';
+        clearTimeout(toast._t);
+        toast._t = setTimeout(() => toast.style.display = 'none', 3000);
+    }
+</script>
+
+</body>
+</html>

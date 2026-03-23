@@ -1,0 +1,416 @@
+@{
+    ViewData["Title"] = "Shopping Cart";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Shopping Cart</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg: #f5f5f7;
+            --white: #ffffff;
+            --border: #e4e4e7;
+            --text-primary: #18181b;
+            --text-muted: #71717a;
+            --green: #10b981;
+            --green-dark: #059669;
+            --radius: 14px;
+            --shadow: 0 1px 4px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        /* ── Page wrapper ── */
+        .page {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 32px 80px;
+        }
+
+        /* ── Top bar ── */
+        .topbar {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 32px;
+        }
+        .topbar h1 { font-size: 26px; font-weight: 700; letter-spacing: -.4px; }
+        .topbar p  { font-size: 14px; color: var(--text-muted); margin-top: 4px; }
+
+        .clear-btn {
+            display: flex; align-items: center; gap: 7px;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            padding: 9px 18px;
+            font-family: inherit; font-size: 13px;
+            font-weight: 500; color: var(--text-primary);
+            background: var(--white); cursor: pointer;
+            transition: border-color .15s, color .15s;
+        }
+        .clear-btn:hover { border-color: #b91c1c; color: #b91c1c; }
+        .clear-btn svg { flex-shrink: 0; }
+
+        /* ── Two-column layout ── */
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 24px;
+            align-items: start;
+        }
+
+        /* ── Cart item card ── */
+        .cart-card {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+        }
+
+        .cart-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 18px;
+        }
+
+        .item-thumb {
+            width: 72px; height: 72px; flex-shrink: 0;
+            background: #f0f1f4;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .item-info { flex: 1; }
+        .item-name { font-size: 15px; font-weight: 600; margin-bottom: 3px; }
+        .item-desc { font-size: 13px; color: var(--text-muted); margin-bottom: 4px; }
+        .item-cat  { font-size: 12px; color: var(--text-muted); }
+
+        .item-del {
+            background: none; border: none; cursor: pointer;
+            color: var(--text-muted); padding: 4px;
+            transition: color .15s;
+            flex-shrink: 0;
+        }
+        .item-del:hover { color: #b91c1c; }
+
+        .item-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 18px;
+        }
+
+        /* Quantity stepper */
+        .qty {
+            display: flex; align-items: center; gap: 0;
+            border: 1px solid var(--border); border-radius: 8px;
+            overflow: hidden; background: var(--white);
+        }
+        .qty-btn {
+            width: 36px; height: 36px;
+            background: none; border: none;
+            font-size: 18px; cursor: pointer;
+            color: var(--text-primary);
+            display: flex; align-items: center; justify-content: center;
+            transition: background .12s;
+        }
+        .qty-btn:hover { background: var(--bg); }
+        .qty-num {
+            width: 36px; text-align: center;
+            font-size: 14px; font-weight: 600;
+            border-left: 1px solid var(--border);
+            border-right: 1px solid var(--border);
+            line-height: 36px;
+        }
+
+        .item-price {
+            font-size: 18px; font-weight: 700; color: var(--green);
+        }
+
+        /* Continue Shopping */
+        .continue {
+            display: inline-flex; align-items: center; gap: 6px;
+            margin-top: 20px;
+            font-size: 14px; font-weight: 500; color: var(--green);
+            text-decoration: none;
+            transition: gap .15s;
+        }
+        .continue:hover { gap: 10px; }
+
+        /* ── Order Summary ── */
+        .summary {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 26px 24px;
+        }
+        .summary h2 { font-size: 17px; font-weight: 700; margin-bottom: 20px; }
+
+        /* Promo */
+        .promo-label { font-size: 13px; font-weight: 500; color: var(--text-primary); margin-bottom: 10px; }
+        .promo-row {
+            display: flex; gap: 0;
+            border: 1px solid var(--border); border-radius: 9px; overflow: hidden;
+        }
+        .promo-ico {
+            width: 40px; display: flex; align-items: center; justify-content: center;
+            color: var(--text-muted); background: var(--white); flex-shrink: 0;
+        }
+        .promo-input {
+            flex: 1; border: none; outline: none;
+            font-family: inherit; font-size: 14px; color: var(--text-primary);
+            padding: 10px 0; background: var(--white);
+        }
+        .promo-input::placeholder { color: var(--text-muted); }
+        .promo-apply {
+            border: none; background: none; padding: 10px 16px;
+            font-family: inherit; font-size: 13px; font-weight: 600;
+            color: var(--text-primary); cursor: pointer;
+            transition: color .15s;
+        }
+        .promo-apply:hover { color: var(--green); }
+        .promo-hint { font-size: 12px; color: var(--text-muted); margin-top: 8px; }
+
+        /* Divider */
+        .divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+        /* Summary rows */
+        .sum-row {
+            display: flex; justify-content: space-between; align-items: center;
+            font-size: 14px; margin-bottom: 12px;
+        }
+        .sum-row:last-of-type { margin-bottom: 0; }
+        .sum-lbl { color: var(--text-muted); }
+        .sum-val { font-weight: 500; color: var(--text-primary); }
+        .sum-val.free { color: var(--green); font-weight: 600; }
+
+        .total-row {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-top: 18px; margin-bottom: 20px;
+        }
+        .total-lbl { font-size: 16px; font-weight: 700; }
+        .total-val { font-size: 22px; font-weight: 700; color: var(--green); }
+
+        /* Checkout button */
+        .checkout-btn {
+            width: 100%; padding: 15px;
+            background: var(--green); color: #fff;
+            border: none; border-radius: 10px;
+            font-family: inherit; font-size: 15px; font-weight: 700;
+            cursor: pointer; letter-spacing: .2px;
+            transition: background .15s, transform .1s;
+            box-shadow: 0 2px 12px rgba(16,185,129,.35);
+        }
+        .checkout-btn:hover { background: var(--green-dark); }
+        .checkout-btn:active { transform: scale(.99); }
+
+        /* Trust badges */
+        .trust {
+            display: flex; gap: 20px; margin-top: 20px;
+        }
+        .trust-item {
+            display: flex; align-items: center; gap: 7px;
+            font-size: 12px; color: var(--text-muted);
+        }
+        .trust-item svg { flex-shrink: 0; }
+    </style>
+</head>
+<body>
+<div class="page">
+
+    <!-- ── Top bar ── -->
+    <div class="topbar">
+        <div>
+            <h1>Shopping Cart</h1>
+            <p id="itemCount">1 item in your cart</p>
+        </div>
+        <button class="clear-btn" onclick="clearCart()">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
+            </svg>
+            Clear Cart
+        </button>
+    </div>
+
+    <!-- ── Two-column layout ── -->
+    <div class="layout">
+
+        <!-- LEFT: Cart items -->
+        <div>
+            <div class="cart-card" id="cartCard">
+                <div class="cart-item" id="cartItem">
+                    <!-- Thumbnail -->
+                    <div class="item-thumb">
+                        <svg width="30" height="24" fill="none" stroke="#9ca3af" stroke-width="1.4" viewBox="0 0 30 24">
+                            <rect x="1" y="3" width="28" height="18" rx="3"/>
+                            <rect x="4" y="7" width="4" height="3" rx=".6" fill="#9ca3af" stroke="none"/>
+                            <rect x="10" y="7" width="4" height="3" rx=".6" fill="#9ca3af" stroke="none"/>
+                            <rect x="16" y="7" width="4" height="3" rx=".6" fill="#9ca3af" stroke="none"/>
+                            <rect x="22" y="7" width="4" height="3" rx=".6" fill="#9ca3af" stroke="none"/>
+                            <rect x="4" y="12" width="4" height="3" rx=".6" fill="#9ca3af" stroke="none"/>
+                            <rect x="10" y="12" width="4" height="3" rx=".6" fill="#9ca3af" stroke="none"/>
+                            <rect x="16" y="12" width="4" height="3" rx=".6" fill="#9ca3af" stroke="none"/>
+                            <rect x="22" y="12" width="4" height="3" rx=".6" fill="#9ca3af" stroke="none"/>
+                            <rect x="4" y="17" width="22" height="3" rx=".6" fill="#9ca3af" stroke="none"/>
+                        </svg>
+                    </div>
+
+                    <!-- Info -->
+                    <div class="item-info">
+                        <div class="item-name">Zoom75 Essential</div>
+                        <div class="item-desc">Gasket Mount / Hot-swappable / Knob</div>
+                        <div class="item-cat">Keyboards</div>
+                    </div>
+
+                    <!-- Delete -->
+                    <button class="item-del" onclick="removeItem()" title="Remove item">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Footer row -->
+                <div class="item-footer">
+                    <div class="qty">
+                        <button class="qty-btn" onclick="changeQty(-1)">−</button>
+                        <div class="qty-num" id="qty">1</div>
+                        <button class="qty-btn" onclick="changeQty(1)">+</button>
+                    </div>
+                    <div class="item-price" id="itemPrice">$169.00</div>
+                </div>
+            </div>
+
+            <a href="/shop" class="continue">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                    <path d="M19 12H5M12 5l-7 7 7 7"/>
+                </svg>
+                Continue Shopping
+            </a>
+        </div>
+
+        <!-- RIGHT: Order summary -->
+        <div class="summary">
+            <h2>Order Summary</h2>
+
+            <!-- Promo code -->
+            <div class="promo-label">Promo Code</div>
+            <div class="promo-row">
+                <div class="promo-ico">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                        <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/>
+                        <circle cx="7" cy="7" r="1" fill="currentColor" stroke="none"/>
+                    </svg>
+                </div>
+                <input class="promo-input" type="text" placeholder="Enter code" id="promoInput" />
+                <button class="promo-apply" onclick="applyPromo()">Apply</button>
+            </div>
+            <div class="promo-hint">Try code: KB10</div>
+
+            <hr class="divider" />
+
+            <!-- Line items -->
+            <div class="sum-row">
+                <span class="sum-lbl">Subtotal</span>
+                <span class="sum-val" id="subtotal">$169.00</span>
+            </div>
+            <div class="sum-row">
+                <span class="sum-lbl">Shipping</span>
+                <span class="sum-val free">Free</span>
+            </div>
+
+            <!-- Discount row (hidden by default) -->
+            <div class="sum-row" id="discountRow" style="display:none;">
+                <span class="sum-lbl">Discount (KB10)</span>
+                <span class="sum-val" style="color:#b91c1c;" id="discountVal">-$16.90</span>
+            </div>
+
+            <!-- Total -->
+            <div class="total-row">
+                <span class="total-lbl">Total</span>
+                <span class="total-val" id="total">$169.00</span>
+            </div>
+
+            <button class="checkout-btn">Proceed to Checkout</button>
+
+            <!-- Trust badges -->
+            <div class="trust">
+                <div class="trust-item">
+                    <svg width="16" height="16" fill="none" stroke="var(--green)" stroke-width="1.8" viewBox="0 0 24 24">
+                        <rect x="1" y="3" width="15" height="13" rx="2"/>
+                        <path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+                    </svg>
+                    Fast Shipping
+                </div>
+                <div class="trust-item">
+                    <svg width="16" height="16" fill="none" stroke="var(--green)" stroke-width="1.8" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M9 12l2 2 4-4"/>
+                    </svg>
+                    Secure Payment
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    const BASE_PRICE = 169;
+    let qty = 1;
+    let discountApplied = false;
+
+    function updateUI() {
+        const subtotal = BASE_PRICE * qty;
+        const discount = discountApplied ? subtotal * 0.1 : 0;
+        const total = subtotal - discount;
+
+        document.getElementById('qty').textContent = qty;
+        document.getElementById('itemPrice').textContent = '$' + subtotal.toFixed(2);
+        document.getElementById('subtotal').textContent = '$' + subtotal.toFixed(2);
+        document.getElementById('total').textContent = '$' + total.toFixed(2);
+        document.getElementById('itemCount').textContent = qty + ' item' + (qty > 1 ? 's' : '') + ' in your cart';
+
+        if (discountApplied) {
+            document.getElementById('discountRow').style.display = 'flex';
+            document.getElementById('discountVal').textContent = '-$' + discount.toFixed(2);
+        }
+    }
+
+    function changeQty(delta) {
+        qty = Math.max(1, qty + delta);
+        updateUI();
+    }
+
+    function removeItem() {
+        document.getElementById('cartCard').style.display = 'none';
+        document.getElementById('itemCount').textContent = '0 items in your cart';
+        document.getElementById('subtotal').textContent = '$0.00';
+        document.getElementById('total').textContent = '$0.00';
+        document.getElementById('itemPrice') && (document.getElementById('itemPrice').textContent = '$0.00');
+    }
+
+    function clearCart() {
+        removeItem();
+    }
+
+    function applyPromo() {
+        const code = document.getElementById('promoInput').value.trim().toUpperCase();
+        if (code === 'KB10' && !discountApplied) {
+            discountApplied = true;
+            updateUI();
+        }
+    }
+</script>
+</body>
+</html>
