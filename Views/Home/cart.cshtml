@@ -287,7 +287,7 @@
                         <div class="qty-num" id="qty">1</div>
                         <button class="qty-btn" onclick="changeQty(1)">+</button>
                     </div>
-                    <div class="item-price" id="itemPrice">$169.00</div>
+                    <div class="item-price" id="itemPrice">฿5,550</div>
                 </div>
             </div>
 
@@ -322,7 +322,7 @@
             <!-- Line items -->
             <div class="sum-row">
                 <span class="sum-lbl">Subtotal</span>
-                <span class="sum-val" id="subtotal">$169.00</span>
+                <span class="sum-val" id="subtotal">฿5,550</span>
             </div>
             <div class="sum-row">
                 <span class="sum-lbl">Shipping</span>
@@ -332,13 +332,13 @@
             <!-- Discount row (hidden by default) -->
             <div class="sum-row" id="discountRow" style="display:none;">
                 <span class="sum-lbl">Discount (KB10)</span>
-                <span class="sum-val" style="color:#b91c1c;" id="discountVal">-$16.90</span>
+                <span class="sum-val" style="color:#b91c1c;" id="discountVal">-฿555</span>
             </div>
 
             <!-- Total -->
             <div class="total-row">
                 <span class="total-lbl">Total</span>
-                <span class="total-val" id="total">$169.00</span>
+                <span class="total-val" id="total">฿5,550</span>
             </div>
 
             <button class="checkout-btn">Proceed to Checkout</button>
@@ -366,7 +366,7 @@
 </div>
 
 <script>
-    const BASE_PRICE = 169;
+    const BASE_PRICE = 5550;
     let qty = 1;
     let discountApplied = false;
 
@@ -376,14 +376,14 @@
         const total = subtotal - discount;
 
         document.getElementById('qty').textContent = qty;
-        document.getElementById('itemPrice').textContent = '$' + subtotal.toFixed(2);
-        document.getElementById('subtotal').textContent = '$' + subtotal.toFixed(2);
-        document.getElementById('total').textContent = '$' + total.toFixed(2);
+        document.getElementById('itemPrice').textContent = '฿' + Math.round(subtotal).toLocaleString('th-TH');
+        document.getElementById('subtotal').textContent = '฿' + Math.round(subtotal).toLocaleString('th-TH');
+        document.getElementById('total').textContent = '฿' + Math.round(total).toLocaleString('th-TH');
         document.getElementById('itemCount').textContent = qty + ' item' + (qty > 1 ? 's' : '') + ' in your cart';
 
         if (discountApplied) {
             document.getElementById('discountRow').style.display = 'flex';
-            document.getElementById('discountVal').textContent = '-$' + discount.toFixed(2);
+            document.getElementById('discountVal').textContent = '-฿' + Math.round(discount).toLocaleString('th-TH');
         }
     }
 
@@ -395,9 +395,9 @@
     function removeItem() {
         document.getElementById('cartCard').style.display = 'none';
         document.getElementById('itemCount').textContent = '0 items in your cart';
-        document.getElementById('subtotal').textContent = '$0.00';
-        document.getElementById('total').textContent = '$0.00';
-        document.getElementById('itemPrice') && (document.getElementById('itemPrice').textContent = '$0.00');
+        document.getElementById('subtotal').textContent = '฿0';
+        document.getElementById('total').textContent = '฿0';
+        document.getElementById('itemPrice') && (document.getElementById('itemPrice').textContent = '฿0');
     }
 
     function clearCart() {

@@ -1,0 +1,280 @@
+@{
+    ViewData["Title"] = "โปรไฟล์ของฉัน";
+
+    var user = new {
+        Name        = "สมชาย ใจดี",
+        MemberSince = "มกราคม 2024",
+        Points      = 1250,
+        OrderCount  = 12,
+        WishCount   = 5,
+        Email       = "somchai@example.com",
+        Phone       = "081-234-5678",
+        Address     = "123 ถนนสุขุมวิท, คลองเตย\nกรุงเทพฯ 10110",
+        AvatarUrl   = ""   // ใส่ URL รูปโปรไฟล์ หรือปล่อยว่างให้แสดง initials
+    };
+
+    var orders = new[]
+    {
+        new { Id = "ORD-001", Date = "15 มี.ค. 2026", Items = 2, Total = 5990m, Status = "delivered" },
+        new { Id = "ORD-002", Date = "10 มี.ค. 2026", Items = 1, Total = 2990m, Status = "shipping"  },
+        new { Id = "ORD-003", Date = "28 ก.พ. 2026",  Items = 3, Total = 8450m, Status = "delivered" },
+    };
+
+    var menuItems = new[]
+    {
+        new { Icon = "📦", Label = "คำสั่งซื้อของฉัน",  Count = 12,  Href = "#orders"  },
+        new { Icon = "🤍", Label = "รายการโปรด",         Count = 5,   Href = "#wishlist" },
+        new { Icon = "📍", Label = "ที่อยู่จัดส่ง",      Count = 0,   Href = "#address"  },
+        new { Icon = "💳", Label = "วิธีชำระเงิน",       Count = 0,   Href = "#payment"  },
+        new { Icon = "⚙️", Label = "ตั้งค่าบัญชี",       Count = 0,   Href = "#settings" },
+    };
+
+    string StatusLabel(string s) => s switch {
+        "delivered" => "จัดส่งแล้ว",
+        "shipping"  => "กำลังจัดส่ง",
+        "pending"   => "รอดำเนินการ",
+        "cancelled" => "ยกเลิก",
+        _           => s
+    };
+    string StatusClass(string s) => s switch {
+        "delivered" => "delivered",
+        "shipping"  => "shipping",
+        "pending"   => "pending",
+        "cancelled" => "cancelled",
+        _           => ""
+    };
+
+    string Initials(string name) {
+        var parts = name.Split(' ');
+        return parts.Length >= 2
+            ? $"{parts[0][0]}{parts[1][0]}"
+            : name.Length > 0 ? name[0].ToString() : "?";
+    }
+}
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] – KEYMECH</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&family=DM+Sans:wght@400;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/Account/Profile.css" />
+</head>
+<body>
+
+<div class="page">
+    <div class="layout">
+
+        <!-- ── LEFT COLUMN ── -->
+        <div>
+            <div class="card" style="margin-bottom:20px;">
+                <!-- Profile -->
+                <div class="profile-card">
+                    <div class="avatar-wrap">
+                        <div class="avatar" id="avatar-display">
+                            @if (!string.IsNullOrEmpty(user.AvatarUrl))
+                            {
+                                <img src="@user.AvatarUrl" alt="avatar" />
+                            }
+                            else
+                            {
+                                @Initials(user.Name)
+                            }
+                        </div>
+                        <label class="avatar-edit-btn" for="avatar-input" title="เปลี่ยนรูปโปรไฟล์">✏️</label>
+                        <input type="file" id="avatar-input" accept="image/*" style="display:none" onchange="previewAvatar(this)" />
+                    </div>
+                    <div class="profile-name" id="display-name">@user.Name</div>
+                    <div class="profile-since">สมาชิกตั้งแต่ @user.MemberSince</div>
+                    <div class="points-badge">
+                        <span class="points-dot"></span>
+                        <span id="display-points">@user.Points.ToString("N0")</span> คะแนนสะสม
+                    </div>
+                </div>
+
+                <!-- Stats -->
+                <div class="stats-row">
+                    <div class="stat-item">
+                        <div class="stat-num">@user.OrderCount</div>
+                        <div class="stat-label">คำสั่งซื้อ</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-num">@user.WishCount</div>
+                        <div class="stat-label">รายการโปรด</div>
+                    </div>
+                </div>
+
+                <!-- Menu -->
+                <div class="side-menu">
+                    @foreach (var item in menuItems)
+                    {
+                        <a class="menu-item" href="@item.Href">
+                            <span class="menu-label">@item.Label</span>
+                            @if (item.Count > 0)
+                            {
+                                <span class="menu-count">@item.Count</span>
+                            }
+                            <span class="menu-arrow">›</span>
+                        </a>
+                    }
+                </div>
+
+                <!-- Logout -->
+                <div class="logout-row">
+                    <button class="btn-logout" onclick="confirmLogout()">
+                        <span>↪</span>
+                        <span>ออกจากระบบ</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── RIGHT COLUMN ── -->
+        <div>
+
+            <!-- Personal Info -->
+            <div class="card section-card" id="info-card">
+                <div class="section-header">
+                    <span class="section-title">ข้อมูลส่วนตัว</span>
+                    <button class="btn-edit" onclick="toggleEdit()">
+                        แก้ไข
+                    </button>
+                </div>
+
+                <div class="info-grid" id="info-display">
+                    <div class="info-item">
+                        <div class="info-label"> ชื่อ-นามสกุล</div>
+                        <div class="info-value" id="iv-name">@user.Name</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label"> อีเมล</div>
+                        <div class="info-value" id="iv-email">@user.Email</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label"> เบอร์โทรศัพท์</div>
+                        <div class="info-value" id="iv-phone">@user.Phone</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label"> ที่อยู่</div>
+                        <div class="info-value" id="iv-address" style="white-space:pre-line;">@user.Address</div>
+                    </div>
+                </div>
+
+                <!-- Edit Form -->
+                <div class="edit-form" id="edit-form">
+                    <div class="edit-grid">
+                        <div class="field">
+                            <label>ชื่อ-นามสกุล</label>
+                            <input id="ef-name" type="text" value="@user.Name" />
+                        </div>
+                        <div class="field">
+                            <label>อีเมล</label>
+                            <input id="ef-email" type="email" value="@user.Email" />
+                        </div>
+                        <div class="field">
+                            <label>เบอร์โทรศัพท์</label>
+                            <input id="ef-phone" type="tel" value="@user.Phone" />
+                        </div>
+                        <div class="field">
+                            <label>ที่อยู่</label>
+                            <textarea id="ef-address" rows="3">@user.Address</textarea>
+                        </div>
+                    </div>
+                    <div class="edit-actions">
+                        <button class="btn-cancel-edit" onclick="toggleEdit()">ยกเลิก</button>
+                        <button class="btn-save" onclick="saveInfo()">บันทึก</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Orders -->
+            <div class="card" id="orders">
+                <div class="orders-header">
+                    <span class="orders-title">คำสั่งซื้อล่าสุด</span>
+                    <a class="view-all" href="#">ดูทั้งหมด ›</a>
+                </div>
+
+                @foreach (var order in orders)
+                {
+                    <div class="order-row">
+                        <div class="order-meta">
+                            <div class="order-id">@order.Id</div>
+                            <div class="order-date">@order.Date · @order.Items รายการ</div>
+                        </div>
+                        <div class="order-right">
+                            <div class="order-price">฿@order.Total.ToString("N0")</div>
+                            <span class="status-badge @StatusClass(order.Status)">@StatusLabel(order.Status)</span>
+                        </div>
+                    </div>
+                }
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+    // ── Toggle edit form ──
+    function toggleEdit() {
+        const form = document.getElementById('edit-form');
+        form.classList.toggle('open');
+        if (form.classList.contains('open')) {
+            // Sync current display values into fields
+            document.getElementById('ef-name').value    = document.getElementById('iv-name').textContent.trim();
+            document.getElementById('ef-email').value   = document.getElementById('iv-email').textContent.trim();
+            document.getElementById('ef-phone').value   = document.getElementById('iv-phone').textContent.trim();
+            document.getElementById('ef-address').value = document.getElementById('iv-address').textContent.trim();
+        }
+    }
+
+    // ── Save info ──
+    function saveInfo() {
+        const name    = document.getElementById('ef-name').value.trim();
+        const email   = document.getElementById('ef-email').value.trim();
+        const phone   = document.getElementById('ef-phone').value.trim();
+        const address = document.getElementById('ef-address').value.trim();
+
+        if (!name || !email || !phone) { alert('กรุณากรอกข้อมูลให้ครบถ้วน'); return; }
+
+        document.getElementById('iv-name').textContent    = name;
+        document.getElementById('iv-email').textContent   = email;
+        document.getElementById('iv-phone').textContent   = phone;
+        document.getElementById('iv-address').textContent = address;
+        document.getElementById('display-name').textContent = name;
+
+        document.getElementById('edit-form').classList.remove('open');
+        showToast('✅ บันทึกข้อมูลเรียบร้อยแล้ว');
+    }
+
+    // ── Preview avatar ──
+    function previewAvatar(input) {
+        if (!input.files || !input.files[0]) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+            const el = document.getElementById('avatar-display');
+            el.innerHTML = `<img src="${e.target.result}" alt="avatar" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`;
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+
+    // ── Logout confirm ──
+    function confirmLogout() {
+        if (confirm('ออกจากระบบใช่หรือไม่?')) {
+            showToast('👋 ออกจากระบบแล้ว');
+            // window.location.href = '/logout';
+        }
+    }
+
+    // ── Toast ──
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.style.display = 'block';
+        clearTimeout(t._t);
+        t._t = setTimeout(() => t.style.display = 'none', 3000);
+    }
+</script>
+
+</body>
+</html>

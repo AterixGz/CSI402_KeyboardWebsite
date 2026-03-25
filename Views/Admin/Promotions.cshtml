@@ -1,0 +1,505 @@
+@{
+    ViewData["Title"] = "Manage Promotions";
+    Layout = "_AdminLayout";
+
+    var promotions = new[]
+    {
+        new {
+            Name      = "Summer Sale Keyboards",
+            Code      = "SUMMER2024",
+            Discount  = "20%",
+            Category  = "Keyboard",
+            DateStart = "2026-03-01",
+            DateEnd   = "2026-03-31",
+            Status    = "active",
+            Used      = 156,
+            Limit     = 500
+        },
+        new {
+            Name      = "New Keycap Collection",
+            Code      = "NEWCAP15",
+            Discount  = "15%",
+            Category  = "Keycap",
+            DateStart = "2026-03-15",
+            DateEnd   = "2026-04-15",
+            Status    = "active",
+            Used      = 89,
+            Limit     = 300
+        },
+        new {
+            Name      = "Switch Bundle Deal",
+            Code      = "SWITCH50",
+            Discount  = "฿1,640",
+            Category  = "Switch",
+            DateStart = "2026-04-01",
+            DateEnd   = "2026-04-30",
+            Status    = "scheduled",
+            Used      = 0,
+            Limit     = 200
+        },
+        new {
+            Name      = "Flash Sale All Items",
+            Code      = "FLASH30",
+            Discount  = "30%",
+            Category  = "All Categories",
+            DateStart = "2026-02-01",
+            DateEnd   = "2026-02-28",
+            Status    = "expired",
+            Used      = 450,
+            Limit     = 500
+        },
+        new {
+            Name      = "Premium Keyboard Discount",
+            Code      = "PREMIUM100",
+            Discount  = "฿3,280",
+            Category  = "Keyboard",
+            DateStart = "2026-03-10",
+            DateEnd   = "2026-05-10",
+            Status    = "active",
+            Used      = 45,
+            Limit     = 100
+        },
+    };
+
+    int totalAll      = promotions.Length;
+    int totalActive   = promotions.Count(p => p.Status == "active");
+    int totalUsed     = promotions.Sum(p => p.Used);
+    int totalLimit    = promotions.Sum(p => p.Limit);
+    int avgDiscount   = totalLimit > 0 ? totalUsed * 100 / totalLimit : 0;
+}
+
+<div class="topbar">
+    <div>
+        <div class="topbar-title">Manage Promotions</div>
+        <div class="topbar-sub">Create, edit, and manage promotional codes for your store</div>
+    </div>
+    <button class="btn-add-topbar" onclick="openModal()">+ Add Promotion</button>
+</div>
+
+<div class="content">
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal" onclick="closeModalOutside(event)">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="modal-title" id="modal-title">Add Promotion</span>
+            <button class="btn-close" onclick="closeModal()">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="field">
+                <label>Promotion Name</label>
+                <input id="f-name" type="text" placeholder="e.g., Summer Sale Keyboards" />
+            </div>
+            <div class="field-row">
+                <div class="field">
+                    <label>Promotion Code</label>
+                    <input id="f-code" type="text" placeholder="e.g., SUMMER2024" style="text-transform:uppercase" />
+                </div>
+                <div class="field">
+                    <label>Discount</label>
+                    <input id="f-discount" type="text" placeholder="e.g., 20% or ฿1,640" />
+                </div>
+            </div>
+            <div class="field-row">
+                <div class="field">
+                    <label>Category</label>
+                    <select id="f-category">
+                        <option value="Keyboard">Keyboard</option>
+                        <option value="Keycap">Keycap</option>
+                        <option value="Switch">Switch</option>
+                        <option value="All Categories">All Categories</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Usage Limit</label>
+                    <input id="f-limit" type="number" placeholder="e.g., 500" min="1" />
+                </div>
+            </div>
+            <div class="field-row">
+                <div class="field">
+                    <label>Start Date</label>
+                    <input id="f-start" type="date" />
+                </div>
+                <div class="field">
+                    <label>End Date</label>
+                    <input id="f-end" type="date" />
+                </div>
+            </div>
+            <div class="field">
+                <label>Status</label>
+                <select id="f-status">
+                    <option value="active">Active</option>
+                    <option value="scheduled">Scheduled</option>
+                    <option value="expired">Expired</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+            <button class="btn-save" onclick="savePromo()">Save</button>
+        </div>
+    </div>
+</div>
+
+<div class="page">
+
+    <!-- ── Stat cards ── -->
+    <div class="stat-grid">
+        <div class="stat-card">
+            <div class="stat-icon si-blue">
+                <svg width="22" height="22" fill="none" stroke="#2563eb" stroke-width="1.8" viewBox="0 0 24 24">
+                    <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                    <line x1="12" y1="22.08" x2="12" y2="12"/>
+                </svg>
+            </div>
+            <div>
+                <div class="stat-label">Total Promotions</div>
+                <div class="stat-value" id="statTotal">@totalAll</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon si-green">
+                <svg width="22" height="22" fill="none" stroke="#16a34a" stroke-width="1.8" viewBox="0 0 24 24">
+                    <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                    <line x1="12" y1="22.08" x2="12" y2="12"/>
+                </svg>
+            </div>
+            <div>
+                <div class="stat-label">Active</div>
+                <div class="stat-value" id="statActive">@totalActive</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon si-orange">
+                <svg width="22" height="22" fill="none" stroke="#ea580c" stroke-width="1.8" viewBox="0 0 24 24">
+                    <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                    <line x1="12" y1="22.08" x2="12" y2="12"/>
+                </svg>
+            </div>
+            <div>
+                <div class="stat-label">Total Used</div>
+                <div class="stat-value" id="statUsed">@totalUsed</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon si-red">
+                <svg width="22" height="22" fill="none" stroke="#dc2626" stroke-width="1.8" viewBox="0 0 24 24">
+                    <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
+                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                    <line x1="12" y1="22.08" x2="12" y2="12"/>
+                </svg>
+            </div>
+            <div>
+                <div class="stat-label">Avg. Usage</div>
+                <div class="stat-value" id="statAvg">@avgDiscount%</div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ── MAIN CARD ── -->
+    <div class="card">
+        <!-- Filters -->
+        <div class="filter-bar">
+            <div class="search-wrap">
+                <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+                </svg>
+                <input type="text" id="search-input"
+                       placeholder="Search promotions..."
+                       oninput="filterTable()" />
+            </div>
+            <select class="filter-select" id="filter-status" onchange="filterTable()">
+                <option value="">All Status</option>
+                <option value="active">Active</option>
+                <option value="scheduled">Scheduled</option>
+                <option value="expired">Expired</option>
+            </select>
+            <select class="filter-select" id="filter-cat" onchange="filterTable()">
+                <option value="">All Categories</option>
+                <option value="Keyboard">Keyboard</option>
+                <option value="Keycap">Keycap</option>
+                <option value="Switch">Switch</option>
+                <option value="All Categories">All Categories</option>
+            </select>
+        </div>
+
+        <!-- Table -->
+        <table id="promo-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Code</th>
+                    <th>Discount</th>
+                    <th>Category</th>
+                    <th>Duration</th>
+                    <th>Status</th>
+                    <th>Usage</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="promo-body">
+                @{
+                    var catIcons = new Dictionary<string, string> {
+                        {"Keyboard","💾"}, {"Keycap","🎨"}, {"Switch","⚡"}, {"All Categories","📦"}
+                    };
+                }
+                @foreach (var p in promotions)
+                {
+                    int pct = p.Limit > 0 ? p.Used * 100 / p.Limit : 0;
+                    string statusClass = p.Status == "active" ? "status-active"
+                                      : p.Status == "scheduled" ? "status-scheduled"
+                                      : "status-expired";
+                    string statusLabel = p.Status == "active" ? "✓ Active"
+                                      : p.Status == "scheduled" ? "📅 Scheduled"
+                                      : "✕ Expired";
+                    string icon = catIcons.ContainsKey(p.Category) ? catIcons[p.Category] : "📦";
+                    <tr data-name="@p.Name.ToLower()" data-code="@p.Code.ToLower()" data-status="@p.Status" data-cat="@p.Category">
+                        <td><span class="promo-name">@p.Name</span></td>
+                        <td><span class="promo-code">@p.Code</span></td>
+                        <td><span class="discount-val">@p.Discount</span></td>
+                        <td>
+                            <span class="cat-badge">@icon @p.Category</span>
+                        </td>
+                        <td>
+                            <div class="date-range">
+                                <span>📅</span>
+                                <span>@p.DateStart – @p.DateEnd</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="status-badge @statusClass">@statusLabel</span>
+                        </td>
+                        <td>
+                            <div class="usage-wrap">
+                                <span class="usage-text">@p.Used / @p.Limit</span>
+                                <div class="usage-track">
+                                    <div class="usage-fill @(pct >= 90 ? "full" : "")" style="width:@pct%"></div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="action-cell">
+                            <button class="btn-action" onclick="toggleDropdown(this)">•••</button>
+                            <div class="dropdown">
+                                <button onclick="editRow(this)">✏️ Edit</button>
+                                <button onclick="duplicateRow(this)">📋 Duplicate</button>
+                                <button class="danger" onclick="deleteRow(this)">🗑️ Delete</button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <!-- Empty state (hidden by default) -->
+        <div class="empty" id="empty-state" style="display:none;">
+            <div class="empty-icon">🔍</div>
+            <div>No promotions found</div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ── Data store ──
+const store = [
+    @foreach (var p in promotions)
+    {
+        <text>{ name:"@p.Name", code:"@p.Code", discount:"@p.Discount", category:"@p.Category", dateStart:"@p.DateStart", dateEnd:"@p.DateEnd", status:"@p.Status", used:@p.Used, limit:@p.Limit },</text>
+    }
+];
+
+// ── Close dropdowns on outside click ──
+document.addEventListener('click', e => {
+    if (!e.target.classList.contains('btn-action'))
+        document.querySelectorAll('.dropdown.open').forEach(d => d.classList.remove('open'));
+});
+
+function toggleDropdown(btn) {
+    const dd = btn.nextElementSibling;
+    const isOpen = dd.classList.contains('open');
+    document.querySelectorAll('.dropdown.open').forEach(d => d.classList.remove('open'));
+    if (!isOpen) dd.classList.add('open');
+}
+
+// ── Filter ──
+function filterTable() {
+    const q      = document.getElementById('search-input').value.toLowerCase();
+    const status = document.getElementById('filter-status').value;
+    const cat    = document.getElementById('filter-cat').value;
+    const rows   = document.querySelectorAll('#promo-body tr');
+    let visible  = 0;
+
+    rows.forEach(row => {
+        const matchQ   = !q      || row.dataset.name.includes(q) || row.dataset.code.includes(q);
+        const matchSt  = !status || row.dataset.status === status;
+        const matchCat = !cat    || row.dataset.cat === cat;
+        const show = matchQ && matchSt && matchCat;
+        row.style.display = show ? '' : 'none';
+        if (show) visible++;
+    });
+
+    document.getElementById('empty-state').style.display = visible === 0 ? 'block' : 'none';
+}
+
+// ── Modal ──
+let editingRow = null;
+
+function openModal(data = null) {
+    editingRow = null;
+    document.getElementById('modal-title').textContent = 'Add Promotion';
+    document.getElementById('f-name').value     = data?.name      ?? '';
+    document.getElementById('f-code').value     = data?.code      ?? '';
+    document.getElementById('f-discount').value = data?.discount  ?? '';
+    document.getElementById('f-category').value = data?.category  ?? 'Keyboard';
+    document.getElementById('f-limit').value    = data?.limit     ?? '';
+    document.getElementById('f-start').value    = data?.dateStart ?? '';
+    document.getElementById('f-end').value      = data?.dateEnd   ?? '';
+    document.getElementById('f-status').value   = data?.status    ?? 'active';
+    document.getElementById('modal').classList.add('open');
+}
+
+function closeModal() { document.getElementById('modal').classList.remove('open'); editingRow = null; }
+function closeModalOutside(e) { if (e.target === document.getElementById('modal')) closeModal(); }
+
+function editRow(btn) {
+    const row = btn.closest('tr');
+    editingRow = row;
+    btn.closest('.dropdown').classList.remove('open');
+    document.getElementById('modal-title').textContent = 'Edit Promotion';
+    const cells = row.querySelectorAll('td');
+    const dateText = cells[4].querySelector('.date-range span:last-child').textContent.split(' – ');
+    openModal({
+        name:      cells[0].querySelector('.promo-name').textContent,
+        code:      cells[1].querySelector('.promo-code').textContent,
+        discount:  cells[2].querySelector('.discount-val').textContent,
+        category:  row.dataset.cat,
+        dateStart: dateText[0]?.trim(),
+        dateEnd:   dateText[1]?.trim(),
+        status:    row.dataset.status,
+        limit:     parseInt(cells[6].querySelector('.usage-text').textContent.split('/')[1])
+    });
+}
+
+function duplicateRow(btn) {
+    const row = btn.closest('tr');
+    btn.closest('.dropdown').classList.remove('open');
+    const cells = row.querySelectorAll('td');
+    const name = cells[0].querySelector('.promo-name').textContent + ' (copy)';
+    showToast(`📋 Duplicated "${cells[0].querySelector('.promo-name').textContent}"`);
+    // In a real app: POST to server
+}
+
+function deleteRow(btn) {
+    const row = btn.closest('tr');
+    const name = row.querySelector('.promo-name').textContent;
+    btn.closest('.dropdown').classList.remove('open');
+    if (!confirm(`Delete promotion "${name}"?`)) return;
+    row.style.transition = 'opacity .3s, transform .3s';
+    row.style.opacity = '0';
+    row.style.transform = 'translateX(20px)';
+    setTimeout(() => { row.remove(); updateStats(); filterTable(); }, 300);
+    showToast(`🗑️ Deleted "${name}"`);
+}
+
+// ── Save (add/edit) ──
+function savePromo() {
+    const name     = document.getElementById('f-name').value.trim();
+    const code     = document.getElementById('f-code').value.trim().toUpperCase();
+    const discount = document.getElementById('f-discount').value.trim();
+    const cat      = document.getElementById('f-category').value;
+    const limit    = parseInt(document.getElementById('f-limit').value) || 100;
+    const start    = document.getElementById('f-start').value;
+    const end      = document.getElementById('f-end').value;
+    const status   = document.getElementById('f-status').value;
+
+    if (!name || !code || !discount || !start || !end) {
+        alert('Please fill in all required fields'); return;
+    }
+
+    const catIcons = { 'Keyboard':'💾', 'Keycap':'🎨', 'Switch':'⚡', 'All Categories':'📦' };
+    const icon = catIcons[cat] ?? '📦';
+    const statusMap = { active:'✓ Active', scheduled:'📅 Scheduled', expired:'✕ Expired' };
+    const statusClass = { active:'status-active', scheduled:'status-scheduled', expired:'status-expired' };
+
+    if (editingRow) {
+        // Update existing row
+        const cells = editingRow.querySelectorAll('td');
+        cells[0].querySelector('.promo-name').textContent = name;
+        cells[1].querySelector('.promo-code').textContent = code;
+        cells[2].querySelector('.discount-val').textContent = discount;
+        cells[3].innerHTML = `<span class="cat-badge">${icon} ${cat}</span>`;
+        cells[4].innerHTML = `<div class="date-range"><span>📅</span><span>${start} – ${end}</span></div>`;
+        const sb = cells[5].querySelector('.status-badge');
+        sb.className = `status-badge ${statusClass[status]}`;
+        sb.textContent = statusMap[status];
+        editingRow.dataset.name   = name.toLowerCase();
+        editingRow.dataset.code   = code.toLowerCase();
+        editingRow.dataset.status = status;
+        editingRow.dataset.cat    = cat;
+        showToast(`✏️ Updated "${name}"`);
+    } else {
+        // Insert new row
+        const tbody = document.getElementById('promo-body');
+        const tr = document.createElement('tr');
+        tr.dataset.name   = name.toLowerCase();
+        tr.dataset.code   = code.toLowerCase();
+        tr.dataset.status = status;
+        tr.dataset.cat    = cat;
+        tr.innerHTML = `
+            <td><span class="promo-name">${name}</span></td>
+            <td><span class="promo-code">${code}</span></td>
+            <td><span class="discount-val">${discount}</span></td>
+            <td><span class="cat-badge">${icon} ${cat}</span></td>
+            <td><div class="date-range"><span>📅</span><span>${start} – ${end}</span></div></td>
+            <td><span class="status-badge ${statusClass[status]}">${statusMap[status]}</span></td>
+            <td>
+                <div class="usage-wrap">
+                    <span class="usage-text">0 / ${limit}</span>
+                    <div class="usage-track"><div class="usage-fill" style="width:0%"></div></div>
+                </div>
+            </td>
+            <td class="action-cell">
+                <button class="btn-action" onclick="toggleDropdown(this)">•••</button>
+                <div class="dropdown">
+                    <button onclick="editRow(this)">✏️ Edit</button>
+                    <button onclick="duplicateRow(this)">📋 Duplicate</button>
+                    <button class="danger" onclick="deleteRow(this)">🗑️ Delete</button>
+                </div>
+            </td>`;
+        tbody.appendChild(tr);
+        showToast(`✅ Added "${name}"`);
+    }
+
+    updateStats();
+    closeModal();
+    filterTable();
+}
+
+// ── Update stat cards ──
+function updateStats() {
+    const rows = document.querySelectorAll('#promo-body tr');
+    let total = 0, active = 0, used = 0, limit = 0;
+    rows.forEach(r => {
+        total++;
+        if (r.dataset.status === 'active') active++;
+        const ut = r.querySelector('.usage-text')?.textContent ?? '0 / 0';
+        const [u, l] = ut.split('/').map(s => parseInt(s.trim()) || 0);
+        used += u; limit += l;
+    });
+    document.getElementById('stat-total').textContent  = total;
+    document.getElementById('stat-active').textContent = active;
+    document.getElementById('stat-used').textContent   = used;
+    document.getElementById('stat-avg').textContent    = (limit > 0 ? Math.round(used * 100 / limit) : 0) + '%';
+}
+
+// ── Show toast ──
+function showToast(message) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.style.display = 'block';
+    setTimeout(() => { toast.style.display = 'none'; }, 3000);
+}
+</script>

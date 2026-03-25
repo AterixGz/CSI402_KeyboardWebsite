@@ -31,7 +31,7 @@
             </div>
             <div>
                 <div class="stat-label">Total Products</div>
-                <div class="stat-value" id="statTotal">248</div>
+                <div class="stat-value" id="statTotal">@ViewBag.TotalProducts</div>
             </div>
         </div>
         <div class="stat-card">
@@ -44,7 +44,7 @@
             </div>
             <div>
                 <div class="stat-label">In Stock</div>
-                <div class="stat-value">186</div>
+                <div class="stat-value">@ViewBag.InStockCount</div>
             </div>
         </div>
         <div class="stat-card">
@@ -57,7 +57,7 @@
             </div>
             <div>
                 <div class="stat-label">Low Stock</div>
-                <div class="stat-value">42</div>
+                <div class="stat-value">@ViewBag.LowStockCount</div>
             </div>
         </div>
         <div class="stat-card">
@@ -70,7 +70,7 @@
             </div>
             <div>
                 <div class="stat-label">Out of Stock</div>
-                <div class="stat-value">20</div>
+                <div class="stat-value">@ViewBag.OutOfStockCount</div>
             </div>
         </div>
     </div>
@@ -86,11 +86,16 @@
 
         <select class="filter-select" id="catFilter" onchange="filterTable()">
             <option value="">All Categories</option>
-            <option value="Mechanical Keyboard">Mechanical Keyboard</option>
-            <option value="Custom Keyboard">Custom Keyboard</option>
-            <option value="Keycaps">Keycaps</option>
-            <option value="Switches">Switches</option>
-            <option value="Accessories">Accessories</option>
+            @{
+                var categories = ViewBag.Categories as List<string>;
+                if (categories != null)
+                {
+                    foreach (var category in categories)
+                    {
+                        <option value="@category">@category</option>
+                    }
+                }
+            }
         </select>
 
         <select class="filter-select" id="statusFilter" onchange="filterTable()">
@@ -172,7 +177,7 @@
             </div>
         </div>
         <div class="mrow two">
-            <div class="fg"><label>Price ($)</label><input type="number" id="mPrice" placeholder="0.00" min="0" /></div>
+            <div class="fg"><label>Price (฿)</label><input type="number" id="mPrice" placeholder="0" min="0" /></div>
             <div class="fg"><label>Stock Quantity</label><input type="number" id="mStock" placeholder="0" min="0" /></div>
         </div>
         <div class="mrow one">
@@ -188,32 +193,67 @@
 <!-- Toast -->
 <div class="toast" id="toast">Product added successfully!</div>
 
+<!-- ── Edit Product Modal ── -->
+<div class="modal-overlay" id="editModalOverlay" onclick="closeEditModal(event)">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title">Edit Product</div>
+            <button class="modal-close" onclick="closeEditModal()">✕</button>
+        </div>
+        <div class="mrow one">
+            <div class="fg"><label>Product Name</label><input type="text" id="eName" placeholder="e.g. Keychron K2 Pro" /></div>
+        </div>
+        <div class="mrow two">
+            <div class="fg"><label>Brand</label><input type="text" id="eBrand" placeholder="e.g. Keychron" /></div>
+            <div class="fg">
+                <label>Category</label>
+                <select id="eCat">
+                    <option value="Mechanical Keyboard">Mechanical Keyboard</option>
+                    <option value="Custom Keyboard">Custom Keyboard</option>
+                    <option value="Keycaps">Keycaps</option>
+                    <option value="Switches">Switches</option>
+                    <option value="Accessories">Accessories</option>
+                </select>
+            </div>
+        </div>
+        <div class="mrow two">
+            <div class="fg"><label>Price (฿)</label><input type="number" id="ePrice" placeholder="0" min="0" /></div>
+            <div class="fg"><label>Stock Quantity</label><input type="number" id="eStock" placeholder="0" min="0" /></div>
+        </div>
+        <div class="mrow one">
+            <div class="fg"><label>Image URL</label><input type="text" id="eImage" placeholder="~/image/product.png" /></div>
+        </div>
+        <div class="mrow one">
+            <div class="fg"><label>Description (optional)</label><textarea id="eDesc" placeholder="Brief product description..."></textarea></div>
+        </div>
+        <div class="modal-footer">
+            <button class="cancel-btn" onclick="closeEditModal()">Cancel</button>
+            <button class="delete-btn" onclick="deleteProduct()" style="margin-right: auto;">Delete Product</button>
+            <button class="submit-btn" onclick="updateProduct()">Save Changes</button>
+        </div>
+    </div>
+</div>
+
+
+
 <script>
-    const products = [
-        { name:'Keychron K2 Pro',        sub:'Wireless / Hot-swap / RGB',         sku:'KB-K2P-001',  cat:'Mechanical Keyboard', price:89,  stock:45, status:'In Stock'    },
-        { name:'GMK Botanical Keycaps',   sub:'Cherry Profile / PBT',              sku:'KC-GMK-BOT',  cat:'Keycaps',             price:159, stock:12, status:'Low Stock'   },
-        { name:'GMMK Pro Barebones',      sub:'75% / Gasket Mount',                sku:'KB-GMMK-PRO', cat:'Custom Keyboard',     price:169, stock:0,  status:'Out of Stock'},
-        { name:'Gateron G Pro Switches',  sub:'Linear / 45g / Lubed',              sku:'SW-GAT-GPR',  cat:'Switches',            price:38,  stock:200,status:'In Stock'    },
-        { name:'Zoom75 Essential',        sub:'Gasket Mount / Hot-swappable',       sku:'KB-Z75-ESS',  cat:'Mechanical Keyboard', price:169, stock:8,  status:'Low Stock'   },
-        { name:'GMK Nord Keycaps',        sub:'Cherry Profile / PBT / Nordic',     sku:'KC-GMK-NRD',  cat:'Keycaps',             price:145, stock:30, status:'In Stock'    },
-        { name:'Boba U4T Switches',       sub:'Tactile / 62g / 10-pack',           sku:'SW-BOB-U4T',  cat:'Switches',            price:8,   stock:0,  status:'Out of Stock'},
-        { name:'Coiled Cable Pro',        sub:'Aviator / USB-C / 1.8m',            sku:'AC-CBL-PRO',  cat:'Accessories',         price:45,  stock:22, status:'In Stock'    },
-        { name:'Mode Sonnet 75%',         sub:'Multi-mount / Premium 75%',         sku:'KB-MOD-SON',  cat:'Custom Keyboard',     price:389, stock:5,  status:'Low Stock'   },
-        { name:'KAT Milkshake Keycaps',   sub:'KAT Profile / PBT / 140 keys',     sku:'KC-KAT-MLK',  cat:'Keycaps',             price:145, stock:18, status:'In Stock'    },
-        { name:'Krytox 205g0',            sub:'Switch Lubricant / 5ml',            sku:'AC-KRY-205',  cat:'Accessories',         price:12,  stock:85, status:'In Stock'    },
-        { name:'Durock V2 Stabilizers',   sub:'PCB Mount / Gold Plated',           sku:'AC-DUR-V2',   cat:'Accessories',         price:20,  stock:0,  status:'Out of Stock'},
-        { name:'QK65 V2',                 sub:'Bluetooth / Gasket / 65%',          sku:'KB-QK65-V2',  cat:'Mechanical Keyboard', price:145, stock:14, status:'Low Stock'   },
-        { name:'Desk Mat Midnight',        sub:'900×400mm / Stitched Edges',       sku:'AC-DSK-MDN',  cat:'Accessories',         price:29,  stock:40, status:'In Stock'    },
-    ];
+    // รับข้อมูลจาก Model ที่ส่งมาจาก Controller
+    const products = @Html.Raw(Json.Serialize(Model ?? new List<KeyboardWebsiteProject.Models.Product>()));
 
     const PER_PAGE = 8;
     let currentPage = 1;
     let filtered = [...products];
 
-    function statusCls(s) {
-        if (s === 'In Stock')     return 'badge-instock';
-        if (s === 'Low Stock')    return 'badge-low';
-        return 'badge-out';
+    function getStatus(stock) {
+        if (stock === 0) return 'Out of Stock';
+        if (stock <= 10) return 'Low Stock';
+        return 'In Stock';
+    }
+
+    function statusCls(stock) {
+        if (stock === 0) return 'badge-out';
+        if (stock <= 10) return 'badge-low';
+        return 'badge-instock';
     }
 
     function renderTable() {
@@ -225,24 +265,26 @@
                 <td>
                     <div class="prod-cell">
                         <div class="prod-thumb">
-                            <svg width="22" height="22" fill="none" stroke="#d1d5db" stroke-width="1.5" viewBox="0 0 24 24">
-                                <path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/>
-                                <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
-                                <line x1="12" y1="22.08" x2="12" y2="12"/>
-                            </svg>
+                            <img src="${p.imageUrl}" alt="${p.name}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 6px;" />
                         </div>
                         <div>
                             <div class="prod-name">${p.name}</div>
-                            <div class="prod-sub">${p.sub}</div>
+                            <div class="prod-sub">Product ID: ${p.productId}</div>
                         </div>
                     </div>
                 </td>
-                <td class="sku-cell">${p.sku}</td>
-                <td class="cat-cell">${p.cat}</td>
-                <td class="price-cell">$${p.price.toLocaleString()}</td>
-                <td class="stock-cell">${p.stock}</td>
-                <td><span class="badge ${statusCls(p.status)}">${p.status}</span></td>
-                <td><button class="axbtn">···</button></td>
+                <td class="sku-cell">SKU-${p.productId}</td>
+                <td class="cat-cell">${p.categoryName || 'Uncategorized'}</td>
+                <td class="price-cell">฿${p.price.toLocaleString('th-TH')}</td>
+                <td class="stock-cell">${p.stockQuantity}</td>
+                <td><span class="badge ${statusCls(p.stockQuantity)}">${getStatus(p.stockQuantity)}</span></td>
+                <td class="action-cell">
+                    <button class="btn-action" onclick="toggleDropdown(this)" data-product='${JSON.stringify(p)}'>•••</button>
+                    <div class="dropdown">
+                        <button onclick="editProduct(this)">✏️ Edit</button>
+                        <button class="danger" onclick="deleteProductAction(this)">🗑️ Delete</button>
+                    </div>
+                </td>
             </tr>
         `).join('');
 
@@ -265,9 +307,10 @@
         const st  = document.getElementById('statusFilter').value;
 
         filtered = products.filter(p => {
-            const matchQ  = !q  || p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q);
-            const matchC  = !cat || p.cat === cat;
-            const matchS  = !st  || p.status === st;
+            const pStatus = getStatus(p.stockQuantity);
+            const matchQ  = !q  || p.name.toLowerCase().includes(q);
+            const matchC  = !cat || p.categoryName === cat;
+            const matchS  = !st || pStatus === st;
             return matchQ && matchC && matchS;
         });
 
@@ -286,19 +329,30 @@
     function addProduct() {
         const name  = document.getElementById('mName').value.trim();
         const sku   = document.getElementById('mSku').value.trim();
-        const cat   = document.getElementById('mCat').value;
         const price = parseFloat(document.getElementById('mPrice').value) || 0;
         const stock = parseInt(document.getElementById('mStock').value) || 0;
-        if (!name || !sku) return;
+        
+        if (!name || !sku) {
+            alert('Please fill in all required fields');
+            return;
+        }
 
-        const status = stock === 0 ? 'Out of Stock' : stock <= 10 ? 'Low Stock' : 'In Stock';
-        products.unshift({ name, sub: cat, sku, cat, price, stock, status });
+        // เพิ่มข้อมูลลงใน array ในหน้า (ในจริงควรส่งไปบันทึกลงฐานข้อมูล)
+        products.unshift({ 
+            productId: Math.max(...products.map(p => p.productId)) + 1,
+            name, 
+            price, 
+            stockQuantity: stock,
+            imageUrl: '~/image/default.png'
+        });
+        
         document.getElementById('statTotal').textContent = products.length;
         filterTable();
         closeModal();
         ['mName','mSku','mPrice','mStock','mDesc'].forEach(id => document.getElementById(id).value = '');
 
         const toast = document.getElementById('toast');
+        toast.textContent = 'Product added successfully!';
         toast.classList.add('show');
         setTimeout(() => toast.classList.remove('show'), 2600);
     }
@@ -309,6 +363,116 @@
         toast.classList.add('show');
         setTimeout(() => toast.classList.remove('show'), 2600);
     }
+
+    // ── Action Menu Toggle ──
+    let currentEditProduct = null;
+
+    function toggleDropdown(btn) {
+        const dd = btn.nextElementSibling;
+        const isOpen = dd.classList.contains('open');
+        document.querySelectorAll('.dropdown.open').forEach(d => d.classList.remove('open'));
+        if (!isOpen) {
+            dd.classList.add('open');
+            currentEditProduct = JSON.parse(btn.dataset.product);
+        }
+    }
+
+    function editProduct(btn) {
+        btn.closest('.dropdown').classList.remove('open');
+        openEditModal();
+    }
+
+    function deleteProductAction(btn) {
+        btn.closest('.dropdown').classList.remove('open');
+        deleteProductQuick();
+    }
+
+    function openEditModal() {
+        if (!currentEditProduct) return;
+        
+        document.getElementById('eName').value = currentEditProduct.name || '';
+        document.getElementById('eBrand').value = currentEditProduct.brandName || '';
+        document.getElementById('eCat').value = currentEditProduct.categoryName || '';
+        document.getElementById('ePrice').value = currentEditProduct.price || '';
+        document.getElementById('eStock').value = currentEditProduct.stockQuantity || '';
+        document.getElementById('eImage').value = currentEditProduct.imageUrl || '';
+        document.getElementById('eDesc').value = currentEditProduct.description || '';
+        
+        document.getElementById('editModalOverlay').classList.add('open');
+    }
+
+    function closeEditModal(event) {
+        if (event && event.target !== document.getElementById('editModalOverlay')) return;
+        document.getElementById('editModalOverlay').classList.remove('open');
+        currentEditProduct = null;
+    }
+
+    function updateProduct() {
+        if (!currentEditProduct) return;
+
+        const name = document.getElementById('eName').value.trim();
+        const price = parseFloat(document.getElementById('ePrice').value) || 0;
+        const stock = parseInt(document.getElementById('eStock').value) || 0;
+
+        if (!name) {
+            alert('Please fill in product name');
+            return;
+        }
+
+        // Update local array
+        const idx = products.findIndex(p => p.productId === currentEditProduct.productId);
+        if (idx !== -1) {
+            products[idx] = {
+                ...products[idx],
+                name: name,
+                brandName: document.getElementById('eBrand').value.trim(),
+                categoryName: document.getElementById('eCat').value,
+                price: price,
+                stockQuantity: stock,
+                imageUrl: document.getElementById('eImage').value.trim(),
+                description: document.getElementById('eDesc').value.trim()
+            };
+        }
+
+        filterTable();
+        closeEditModal();
+
+        const toast = document.getElementById('toast');
+        toast.textContent = 'Product updated successfully!';
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2600);
+    }
+
+    function deleteProductQuick() {
+        if (confirm('Are you sure you want to delete this product?')) {
+            deleteProduct();
+        }
+    }
+
+    function deleteProduct() {
+        if (!currentEditProduct) return;
+
+        if (!confirm('Are you sure you want to delete this product? This action cannot be undone.')) {
+            return;
+        }
+
+        products = products.filter(p => p.productId !== currentEditProduct.productId);
+        document.getElementById('statTotal').textContent = products.length;
+        
+        filterTable();
+        closeEditModal();
+
+        const toast = document.getElementById('toast');
+        toast.textContent = 'Product deleted successfully!';
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2600);
+    }
+
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', e => {
+        if (!e.target.classList.contains('btn-action'))
+            document.querySelectorAll('.dropdown.open').forEach(d => d.classList.remove('open'));
+    });
 
     renderTable();
 </script>

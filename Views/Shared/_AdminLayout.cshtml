@@ -35,15 +35,20 @@
     {
         <link rel="stylesheet" href="~/css/Admin/Roles.css" />
     }
+    @if (ViewContext.RouteData.Values["action"]?.ToString() == "Promotions")
+    {
+        <link rel="stylesheet" href="~/css/Admin/Promotions.css" />
+    }
 </head>
 <body>
 
 <!-- SIDEBAR -->
 <aside class="sidebar">
     <div class="sidebar-logo">
-        <div class="logo-icon">⌨</div>
-        <span class="logo-text">KeyCraft</span>
-        <span class="admin-badge">Admin</span>
+        <div class="logo-wrapper">
+            <img src="~/image/Brand.png" alt="KeyCraft" class="logo-image" />
+            <span class="admin-badge">Admin</span>
+        </div>
     </div>
     <nav>
         <a asp-controller="Admin" asp-action="Dashboard" class="nav-item @(ViewContext.RouteData.Values["action"]?.ToString() == "Dashboard" ? "active" : "")">
@@ -61,6 +66,10 @@
         <a asp-controller="Admin" asp-action="Products" class="nav-item @(ViewContext.RouteData.Values["action"]?.ToString() == "Products" ? "active" : "")">
             <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4z" clip-rule="evenodd"/></svg>
             Products
+        </a>
+        <a asp-controller="Admin" asp-action="Promotions" class="nav-item @(ViewContext.RouteData.Values["action"]?.ToString() == "Promotions" ? "active" : "")">
+            <svg class="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4z" clip-rule="evenodd"/></svg>
+            Promotions
         </a>
         <a asp-controller="Admin" asp-action="Roles" class="nav-item @(ViewContext.RouteData.Values["action"]?.ToString() == "Roles" ? "active" : "")">
             <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="6.5"/><path d="M21 2l-9.6 9.6"/><path d="M15.5 7.5l3 3"/></svg>

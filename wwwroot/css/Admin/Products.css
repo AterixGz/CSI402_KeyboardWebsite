@@ -592,3 +592,87 @@ tbody td {
     opacity: 1;
     transform: translateY(0);
 }
+
+/* ─────────────────────────────────────────
+   ACTION CELL & DROPDOWN
+   ────────────────────────────────────────── */
+.action-cell {
+    position: relative;
+}
+
+.btn-action {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    line-height: 1;
+    transition: background .15s, color .15s;
+}
+
+.btn-action:hover {
+    background: var(--bg);
+    color: var(--text-primary);
+}
+
+.dropdown {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 100%;
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.1);
+    min-width: 140px;
+    z-index: 50;
+    overflow: hidden;
+}
+
+.dropdown.open {
+    display: block;
+}
+
+.dropdown button {
+    display: block;
+    width: 100%;
+    padding: 10px 16px;
+    text-align: left;
+    background: none;
+    border: none;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: background .15s;
+}
+
+.dropdown button:hover {
+    background: var(--bg);
+}
+
+.dropdown button.danger {
+    color: var(--red);
+}
+
+/* ─────────────────────────────────────────
+   DELETE BUTTON
+   ────────────────────────────────────────── */
+.delete-btn {
+    background: var(--red-bg);
+    color: var(--red);
+    border: none;
+    border-radius: 8px;
+    padding: 10px 22px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s;
+}
+
+.delete-btn:hover {
+    background: #fee2e2;
+}
