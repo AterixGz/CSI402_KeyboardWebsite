@@ -676,3 +676,109 @@ tbody td {
 .delete-btn:hover {
     background: #fee2e2;
 }
+
+/* ─────────────────────────────────────────
+   PRODUCT SPECIFICATIONS
+   ────────────────────────────────────────── */
+.specs-section {
+    margin-top: 16px;
+    padding: 14px;
+    background-color: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+}
+
+.specs-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.spec-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.spec-row .spec-key,
+.spec-row .spec-value {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: inherit;
+}
+
+.spec-row .spec-key:focus,
+.spec-row .spec-value:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.spec-row .spec-key {
+    min-width: 140px;
+}
+
+.spec-row .spec-value {
+    flex: 1.2;
+}
+
+.add-spec-btn,
+.remove-spec-btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.add-spec-btn {
+    background-color: #f0f9ff;
+    color: #0284c7;
+    border: 1px solid #0284c7;
+}
+
+.add-spec-btn:hover {
+    background-color: #0284c7;
+    color: white;
+}
+
+.remove-spec-btn {
+    background-color: #fee2e2;
+    color: #dc2626;
+    padding: 6px 10px;
+    min-width: 34px;
+}
+
+.remove-spec-btn:hover {
+    background-color: #dc2626;
+    color: white;
+}
+
+/* ─────────────────────────────────────────
+   FORM VALIDATION ERRORS
+   ────────────────────────────────────────── */
+.input-error {
+    border-color: #dc2626 !important;
+    background-color: #fef2f2;
+}
+
+.input-error:focus {
+    border-color: #dc2626 !important;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.1) !important;
+}
+
+.error-message {
+    color: #dc2626;
+    font-size: 12px;
+    margin-top: 4px;
+    display: none;
+}
+
+.error-message.show {
+    display: block;
+}

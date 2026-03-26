@@ -1,48 +1,7 @@
+@model KeyboardWebsiteProject.Models.Product
+
 @{
-    ViewData["Title"] = "productName";
-
-    var switchTypes = new[] { "Gateron Red", "Gateron Brown", "Gateron Blue", "Gateron Yellow" };
-    var layouts = new[] { "ANSI (US)", "ISO (EU)", "JIS (JP)" };
-
-    var specs = new[]
-    {
-        ("Layout",         "75% (84 keys)"),
-        ("Switch Type",    "Hot-swappable (3-pin / 5-pin)"),
-        ("Keycaps",        "PBT Double-shot, Cherry Profile"),
-        ("Backlight",      "RGB Per-key, 16.8M colors"),
-        ("Connectivity",   "USB-C Wired / Bluetooth 5.0 / 2.4GHz Wireless"),
-        ("Battery",        "4000mAh (up to 200 hours)"),
-        ("Frame Material", "Aluminum alloy, CNC machined"),
-        ("Weight",         "950g (without cable)"),
-        ("Dimensions",     "325 x 145 x 40mm"),
-        ("Software",       "KeyCraft Studio (Windows/macOS)"),
-        ("Included",       "USB-C cable, keycap puller, switch puller, extra keycaps"),
-    };
-
-    var reviews = new[]
-    {
-        new {
-            Initial     = "A",
-            Name        = "Alex Chen",
-            Date        = "March 15, 2026",
-            Stars       = 5,
-            Title       = "Best keyboard I've ever owned!",
-            Body        = "The build quality is exceptional. The aluminum frame feels premium and the typing experience with Gateron Yellow switches is incredibly smooth. RGB lighting is vibrant and the software allows for extensive customization. Highly recommended for both work and gaming.",
-            HelpfulCount = 24
-        },
-        new {
-            Initial     = "S",
-            Name        = "Sarah Kim",
-            Date        = "March 10, 2026",
-            Stars       = 5,
-            Title       = "Perfect for programming",
-            Body        = "As a software developer, I spend 8+ hours a day typing. This keyboard has significantly reduced my fatigue. The PBT keycaps have a satisfying texture and the hot-swap feature means I can experiment with different switches without soldering.",
-            HelpfulCount = 18
-        }
-    };
-
-    var starDist = new[] { (5, 2), (4, 1), (3, 0), (2, 0), (1, 0) };
-    int maxCount = starDist.Max(x => x.Item2);
+    ViewData["Title"] = Model?.Name ?? "Product Details";
 }
 <!DOCTYPE html>
 <html lang="th">
@@ -161,8 +120,8 @@
 
         <!-- Product Info -->
         <div class="info">
-            <span class="brand-label">KeyCraft</span>
-            <h1 class="product-name">Aurora Pro 75% Mechanical Keyboard</h1>
+            <span class="brand-label">@Model?.BrandName</span>
+            <h1 class="product-name">@Model?.Name</h1>
 
             <div class="rating-row">
                 <div class="stars">
@@ -176,40 +135,12 @@
             </div>
 
             <div class="price-row">
-                <span class="price">฿4,990</span>
-                <span class="price-orig">฿5,990</span>
-                <span class="discount-badge">-17%</span>
+                <span class="price">฿@Model?.Price.ToString("0.00")</span>
             </div>
 
             <p class="desc">
-                Experience the perfect fusion of form and function with the Aurora Pro.
-                Featuring hot-swappable switches, premium PBT keycaps, and customizable RGB lighting,
-                this 75% keyboard delivers exceptional typing comfort without sacrificing essential keys.
+                @Model?.Description
             </p>
-
-            <!-- Switch Type -->
-            <div class="opt-section">
-                <span class="opt-title">Switch Type</span>
-                <div class="opt-btns" id="grp-switch">
-                    @foreach (var sw in switchTypes)
-                    {
-                        <button class="opt-btn @(sw == switchTypes[0] ? "active" : "")"
-                                onclick="selectOpt(this,'grp-switch')">@sw</button>
-                    }
-                </div>
-            </div>
-
-            <!-- Layout -->
-            <div class="opt-section">
-                <span class="opt-title">Layout</span>
-                <div class="opt-btns" id="grp-layout">
-                    @foreach (var ly in layouts)
-                    {
-                        <button class="opt-btn @(ly == layouts[0] ? "active" : "")"
-                                onclick="selectOpt(this,'grp-layout')">@ly</button>
-                    }
-                </div>
-            </div>
 
             <!-- Quantity -->
             <div class="opt-section">
@@ -223,7 +154,14 @@
 
             <div class="in-stock">
                 <span class="stock-dot"></span>
-                In Stock
+                @if (Model?.StockQuantity > 0)
+                {
+                    <span>In Stock (@Model.StockQuantity available)</span>
+                }
+                else
+                {
+                    <span style="color: #ef4444;">Out of Stock</span>
+                }
             </div>
 
             <div class="cta-row">
@@ -265,15 +203,22 @@
     <!-- ── SPECIFICATIONS ── -->
     <section>
         <h2 class="section-title">Specifications</h2>
-        <table class="spec-table">
-            @foreach (var (label, value) in specs)
-            {
-                <tr>
-                    <td>@label</td>
-                    <td>@value</td>
-                </tr>
-            }
-        </table>
+        @if (Model?.Specifications != null && Model.Specifications.Count > 0)
+        {
+            <table class="spec-table">
+                @foreach (var spec in Model.Specifications)
+                {
+                    <tr>
+                        <td>@spec.SpecKey</td>
+                        <td>@spec.SpecValue</td>
+                    </tr>
+                }
+            </table>
+        }
+        else
+        {
+            <p style="color: #7a7c85;">No specifications available for this product.</p>
+        }
     </section>
 
     <hr class="divider" />
@@ -281,62 +226,9 @@
     <!-- ── REVIEWS ── -->
     <section>
         <h2 class="section-title">Customer Reviews</h2>
-
-        <div class="rating-card">
-            <div class="rating-score">
-                <div class="rating-num">4.8</div>
-                <div class="stars" style="justify-content:center;margin-top:6px;">
-                    <span class="star">★</span>
-                    <span class="star">★</span>
-                    <span class="star">★</span>
-                    <span class="star">★</span>
-                    <span class="star">★</span>
-                </div>
-                <div class="rating-based">Based on 128 reviews</div>
-            </div>
-            <div class="bars">
-                @foreach (var (star, count) in starDist)
-                {
-                    int pct = maxCount > 0 ? count * 100 / maxCount : 0;
-                    <div class="bar-row">
-                        <span class="bar-label">@star star</span>
-                        <div class="bar-track">
-                            <div class="bar-fill" style="width:@pct%"></div>
-                        </div>
-                        <span class="bar-count">@count</span>
-                    </div>
-                }
-            </div>
+        <div style="background: var(--surface2); border: 1px solid var(--border); border-radius: var(--r); padding: 40px; text-align: center; color: #7a7c85;">
+            <p>Reviews for this product will be available soon.</p>
         </div>
-
-        @foreach (var r in reviews)
-        {
-            <div class="review-card">
-                <div class="review-head">
-                    <div class="reviewer-info">
-                        <div class="avatar">@r.Initial</div>
-                        <div>
-                            <div>
-                                <span class="reviewer-name">@r.Name</span>
-                                <span class="verified-badge">Verified Purchase</span>
-                            </div>
-                            <div class="review-date">@r.Date</div>
-                        </div>
-                    </div>
-                    <div class="stars">
-                        @for (int i = 0; i < r.Stars; i++)
-                        {
-                            <span class="star">★</span>
-                        }
-                    </div>
-                </div>
-                <div class="review-title">@r.Title</div>
-                <div class="review-body">@r.Body</div>
-                <button class="helpful-btn">👍 Helpful (@r.HelpfulCount)</button>
-            </div>
-        }
-
-        <button class="btn-load-more">Load More Reviews</button>
     </section>
 
 </div><!-- /page -->
@@ -365,10 +257,9 @@
 
     // ── Add to Cart ──
     function addToCart() {
-        const sw  = document.querySelector('#grp-switch .active')?.textContent ?? '';
-        const ly  = document.querySelector('#grp-layout .active')?.textContent ?? '';
         const toast = document.getElementById('toast');
-        toast.textContent = `✓ Added ${qty}x Aurora Pro (${sw}, ${ly}) to cart!`;
+        const productName = '@Model?.Name';
+        toast.textContent = `✓ Added ${qty}x ${productName} to cart!`;
         toast.style.display = 'block';
         clearTimeout(toast._t);
         toast._t = setTimeout(() => toast.style.display = 'none', 3000);

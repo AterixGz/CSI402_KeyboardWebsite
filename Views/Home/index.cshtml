@@ -1,3 +1,5 @@
+@model List<KeyboardWebsiteProject.Models.Product>
+
 @{
     ViewData["Title"] = "Premium Keyboards";
 }
@@ -88,110 +90,56 @@
         <p class="text-secondary">Discover our most popular keyboards and accessories</p>
     </div>
     
-    <div class="row g-4">
-        <!-- Product Card 1 -->
-        <div class="col-lg-3 col-md-6">
-            <div class="product-card">
-                <div class="product-image">
-                    <img src="~/image/Screenshot%202026-02-23%20142530.png" alt="Premium Mechanical Keyboard" class="w-100" />
-                    <span class="product-badge">New</span>
-                </div>
-                <div class="product-body">
-                    <h5 class="product-title">Zoom75 Mechanical Keyboard</h5>
-                    <p class="product-category">Custom Keyboard</p>
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <span class="product-price">฿11,570</span>
-                        <div class="product-rating">
-                            <i class="bi bi-star-fill"></i>
-                            <i class="bi bi-star-fill"></i>
-                            <i class="bi bi-star-fill"></i>
-                            <i class="bi bi-star-fill"></i>
-                            <i class="bi bi-star-half"></i>
+    @if (Model != null && Model.Count > 0)
+    {
+        <div class="row g-4">
+            @foreach (var product in Model)
+            {
+                <div class="col-lg-3 col-md-6">
+                    <div class="product-card">
+                        <div class="product-image">
+                            @if (!string.IsNullOrEmpty(product.ImageUrl))
+                            {
+                                <img src="@product.ImageUrl" alt="@product.Name" class="w-100" />
+                            }
+                            else
+                            {
+                                <div style="width: 100%; height: 100%; background: #f0f0f0; display: flex; align-items: center; justify-content: center; color: #999;">
+                                    <i class="bi bi-image" style="font-size: 3rem;"></i>
+                                </div>
+                            }
+                            <span class="product-badge">@(product.StockQuantity > 0 ? "In Stock" : "Sold Out")</span>
+                        </div>
+                        <div class="product-body">
+                            <h5 class="product-title">@product.Name</h5>
+                            <p class="product-category">@product.CategoryName</p>
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <span class="product-price">฿@product.Price.ToString("0.00")</span>
+                                <div class="product-rating">
+                                    <i class="bi bi-star-fill"></i>
+                                    <i class="bi bi-star-fill"></i>
+                                    <i class="bi bi-star-fill"></i>
+                                    <i class="bi bi-star-fill"></i>
+                                    <i class="bi bi-star-half"></i>
+                                </div>
+                            </div>
+                            <a asp-controller="Home" asp-action="ProductDetails" asp-route-id="@product.ProductId" class="btn btn-primary w-100">View Details</a>
                         </div>
                     </div>
-                    <a asp-controller="Home" asp-action="ProductDetails" class="btn btn-primary w-100">View Details</a>
                 </div>
-            </div>
+            }
         </div>
 
-        <!-- Product Card 2 -->
-        <div class="col-lg-3 col-md-6">
-            <div class="product-card">
-                <div class="product-image">
-                    <img src="~/image/Screenshot%202026-02-23%20142530.png" alt="Artisan Keycap Set" class="w-100" />
-                    <span class="product-badge" style="background-color: #ff6b6b;">Hot</span>
-                </div>
-                <div class="product-body">
-                    <h5 class="product-title">GMK Artisan Keycap Set</h5>
-                    <p class="product-category">Keycaps & Accessories</p>
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <span class="product-price">฿6,240</span>
-                        <div class="product-rating">
-                            <i class="bi bi-star-fill"></i>
-                            <i class="bi bi-star-fill"></i>
-                            <i class="bi bi-star-fill"></i>
-                            <i class="bi bi-star-fill"></i>
-                            <i class="bi bi-star-fill"></i>
-                        </div>
-                    </div>
-                    <a asp-controller="Home" asp-action="ProductDetails" class="btn btn-primary w-100">View Details</a>
-                </div>
-            </div>
+        <div class="text-center mt-5">
+            <a asp-controller="Home" asp-action="Shop" class="btn btn-outline-dark btn-lg">View All Products</a>
         </div>
-
-        <!-- Product Card 3 -->
-        <div class="col-lg-3 col-md-6">
-            <div class="product-card">
-                <div class="product-image">
-                    <img src="~/image/Screenshot%202026-02-23%20142530.png" alt="Linear Mechanical Switches" class="w-100" />
-                    <span class="product-badge" style="background-color: #51cf66;">Sale</span>
-                </div>
-                <div class="product-body">
-                    <h5 class="product-title">Gateron Linear Switches (90pcs)</h5>
-                    <p class="product-category">Switches & Springs</p>
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <span class="product-price">฿2,630</span>
-                        <div class="product-rating">
-                            <i class="bi bi-star-fill"></i>
-                            <i class="bi bi-star-fill"></i>
-                            <i class="bi bi-star-fill"></i>
-                            <i class="bi bi-star-fill"></i>
-                            <i class="bi bi-star"></i>
-                        </div>
-                    </div>
-                    <a asp-controller="Home" asp-action="ProductDetails" class="btn btn-primary w-100">View Details</a>
-                </div>
-            </div>
+    }
+    else
+    {
+        <div class="alert alert-info text-center" role="alert">
+            <p class="mb-0" style="font-size: 1.1rem; color: #666;">ตอนนี้ยังไม่มีสินค้า</p>
         </div>
-
-        <!-- Product Card 4 -->
-        <div class="col-lg-3 col-md-6">
-            <div class="product-card">
-                <div class="product-image">
-                    <img src="~/image/Screenshot%202026-02-23%20142530.png" alt="Stabilizers Kit" class="w-100" />
-                </div>
-                <div class="product-body">
-                    <h5 class="product-title">Durock Stabilizers Kit</h5>
-                    <p class="product-category">Stabilizers & Kits</p>
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <span class="product-price">฿1,510</span>
-                        <div class="product-rating">
-                            <i class="bi bi-star-fill"></i>
-                            <i class="bi bi-star-fill"></i>
-                            <i class="bi bi-star-fill"></i>
-                            <i class="bi bi-star-fill"></i>
-                            <i class="bi bi-star-half"></i>
-                        </div>
-                    </div>
-                    <a asp-controller="Home" asp-action="ProductDetails" class="btn btn-primary w-100">View Details</a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="text-center mt-5">
-        <a asp-controller="Home" asp-action="Shop" class="btn btn-outline-dark btn-lg">View All Products</a>
-    </div>
+    }
 </div>
 
 <!-- Bottom CTA -->

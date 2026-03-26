@@ -2,6 +2,8 @@
     ViewData["Title"] = "Shop All Products";
 }
 
+@model List<KeyboardWebsiteProject.Models.Product>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -115,7 +117,7 @@
     <!-- ── MAIN ── -->
     <main class="main-content">
         <div class="toolbar">
-            <span class="product-count">22 products</span>
+            <span class="product-count">@Model.Count() products</span>
             <div class="toolbar-right">
                 <div class="view-toggle">
                     <button class="view-btn" title="List view">
@@ -135,339 +137,49 @@
         </div>
 
         <div class="product-grid" id="productGrid">
-
-            <!-- 1: Cyberboard R4 -->
-            <div class="product-card" onclick="navigateToProduct(1, 'Cyberboard R4', '580.00', 'Wireless / LED Matrix / 75%')">
-                <div class="card-image">
-                    <span class="badge badge-new">New</span>
-                    @* Keyboard SVG placeholder *@
-                    <svg class="kbd-placeholder" width="160" height="100" viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <rect x="4" y="18" width="152" height="64" rx="8" stroke="#10b981" stroke-width="2"/>
-                        @for (int r = 0; r < 3; r++) {
-                            @for (int c = 0; c < 14; c++) {
-                                <rect x="@(12+c*10)" y="@(28+r*12)" width="8" height="8" rx="1.5" fill="#10b981" opacity="0.5"/>
+            @if (Model != null && Model.Count > 0)
+            {
+                @foreach (var product in Model)
+                {
+                    <div class="product-card" onclick="navigateToProduct(@product.ProductId, '@product.Name', '@product.Price.ToString("0.00")', '@product.Description')">
+                        <div class="card-image">
+                            @if (product.StockQuantity == 0)
+                            {
+                                <span class="badge badge-sold">Sold Out</span>
                             }
-                        }
-                        <rect x="12" y="64" width="24" height="8" rx="1.5" fill="#10b981" opacity="0.5"/>
-                        <rect x="40" y="64" width="76" height="8" rx="1.5" fill="#10b981" opacity="0.5"/>
-                        <rect x="120" y="64" width="28" height="8" rx="1.5" fill="#10b981" opacity="0.5"/>
-                    </svg>
-                </div>
-                <div class="card-body">
-                    <div class="card-name">Cyberboard R4</div>
-                    <div class="card-desc">Wireless / LED Matrix / 75%...</div>
-                    <div class="card-footer">
-                        <span class="card-price">฿19,030</span>
-                        <button class="add-btn" title="Add to cart">+</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 2: Zoom75 Essential -->
-            <div class="product-card" onclick="navigateToProduct(2, 'Zoom75 Essential', '169.00', 'Gasket Mount / Hot-swappable')">
-                <div class="card-image">
-                    <svg class="kbd-placeholder" width="160" height="100" viewBox="0 0 160 100" fill="none">
-                        <rect x="4" y="18" width="152" height="64" rx="8" stroke="#10b981" stroke-width="2"/>
-                        @for (int r = 0; r < 3; r++) {
-                            @for (int c = 0; c < 14; c++) {
-                                <rect x="@(12+c*10)" y="@(28+r*12)" width="8" height="8" rx="1.5" fill="#10b981" opacity="0.5"/>
+                            else if (product.StockQuantity <= 5)
+                            {
+                                <span class="badge badge-few">@product.StockQuantity left</span>
                             }
-                        }
-                        <rect x="12" y="64" width="24" height="8" rx="1.5" fill="#10b981" opacity="0.5"/>
-                        <rect x="40" y="64" width="76" height="8" rx="1.5" fill="#10b981" opacity="0.5"/>
-                        <rect x="120" y="64" width="28" height="8" rx="1.5" fill="#10b981" opacity="0.5"/>
-                    </svg>
-                </div>
-                <div class="card-body">
-                    <div class="card-name">Zoom75 Essential</div>
-                    <div class="card-desc">Gasket Mount / Hot-swappable ...</div>
-                    <div class="card-footer">
-                        <span class="card-price">฿5,550</span>
-                        <button class="add-btn" title="Add to cart">+</button>
+                            <svg class="kbd-placeholder" width="160" height="100" viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="4" y="18" width="152" height="64" rx="8" stroke="#10b981" stroke-width="2"/>
+                                @for (int r = 0; r < 3; r++) {
+                                    @for (int c = 0; c < 14; c++) {
+                                        <rect x="@(12+c*10)" y="@(28+r*12)" width="8" height="8" rx="1.5" fill="#10b981" opacity="0.5"/>
+                                    }
+                                }
+                                <rect x="12" y="64" width="24" height="8" rx="1.5" fill="#10b981" opacity="0.5"/>
+                                <rect x="40" y="64" width="76" height="8" rx="1.5" fill="#10b981" opacity="0.5"/>
+                                <rect x="120" y="64" width="28" height="8" rx="1.5" fill="#10b981" opacity="0.5"/>
+                            </svg>
+                        </div>
+                        <div class="card-body">
+                            <div class="card-name">@product.Name</div>
+                            <div class="card-desc">@product.CategoryName - @product.BrandName</div>
+                            <div class="card-footer">
+                                <span class="card-price">฿@product.Price.ToString("0.00")</span>
+                                <button class="add-btn" title="Add to cart">+</button>
+                            </div>
+                        </div>
                     </div>
+                }
+            }
+            else
+            {
+                <div style="grid-column: 1/-1; padding: 40px; text-align: center; color: #6b7280;">
+                    <p>No products available at the moment.</p>
                 </div>
-            </div>
-
-            <!-- 3: QK65 V2 -->
-            <div class="product-card" onclick="navigateToProduct(3, 'QK65 V2', '145.00', 'Bluetooth / Gasket / 65% Layout')">
-                <div class="card-image">
-                    <svg class="kbd-placeholder" width="160" height="100" viewBox="0 0 160 100" fill="none">
-                        <rect x="4" y="18" width="152" height="64" rx="8" stroke="#10b981" stroke-width="2"/>
-                        @for (int r = 0; r < 3; r++) {
-                            @for (int c = 0; c < 14; c++) {
-                                <rect x="@(12+c*10)" y="@(28+r*12)" width="8" height="8" rx="1.5" fill="#10b981" opacity="0.5"/>
-                            }
-                        }
-                        <rect x="12" y="64" width="24" height="8" rx="1.5" fill="#10b981" opacity="0.5"/>
-                        <rect x="40" y="64" width="76" height="8" rx="1.5" fill="#10b981" opacity="0.5"/>
-                        <rect x="120" y="64" width="28" height="8" rx="1.5" fill="#10b981" opacity="0.5"/>
-                    </svg>
-                </div>
-                <div class="card-body">
-                    <div class="card-name">QK65 V2</div>
-                    <div class="card-desc">Bluetooth / Gasket / 65% Layout</div>
-                    <div class="card-footer">
-                        <span class="card-price">฿4,785</span>
-                        <button class="add-btn" title="Add to cart">+</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 4: Mode Sonnet -->
-            <div class="product-card" onclick="navigateToProduct(4, 'Mode Sonnet', '12770', 'Premium 75% / Multi-mount')">
-                <div class="card-image">
-                    <svg class="kbd-placeholder" width="160" height="100" viewBox="0 0 160 100" fill="none">
-                        <rect x="4" y="18" width="152" height="64" rx="8" stroke="#10b981" stroke-width="2"/>
-                        @for (int r = 0; r < 3; r++) {
-                            @for (int c = 0; c < 14; c++) {
-                                <rect x="@(12+c*10)" y="@(28+r*12)" width="8" height="8" rx="1.5" fill="#10b981" opacity="0.5"/>
-                            }
-                        }
-                        <rect x="12" y="64" width="24" height="8" rx="1.5" fill="#10b981" opacity="0.5"/>
-                        <rect x="40" y="64" width="76" height="8" rx="1.5" fill="#10b981" opacity="0.5"/>
-                        <rect x="120" y="64" width="28" height="8" rx="1.5" fill="#10b981" opacity="0.5"/>
-                    </svg>
-                </div>
-                <div class="card-body">
-                    <div class="card-name">Mode Sonnet</div>
-                    <div class="card-desc">Premium 75% / Multi-mount /...</div>
-                    <div class="card-footer">
-                        <span class="card-price">฿12,770</span>
-                        <button class="add-btn" title="Add to cart">+</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 5: kbd placeholder (no badge) -->
-            <div class="product-card" onclick="navigateToProduct(5, 'Satisfaction75 V2', '11510', 'Knob / Gasket / 75% Layout')">
-                <div class="card-image">
-                    <svg class="kbd-placeholder" width="160" height="100" viewBox="0 0 160 100" fill="none">
-                        <rect x="4" y="18" width="152" height="64" rx="8" stroke="#10b981" stroke-width="2"/>
-                        @for (int r = 0; r < 3; r++) {
-                            @for (int c = 0; c < 14; c++) {
-                                <rect x="@(12+c*10)" y="@(28+r*12)" width="8" height="8" rx="1.5" fill="#10b981" opacity="0.5"/>
-                            }
-                        }
-                        <rect x="12" y="64" width="24" height="8" rx="1.5" fill="#10b981" opacity="0.5"/>
-                        <rect x="40" y="64" width="76" height="8" rx="1.5" fill="#10b981" opacity="0.5"/>
-                        <rect x="120" y="64" width="28" height="8" rx="1.5" fill="#10b981" opacity="0.5"/>
-                    </svg>
-                </div>
-                <div class="card-body">
-                    <div class="card-name">Satisfaction75 V2</div>
-                    <div class="card-desc">Knob / Gasket / 75% Layout</div>
-                    <div class="card-footer">
-                        <span class="card-price">฿11,460</span>
-                        <button class="add-btn" title="Add to cart">+</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 6: New kbd -->
-            <div class="product-card" onclick="navigateToProduct(6, 'Ciel65', '6560', 'Leaf Spring / E-white / 65%')">
-                <div class="card-image">
-                    <span class="badge badge-new">New</span>
-                    <svg class="kbd-placeholder" width="160" height="100" viewBox="0 0 160 100" fill="none">
-                        <rect x="4" y="18" width="152" height="64" rx="8" stroke="#10b981" stroke-width="2"/>
-                        @for (int r = 0; r < 3; r++) {
-                            @for (int c = 0; c < 14; c++) {
-                                <rect x="@(12+c*10)" y="@(28+r*12)" width="8" height="8" rx="1.5" fill="#10b981" opacity="0.5"/>
-                            }
-                        }
-                        <rect x="12" y="64" width="24" height="8" rx="1.5" fill="#10b981" opacity="0.5"/>
-                        <rect x="40" y="64" width="76" height="8" rx="1.5" fill="#10b981" opacity="0.5"/>
-                        <rect x="120" y="64" width="28" height="8" rx="1.5" fill="#10b981" opacity="0.5"/>
-                    </svg>
-                </div>
-                <div class="card-body">
-                    <div class="card-name">Ciel65</div>
-                    <div class="card-desc">Leaf Spring / E-white / 65%</div>
-                    <div class="card-footer">
-                        <span class="card-price">฿6,530</span>
-                        <button class="add-btn" title="Add to cart">+</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 7: Keycap circles -->
-            <div class="product-card" onclick="navigateToProduct(7, 'GMK Olivia', '6240', 'Cherry Profile / PBT / 139 keys')">
-                <div class="card-image" style="background:#f8f8fb;">
-                    <div class="keycap-circles">
-                        <div class="kc" style="background:#a8d5c2;"></div>
-                        <div class="kc" style="background:#c4b5d0;"></div>
-                        <div class="kc" style="background:#b8cfe0;"></div>
-                        <div class="kc" style="background:#d0c4b5;"></div>
-                        <div class="kc" style="background:#a8d5c2;"></div>
-                        <div class="kc" style="background:#e0d0b8;"></div>
-                        <div class="kc" style="background:#c4b5d0;"></div>
-                        <div class="kc" style="background:#b8d5a8;"></div>
-                        <div class="kc" style="background:#d0b8c4;"></div>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <div class="card-name">GMK Olivia</div>
-                    <div class="card-desc">Cherry Profile / PBT / 139 keys</div>
-                    <div class="card-footer">
-                        <span class="card-price">฿5,410</span>
-                        <button class="add-btn" title="Add to cart">+</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 8: Keycap circles GB -->
-            <div class="product-card" onclick="navigateToProduct(8, 'GMK Nord', '7095', 'Cherry Profile / PBT / Nordic')">
-                <div class="card-image" style="background:#f8f8fb;">
-                    <span class="badge badge-gb">Group Buy</span>
-                    <div class="keycap-circles">
-                        <div class="kc" style="background:#c8c8d8;"></div>
-                        <div class="kc" style="background:#d8c8d8;"></div>
-                        <div class="kc" style="background:#c8d8d8;"></div>
-                        <div class="kc" style="background:#d0c8e0;"></div>
-                        <div class="kc" style="background:#c8d8c8;"></div>
-                        <div class="kc" style="background:#e0c8d0;"></div>
-                        <div class="kc" style="background:#d8d0c8;"></div>
-                        <div class="kc" style="background:#c8c8e0;"></div>
-                        <div class="kc" style="background:#d0d8c8;"></div>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <div class="card-name">GMK Nord</div>
-                    <div class="card-desc">Cherry Profile / PBT / Nordic</div>
-                    <div class="card-footer">
-                        <span class="card-price">฿7,095</span>
-                        <button class="add-btn" title="Add to cart">+</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 9: Boba U4T (Switch) -->
-            <div class="product-card" onclick="navigateToProduct(9, 'Boba U4T', '1485', 'Tactile / 62g / No Pre-travel')">
-                <div class="card-image">
-                    <div class="switch-icon">
-                        <svg width="28" height="28" fill="none" stroke="#71717a" stroke-width="1.5" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="12" cy="12" r="3"/></svg>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <div class="card-name">Boba U4T</div>
-                    <div class="card-desc">Tactile / 62g / No Pre-travel / 10-...</div>
-                    <div class="card-footer">
-                        <span class="card-price">฿246</span>
-                        <button class="add-btn" title="Add to cart">+</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 10: Pewter Switches (Sold Out) -->
-            <div class="product-card" onclick="navigateToProduct(10, 'Pewter Switches', '1584', 'Linear / 60g / Full Nylon')">
-                <div class="card-image">
-                    <span class="badge badge-sold">Sold Out</span>
-                    <div class="switch-icon">
-                        <svg width="28" height="28" fill="none" stroke="#71717a" stroke-width="1.5" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><circle cx="12" cy="12" r="3"/></svg>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <div class="card-name">Pewter Switches</div>
-                    <div class="card-desc">Linear / 60g / Full Nylon / 10-...</div>
-                    <div class="card-footer">
-                        <span class="card-price">฿190</span>
-                        <button class="add-btn" title="Add to cart" disabled style="opacity:.4;cursor:not-allowed;">+</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 11: Coiled Cable Pro -->
-            <div class="product-card" onclick="navigateToProduct(11, 'Coiled Cable Pro', '1155', 'Aviator Connector / USB-C')">
-                <div class="card-image">
-                    <svg class="kbd-placeholder sm" width="90" height="90" viewBox="0 0 90 90" fill="none">
-                        <rect x="4" y="4" width="82" height="82" rx="8" stroke="#a0a0a0" stroke-width="2"/>
-                        <rect x="16" y="18" width="58" height="54" rx="4" stroke="#a0a0a0" stroke-width="1.5"/>
-                        @for (int r = 0; r < 3; r++) {
-                            @for (int c = 0; c < 5; c++) {
-                                <rect x="@(20+c*10)" y="@(24+r*12)" width="8" height="8" rx="1.5" fill="#a0a0a0" opacity="0.5"/>
-                            }
-                        }
-                    </svg>
-                </div>
-                <div class="card-body">
-                    <div class="card-name">Coiled Cable Pro</div>
-                    <div class="card-desc">Aviator Connector / USB-C /...</div>
-                    <div class="card-footer">
-                        <span class="card-price">฿1,480</span>
-                        <button class="add-btn" title="Add to cart">+</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 12: Krytox 205g0 (New) -->
-            <div class="product-card" onclick="navigateToProduct(12, 'Krytox 205g0', '396', 'Switch Lubricant / 5ml')">
-                <div class="card-image">
-                    <span class="badge badge-new">New</span>
-                    <svg class="kbd-placeholder sm" width="90" height="90" viewBox="0 0 90 90" fill="none">
-                        <rect x="4" y="4" width="82" height="82" rx="8" stroke="#a0a0a0" stroke-width="2"/>
-                        <rect x="16" y="18" width="58" height="54" rx="4" stroke="#a0a0a0" stroke-width="1.5"/>
-                        @for (int r = 0; r < 3; r++) {
-                            @for (int c = 0; c < 5; c++) {
-                                <rect x="@(20+c*10)" y="@(24+r*12)" width="8" height="8" rx="1.5" fill="#a0a0a0" opacity="0.5"/>
-                            }
-                        }
-                    </svg>
-                </div>
-                <div class="card-body">
-                    <div class="card-name">Krytox 205g0</div>
-                    <div class="card-desc">Switch Lubricant / 5ml / Grade 0</div>
-                    <div class="card-footer">
-                        <span class="card-price">฿394</span>
-                        <button class="add-btn" title="Add to cart">+</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 13: Switch Opener Set -->
-            <div class="product-card" onclick="navigateToProduct(13, 'Switch Opener Set', '924', 'CNC Aluminum / MX + Kailh')">
-                <div class="card-image">
-                    <svg class="kbd-placeholder sm" width="90" height="90" viewBox="0 0 90 90" fill="none">
-                        <rect x="4" y="4" width="82" height="82" rx="8" stroke="#a0a0a0" stroke-width="2"/>
-                        <rect x="16" y="18" width="58" height="54" rx="4" stroke="#a0a0a0" stroke-width="1.5"/>
-                        @for (int r = 0; r < 3; r++) {
-                            @for (int c = 0; c < 5; c++) {
-                                <rect x="@(20+c*10)" y="@(24+r*12)" width="8" height="8" rx="1.5" fill="#a0a0a0" opacity="0.5"/>
-                            }
-                        }
-                    </svg>
-                </div>
-                <div class="card-body">
-                    <div class="card-name">Switch Opener Set</div>
-                    <div class="card-desc">CNC Aluminum / MX + Kailh...</div>
-                    <div class="card-footer">
-                        <span class="card-price">฿591</span>
-                        <button class="add-btn" title="Add to cart">+</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 14: Desk Mat Midnight (4 left) -->
-            <div class="product-card" onclick="navigateToProduct(14, 'Desk Mat - Midnight', '1386', '900x400mm / Stitched Edges')">
-                <div class="card-image">
-                    <span class="badge badge-few">4 left</span>
-                    <svg class="kbd-placeholder sm" width="90" height="90" viewBox="0 0 90 90" fill="none">
-                        <rect x="4" y="4" width="82" height="82" rx="8" stroke="#a0a0a0" stroke-width="2"/>
-                        <rect x="16" y="18" width="58" height="54" rx="4" stroke="#a0a0a0" stroke-width="1.5"/>
-                        @for (int r = 0; r < 3; r++) {
-                            @for (int c = 0; c < 5; c++) {
-                                <rect x="@(20+c*10)" y="@(24+r*12)" width="8" height="8" rx="1.5" fill="#a0a0a0" opacity="0.5"/>
-                            }
-                        }
-                    </svg>
-                </div>
-                <div class="card-body">
-                    <div class="card-name">Desk Mat - Midnight</div>
-                    <div class="card-desc">900x400mm / Stitched Edges /...</div>
-                    <div class="card-footer">
-                        <span class="card-price">฿952</span>
-                        <button class="add-btn" title="Add to cart">+</button>
-                    </div>
-                </div>
-            </div>
+            }
 
         </div><!-- /product-grid -->
     </main>

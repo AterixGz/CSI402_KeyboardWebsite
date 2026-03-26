@@ -161,19 +161,21 @@
             <button class="modal-close" onclick="closeModal()">✕</button>
         </div>
         <div class="mrow one">
-            <div class="fg"><label>Product Name</label><input type="text" id="mName" placeholder="e.g. Keychron K2 Pro" /></div>
+            <div class="fg"><label>Product Name</label><input type="text" id="mName" placeholder="e.g. Keychron K2 Pro" /><div class="error-message" id="mName-error">Required field</div></div>
         </div>
         <div class="mrow two">
-            <div class="fg"><label>SKU</label><input type="text" id="mSku" placeholder="e.g. KB-K2P-001" /></div>
+            <div class="fg"><label>Brand</label><input type="text" id="mBrand" placeholder="e.g. Keychron" /><div class="error-message" id="mBrand-error">Required field</div></div>
             <div class="fg">
                 <label>Category</label>
                 <select id="mCat">
+                    <option value="">-- Select Category --</option>
                     <option value="Mechanical Keyboard">Mechanical Keyboard</option>
                     <option value="Custom Keyboard">Custom Keyboard</option>
                     <option value="Keycaps">Keycaps</option>
                     <option value="Switches">Switches</option>
                     <option value="Accessories">Accessories</option>
                 </select>
+                <div class="error-message" id="mCat-error">Required field</div>
             </div>
         </div>
         <div class="mrow two">
@@ -181,7 +183,19 @@
             <div class="fg"><label>Stock Quantity</label><input type="number" id="mStock" placeholder="0" min="0" /></div>
         </div>
         <div class="mrow one">
+            <div class="fg"><label>Image URL</label><input type="text" id="mImage" placeholder="~/image/product.png" /></div>
+        </div>
+        <div class="mrow one">
             <div class="fg"><label>Description (optional)</label><textarea id="mDesc" placeholder="Brief product description..."></textarea></div>
+        </div>
+        <div class="specs-section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <label style="font-weight: 600; color: #333;">Product Specifications (optional)</label>
+                <button type="button" class="add-spec-btn" onclick="addSpecField('mSpecs')">+ Add Spec</button>
+            </div>
+            <div id="mSpecs" class="specs-container">
+                <!-- Spec rows will be added here -->
+            </div>
         </div>
         <div class="modal-footer">
             <button class="cancel-btn" onclick="closeModal()">Cancel</button>
@@ -201,19 +215,21 @@
             <button class="modal-close" onclick="closeEditModal()">✕</button>
         </div>
         <div class="mrow one">
-            <div class="fg"><label>Product Name</label><input type="text" id="eName" placeholder="e.g. Keychron K2 Pro" /></div>
+            <div class="fg"><label>Product Name</label><input type="text" id="eName" placeholder="e.g. Keychron K2 Pro" /><div class="error-message" id="eName-error">Required field</div></div>
         </div>
         <div class="mrow two">
-            <div class="fg"><label>Brand</label><input type="text" id="eBrand" placeholder="e.g. Keychron" /></div>
+            <div class="fg"><label>Brand</label><input type="text" id="eBrand" placeholder="e.g. Keychron" /><div class="error-message" id="eBrand-error">Required field</div></div>
             <div class="fg">
                 <label>Category</label>
                 <select id="eCat">
+                    <option value="">-- Select Category --</option>
                     <option value="Mechanical Keyboard">Mechanical Keyboard</option>
                     <option value="Custom Keyboard">Custom Keyboard</option>
                     <option value="Keycaps">Keycaps</option>
                     <option value="Switches">Switches</option>
                     <option value="Accessories">Accessories</option>
                 </select>
+                <div class="error-message" id="eCat-error">Required field</div>
             </div>
         </div>
         <div class="mrow two">
@@ -226,6 +242,15 @@
         <div class="mrow one">
             <div class="fg"><label>Description (optional)</label><textarea id="eDesc" placeholder="Brief product description..."></textarea></div>
         </div>
+        <div class="specs-section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <label style="font-weight: 600; color: #333;">Product Specifications (optional)</label>
+                <button type="button" class="add-spec-btn" onclick="addSpecField('eSpecs')">+ Add Spec</button>
+            </div>
+            <div id="eSpecs" class="specs-container">
+                <!-- Spec rows will be added here -->
+            </div>
+        </div>
         <div class="modal-footer">
             <button class="cancel-btn" onclick="closeEditModal()">Cancel</button>
             <button class="delete-btn" onclick="deleteProduct()" style="margin-right: auto;">Delete Product</button>
@@ -236,6 +261,25 @@
 
 
 
+<!-- ── Delete Confirmation Modal ── -->
+<div class="modal-overlay" id="deleteConfirmOverlay" onclick="closeDeleteConfirm(event)">
+    <div class="modal" style="max-width: 420px;">
+        <div class="modal-header">
+            <div class="modal-title">Delete Product</div>
+            <button class="modal-close" onclick="closeDeleteConfirm()">✕</button>
+        </div>
+        <div style="padding: 0 28px 24px; text-align: center;">
+            <div style="font-size: 48px; margin-bottom: 16px;">⚠️</div>
+            <p style="font-size: 15px; color: #374151; margin-bottom: 8px; font-weight: 500;">Are you sure you want to delete this product?</p>
+            <p style="font-size: 13px; color: #6b7280; margin-bottom: 24px;">This action cannot be undone. All product specifications and data will be permanently removed from the database.</p>
+            <div style="display: flex; gap: 10px;">
+                <button class="cancel-btn" onclick="closeDeleteConfirm()" style="flex: 1;">Cancel</button>
+                <button class="delete-btn" onclick="confirmDeleteProduct()" style="flex: 1;">Delete Product</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     // รับข้อมูลจาก Model ที่ส่งมาจาก Controller
     const products = @Html.Raw(Json.Serialize(Model ?? new List<KeyboardWebsiteProject.Models.Product>()));
@@ -243,6 +287,7 @@
     const PER_PAGE = 8;
     let currentPage = 1;
     let filtered = [...products];
+    let specCounter = { mSpecs: 0, eSpecs: 0 }; // Track spec field IDs
 
     function getStatus(stock) {
         if (stock === 0) return 'Out of Stock';
@@ -256,7 +301,91 @@
         return 'badge-instock';
     }
 
+    function addSpecField(containerId) {
+        const container = document.getElementById(containerId);
+        const specId = `spec-${containerId}-${specCounter[containerId]++}`;
+        
+        const specRow = document.createElement('div');
+        specRow.className = 'spec-row';
+        specRow.id = specId;
+        specRow.innerHTML = `
+            <input type="text" class="spec-key" placeholder="e.g. Battery Capacity" />
+            <input type="text" class="spec-value" placeholder="e.g. 4000mAh" />
+            <button type="button" class="remove-spec-btn" onclick="removeSpecField('${specId}')">✕</button>
+        `;
+        
+        container.appendChild(specRow);
+    }
+
+    function removeSpecField(specId) {
+        const element = document.getElementById(specId);
+        if (element) element.remove();
+    }
+
+    function getSpecsFromContainer(containerId) {
+        const container = document.getElementById(containerId);
+        const specs = [];
+        
+        container.querySelectorAll('.spec-row').forEach(row => {
+            const key = row.querySelector('.spec-key').value.trim();
+            const value = row.querySelector('.spec-value').value.trim();
+            if (key && value) {
+                specs.push({ specKey: key, specValue: value });
+            }
+        });
+        
+        return specs;
+    }
+
+    function clearFieldErrors(fieldIds) {
+        fieldIds.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            const errorMsg = document.getElementById(`${fieldId}-error`);
+            if (field) {
+                field.classList.remove('input-error');
+                field.addEventListener('input', () => {
+                    field.classList.remove('input-error');
+                    if (errorMsg) errorMsg.classList.remove('show');
+                });
+            }
+            if (errorMsg) errorMsg.classList.remove('show');
+        });
+    }
+
+    function showFieldError(fieldId) {
+        const field = document.getElementById(fieldId);
+        const errorMsg = document.getElementById(`${fieldId}-error`);
+        if (field) {
+            field.classList.add('input-error');
+            field.addEventListener('input', () => {
+                field.classList.remove('input-error');
+                if (errorMsg) errorMsg.classList.remove('show');
+            });
+        }
+        if (errorMsg) errorMsg.classList.add('show');
+    }
+
+    function validateRequiredFields(fieldIds) {
+        let isValid = true;
+        const requiredFields = ['Name', 'Brand', 'Category'];
+        
+        clearFieldErrors(fieldIds);
+        
+        fieldIds.forEach((fieldId, index) => {
+            const field = document.getElementById(fieldId);
+            const value = field.tagName === 'SELECT' ? field.value : field.value.trim();
+            
+            if (!value) {
+                showFieldError(fieldId);
+                isValid = false;
+            }
+        });
+        
+        return isValid;
+    }
+
     function renderTable() {
+
         const start = (currentPage - 1) * PER_PAGE;
         const page  = filtered.slice(start, start + PER_PAGE);
 
@@ -327,34 +456,81 @@
     function closeModalOutside(e) { if (e.target === document.getElementById('modalOverlay')) closeModal(); }
 
     function addProduct() {
-        const name  = document.getElementById('mName').value.trim();
-        const sku   = document.getElementById('mSku').value.trim();
-        const price = parseFloat(document.getElementById('mPrice').value) || 0;
-        const stock = parseInt(document.getElementById('mStock').value) || 0;
+        const requiredFields = ['mName', 'mBrand', 'mCat'];
         
-        if (!name || !sku) {
-            alert('Please fill in all required fields');
+        if (!validateRequiredFields(requiredFields)) {
             return;
         }
 
-        // เพิ่มข้อมูลลงใน array ในหน้า (ในจริงควรส่งไปบันทึกลงฐานข้อมูล)
-        products.unshift({ 
-            productId: Math.max(...products.map(p => p.productId)) + 1,
-            name, 
-            price, 
-            stockQuantity: stock,
-            imageUrl: '~/image/default.png'
-        });
-        
-        document.getElementById('statTotal').textContent = products.length;
-        filterTable();
-        closeModal();
-        ['mName','mSku','mPrice','mStock','mDesc'].forEach(id => document.getElementById(id).value = '');
+        const name  = document.getElementById('mName').value.trim();
+        const brand = document.getElementById('mBrand').value.trim();
+        const cat   = document.getElementById('mCat').value;
+        const price = parseFloat(document.getElementById('mPrice').value) || 0;
+        const stock = parseInt(document.getElementById('mStock').value) || 0;
+        const image = document.getElementById('mImage').value.trim();
+        const desc  = document.getElementById('mDesc').value.trim();
+        const specs = getSpecsFromContainer('mSpecs');
 
-        const toast = document.getElementById('toast');
-        toast.textContent = 'Product added successfully!';
-        toast.classList.add('show');
-        setTimeout(() => toast.classList.remove('show'), 2600);
+        // ส่งข้อมูลไปยัง API
+        const productData = {
+            name: name,
+            brandName: brand,
+            categoryName: cat,
+            price: price,
+            stockQuantity: stock,
+            imageUrl: image || '~/image/default.png',
+            description: desc,
+            specifications: specs
+        };
+
+        fetch('/Admin/CreateProduct', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(productData)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                // เพิ่มเข้า array ในหน้า
+                products.unshift({ 
+                    productId: data.productId,
+                    name, 
+                    brandName: brand,
+                    categoryName: cat,
+                    price, 
+                    stockQuantity: stock,
+                    imageUrl: image || '~/image/default.png',
+                    description: desc,
+                    specifications: specs
+                });
+                
+                document.getElementById('statTotal').textContent = products.length;
+                filterTable();
+                closeModal();
+                ['mName','mBrand','mCat','mPrice','mStock','mImage','mDesc'].forEach(id => document.getElementById(id).value = '');
+                document.getElementById('mSpecs').innerHTML = '';
+                specCounter.mSpecs = 0;
+                clearFieldErrors(['mName', 'mBrand', 'mCat']);
+
+                const toast = document.getElementById('toast');
+                toast.textContent = 'Product added successfully!';
+                toast.classList.add('show');
+                setTimeout(() => toast.classList.remove('show'), 2600);
+            } else {
+                alert('Error: ' + (data.message || 'Failed to add product'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error adding product: ' + error.message);
+        });
     }
 
     function exportProducts() {
@@ -398,6 +574,26 @@
         document.getElementById('eImage').value = currentEditProduct.imageUrl || '';
         document.getElementById('eDesc').value = currentEditProduct.description || '';
         
+        // Load specifications
+        const eSpecsContainer = document.getElementById('eSpecs');
+        eSpecsContainer.innerHTML = '';
+        specCounter.eSpecs = 0;
+        
+        if (currentEditProduct.specifications && Array.isArray(currentEditProduct.specifications)) {
+            currentEditProduct.specifications.forEach(spec => {
+                const specId = `spec-eSpecs-${specCounter.eSpecs++}`;
+                const specRow = document.createElement('div');
+                specRow.className = 'spec-row';
+                specRow.id = specId;
+                specRow.innerHTML = `
+                    <input type="text" class="spec-key" placeholder="e.g. Battery Capacity" value="${spec.specKey || ''}" />
+                    <input type="text" class="spec-value" placeholder="e.g. 4000mAh" value="${spec.specValue || ''}" />
+                    <button type="button" class="remove-spec-btn" onclick="removeSpecField('${specId}')">✕</button>
+                `;
+                eSpecsContainer.appendChild(specRow);
+            });
+        }
+        
         document.getElementById('editModalOverlay').classList.add('open');
     }
 
@@ -410,62 +606,131 @@
     function updateProduct() {
         if (!currentEditProduct) return;
 
-        const name = document.getElementById('eName').value.trim();
-        const price = parseFloat(document.getElementById('ePrice').value) || 0;
-        const stock = parseInt(document.getElementById('eStock').value) || 0;
-
-        if (!name) {
-            alert('Please fill in product name');
+        const requiredFields = ['eName', 'eBrand', 'eCat'];
+        
+        if (!validateRequiredFields(requiredFields)) {
             return;
         }
 
-        // Update local array
-        const idx = products.findIndex(p => p.productId === currentEditProduct.productId);
-        if (idx !== -1) {
-            products[idx] = {
-                ...products[idx],
-                name: name,
-                brandName: document.getElementById('eBrand').value.trim(),
-                categoryName: document.getElementById('eCat').value,
-                price: price,
-                stockQuantity: stock,
-                imageUrl: document.getElementById('eImage').value.trim(),
-                description: document.getElementById('eDesc').value.trim()
-            };
-        }
+        const name = document.getElementById('eName').value.trim();
+        const price = parseFloat(document.getElementById('ePrice').value) || 0;
+        const stock = parseInt(document.getElementById('eStock').value) || 0;
+        const specs = getSpecsFromContainer('eSpecs');
 
-        filterTable();
-        closeEditModal();
+        const productData = {
+            productId: currentEditProduct.productId,
+            name: name,
+            brandName: document.getElementById('eBrand').value.trim(),
+            categoryName: document.getElementById('eCat').value,
+            price: price,
+            stockQuantity: stock,
+            imageUrl: document.getElementById('eImage').value.trim(),
+            description: document.getElementById('eDesc').value.trim(),
+            specifications: specs
+        };
 
-        const toast = document.getElementById('toast');
-        toast.textContent = 'Product updated successfully!';
-        toast.classList.add('show');
-        setTimeout(() => toast.classList.remove('show'), 2600);
+        fetch('/Admin/UpdateProduct', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(productData)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                // Update local array
+                const idx = products.findIndex(p => p.productId === currentEditProduct.productId);
+                if (idx !== -1) {
+                    products[idx] = {
+                        ...products[idx],
+                        name: name,
+                        brandName: document.getElementById('eBrand').value.trim(),
+                        categoryName: document.getElementById('eCat').value,
+                        price: price,
+                        stockQuantity: stock,
+                        imageUrl: document.getElementById('eImage').value.trim(),
+                        description: document.getElementById('eDesc').value.trim(),
+                        specifications: specs
+                    };
+                }
+
+                filterTable();
+                closeEditModal();
+                clearFieldErrors(['eName', 'eBrand', 'eCat']);
+
+                const toast = document.getElementById('toast');
+                toast.textContent = 'Product updated successfully!';
+                toast.classList.add('show');
+                setTimeout(() => toast.classList.remove('show'), 2600);
+            } else {
+                alert('Error: ' + (data.message || 'Failed to update product'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error updating product: ' + error.message);
+        });
     }
 
     function deleteProductQuick() {
-        if (confirm('Are you sure you want to delete this product?')) {
-            deleteProduct();
-        }
+        document.getElementById('deleteConfirmOverlay').classList.add('open');
+    }
+
+    function closeDeleteConfirm(event) {
+        if (event && event.target !== document.getElementById('deleteConfirmOverlay')) return;
+        document.getElementById('deleteConfirmOverlay').classList.remove('open');
+    }
+
+    function confirmDeleteProduct() {
+        deleteProduct();
     }
 
     function deleteProduct() {
         if (!currentEditProduct) return;
 
-        if (!confirm('Are you sure you want to delete this product? This action cannot be undone.')) {
-            return;
-        }
+        fetch(`/Admin/DeleteProduct?productId=${currentEditProduct.productId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                // Remove from array using splice (modify in place without reassigning const)
+                const idx = products.findIndex(p => p.productId === currentEditProduct.productId);
+                if (idx !== -1) {
+                    products.splice(idx, 1);
+                }
+                document.getElementById('statTotal').textContent = products.length;
+                
+                filterTable();
+                closeDeleteConfirm();
+                closeEditModal();
 
-        products = products.filter(p => p.productId !== currentEditProduct.productId);
-        document.getElementById('statTotal').textContent = products.length;
-        
-        filterTable();
-        closeEditModal();
-
-        const toast = document.getElementById('toast');
-        toast.textContent = 'Product deleted successfully!';
-        toast.classList.add('show');
-        setTimeout(() => toast.classList.remove('show'), 2600);
+                const toast = document.getElementById('toast');
+                toast.textContent = 'Product deleted successfully!';
+                toast.classList.add('show');
+                setTimeout(() => toast.classList.remove('show'), 2600);
+            } else {
+                alert('Error: ' + (data.message || 'Failed to delete product'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error deleting product: ' + error.message);
+        });
     }
 
     // Close dropdowns when clicking outside
