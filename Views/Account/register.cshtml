@@ -1,3 +1,5 @@
+@model RegisterViewModel
+
 @{
     Layout = null;
     ViewData["Title"] = "Register";
@@ -32,51 +34,73 @@
                 <h2 class="auth-title">Create your account</h2>
                 <p class="auth-subtitle">Already have an account? <a href="/Account/Login" class="auth-link">Sign in</a></p>
 
-                <form>
+                @if (!ViewData.ModelState.IsValid)
+                {
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <strong>เกิดข้อผิดพลาด!</strong>
+                        @foreach (var modelState in ViewData.ModelState.Values)
+                        {
+                            @foreach (var error in modelState.Errors)
+                            {
+                                <div>@error.ErrorMessage</div>
+                            }
+                        }
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+
+                <form asp-action="Register" asp-controller="Account" method="post">
                     <div class="row g-3 mb-3">
                         <div class="col-6">
-                            <label class="form-label">First name</label>
-                            <input type="text" class="form-control-auth" placeholder="John">
+                            <label class="form-label" asp-for="FirstName">First name</label>
+                            <input type="text" class="form-control-auth" asp-for="FirstName" placeholder="John" required>
+                            <span asp-validation-for="FirstName" class="text-danger small"></span>
                         </div>
                          <div class="col-6">
-                            <label class="form-label">Last name</label>
-                            <input type="text" class="form-control-auth" placeholder="Doe">
+                            <label class="form-label" asp-for="LastName">Last name</label>
+                            <input type="text" class="form-control-auth" asp-for="LastName" placeholder="Doe" required>
+                            <span asp-validation-for="LastName" class="text-danger small"></span>
                         </div>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Email</label>
-                        <input type="email" class="form-control-auth" placeholder="you@example.com">
+                        <label class="form-label" asp-for="Email">Email</label>
+                        <input type="email" class="form-control-auth" asp-for="Email" placeholder="you@example.com" required>
+                        <span asp-validation-for="Email" class="text-danger small"></span>
                     </div>
                     
                      <div class="mb-3">
-                        <label class="form-label">Username</label>
-                        <input type="text" class="form-control-auth" placeholder="&#64; keycapenthusiast">
+                        <label class="form-label" asp-for="Username">Username</label>
+                        <input type="text" class="form-control-auth" asp-for="Username" placeholder="keycapenthusiast" required>
+                        <span asp-validation-for="Username" class="text-danger small"></span>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Password</label>
+                        <label class="form-label" asp-for="Password">Password</label>
                         <div class="position-relative">
-                            <input type="password" class="form-control-auth" placeholder="••••••••">
-                            <i class="bi bi-eye position-absolute top-50 end-0 translate-middle-y me-3 text-secondary" style="cursor: pointer;"></i>
+                            <input type="password" class="form-control-auth" asp-for="Password" placeholder="••••••••" required>
+                            <i class="bi bi-eye position-absolute top-50 end-0 translate-middle-y me-3 text-secondary" style="cursor: pointer;" onclick="togglePassword(this)"></i>
                         </div>
+                        <span asp-validation-for="Password" class="text-danger small"></span>
                     </div>
                     
                      <div class="mb-4">
-                        <label class="form-label">Confirm password</label>
+                        <label class="form-label" asp-for="ConfirmPassword">Confirm password</label>
                         <div class="position-relative">
-                            <input type="password" class="form-control-auth" placeholder="••••••••">
-                            <i class="bi bi-eye position-absolute top-50 end-0 translate-middle-y me-3 text-secondary" style="cursor: pointer;"></i>
+                            <input type="password" class="form-control-auth" asp-for="ConfirmPassword" placeholder="••••••••" required>
+                            <i class="bi bi-eye position-absolute top-50 end-0 translate-middle-y me-3 text-secondary" style="cursor: pointer;" onclick="togglePassword(this)"></i>
                         </div>
+                        <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
                     </div>
 
                     <div class="mb-2 form-check">
-                        <input type="checkbox" class="form-check-input bg-dark border-secondary" id="marketing">
+                        <input type="checkbox" class="form-check-input bg-dark border-secondary" id="marketing" asp-for="MarketingOptIn">
                         <label class="form-check-label text-secondary small" for="marketing">Send me updates about new group buys, restocks, and exclusive deals</label>
                     </div>
                      <div class="mb-4 form-check">
-                        <input type="checkbox" class="form-check-input bg-dark border-secondary" id="terms">
+                        <input type="checkbox" class="form-check-input bg-dark border-secondary" id="terms" asp-for="AgreeToTerms" required>
                         <label class="form-check-label text-secondary small" for="terms">I agree to the <a href="#" class="text-success">Terms of Service</a> and <a href="#" class="text-success">Privacy Policy</a></label>
+                        <span asp-validation-for="AgreeToTerms" class="text-danger small"></span>
                     </div>
 
                     <button type="submit" class="btn btn-primary w-100 py-2 mb-4">Create account</button>
@@ -139,5 +163,24 @@
             </div>
         </div>
     </div>
+
+    <script>
+        function togglePassword(icon) {
+            const input = icon.parentElement.querySelector('input');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('bi-eye');
+                icon.classList.add('bi-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.add('bi-eye');
+                icon.classList.remove('bi-eye-slash');
+            }
+        }
+    </script>
+
+    @section Scripts {
+        <partial name="_ValidationScriptsPartial" />
+    }
 </body>
 </html>
