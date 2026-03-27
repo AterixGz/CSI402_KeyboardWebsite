@@ -1,3 +1,5 @@
+@model LoginViewModel
+
 @{
     Layout = null;
     ViewData["Title"] = "Login";
@@ -66,26 +68,43 @@
                 <h2 class="auth-title">Sign in to your account</h2>
                 <p class="auth-subtitle">Don't have an account? <a href="/Account/Register" class="auth-link">Create one</a></p>
 
-                <form>
+                @if (!ViewData.ModelState.IsValid)
+                {
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <strong>เกิดข้อผิดพลาด!</strong>
+                        @foreach (var modelState in ViewData.ModelState.Values)
+                        {
+                            @foreach (var error in modelState.Errors)
+                            {
+                                <div>@error.ErrorMessage</div>
+                            }
+                        }
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+
+                <form asp-action="Login" asp-controller="Account" method="post">
                     <div class="mb-4">
-                        <label class="form-label">Email</label>
-                        <input type="email" class="form-control-auth" placeholder="you@example.com">
+                        <label class="form-label" asp-for="Email">Email</label>
+                        <input type="email" class="form-control-auth" asp-for="Email" placeholder="you@example.com" required>
+                        <span asp-validation-for="Email" class="text-danger small"></span>
                     </div>
                     
                     <div class="mb-4">
                          <div class="d-flex justify-content-between">
-                            <label class="form-label">Password</label>
+                            <label class="form-label" asp-for="Password">Password</label>
                             <a href="#" class="auth-link small">Forgot password?</a>
                         </div>
                          <div class="position-relative">
-                            <input type="password" class="form-control-auth" placeholder="••••••••">
-                            <i class="bi bi-eye position-absolute top-50 end-0 translate-middle-y me-3 text-secondary" style="cursor: pointer;"></i>
+                            <input type="password" class="form-control-auth" asp-for="Password" placeholder="••••••••" required>
+                            <i class="bi bi-eye position-absolute top-50 end-0 translate-middle-y me-3 text-secondary" style="cursor: pointer;" onclick="togglePassword(this)"></i>
                         </div>
+                        <span asp-validation-for="Password" class="text-danger small"></span>
                     </div>
 
                     <div class="mb-4 form-check">
-                        <input type="checkbox" class="form-check-input bg-dark border-secondary" id="rememberMe">
-                        <label class="form-check-label text-secondary" for="rememberMe">Remember me for 30 days</label>
+                        <input type="checkbox" class="form-check-input bg-dark border-secondary" asp-for="RememberMe">
+                        <label class="form-check-label text-secondary" asp-for="RememberMe">Remember me for 30 days</label>
                     </div>
 
                     <button type="submit" class="btn btn-primary w-100 py-2 mb-4">Sign in</button>
@@ -112,5 +131,24 @@
             </div>
         </div>
     </div>
+
+    <script>
+        function togglePassword(icon) {
+            const input = icon.parentElement.querySelector('input');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('bi-eye');
+                icon.classList.add('bi-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.add('bi-eye');
+                icon.classList.remove('bi-eye-slash');
+            }
+        }
+    </script>
+
+    @section Scripts {
+        <partial name="_ValidationScriptsPartial" />
+    }
 </body>
 </html>

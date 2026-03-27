@@ -19,6 +19,71 @@ public class AccountController : Controller
         return View();
     }
 
+    [HttpPost]
+    public IActionResult Login(LoginViewModel model)
+    {
+        try
+        {
+            if (!ModelState.IsValid)
+            {
+                return View(model);
+            }
+
+            if (_connection.State == System.Data.ConnectionState.Closed)
+            {
+                _connection.Open();
+            }
+
+            // ตรวจสอบว่าผู้ใช้มีอยู่ในระบบหรือไม่
+            string checkQuery = "SELECT user_id, password_hash FROM Users WHERE email = @email OR username = @email";
+            string passwordHash = null;
+            int userId = 0;
+
+            using (MySqlCommand cmd = new MySqlCommand(checkQuery, _connection))
+            {
+                cmd.Parameters.AddWithValue("@email", model.Email);
+                using (MySqlDataReader reader = cmd.ExecuteReader())
+                {
+                    if (reader.Read())
+                    {
+                        userId = reader.GetInt32("user_id");
+                        passwordHash = reader.GetString("password_hash");
+                    }
+                }
+            }
+
+            // ถ้าไม่พบผู้ใช้ หรือรหัสผ่านไม่ถูกต้อง
+            if (userId == 0 || !VerifyPassword(model.Password, passwordHash))
+            {
+                ModelState.AddModelError("", "Email หรือรหัสผ่านไม่ถูกต้อง");
+                return View(model);
+            }
+
+            // ล้างการเชื่อมต่อ
+            _connection.Close();
+
+            // สร้าง session หรือ authentication cookie
+            // ในที่นี้เราใช้ session เก็บ user_id
+            HttpContext.Session.SetInt32("UserId", userId);
+            HttpContext.Session.SetString("Email", model.Email);
+
+            // Redirect ไปยัง Home page
+            return RedirectToAction("Index", "Home");
+        }
+        catch (Exception ex)
+        {
+            ModelState.AddModelError("", $"เกิดข้อผิดพลาด: {ex.Message}");
+            return View(model);
+        }
+        finally
+        {
+            if (_connection.State == System.Data.ConnectionState.Open)
+            {
+                _connection.Close();
+            }
+        }
+    }
+
     public IActionResult Register()
     {
         return View();
@@ -130,6 +195,15 @@ public class AccountController : Controller
         return View();
     }
 
+    public IActionResult Logout()
+    {
+        // ล้าง session
+        HttpContext.Session.Clear();
+        
+        // Redirect ไปยัง Home page
+        return RedirectToAction("Index", "Home");
+    }
+
     // ฟังก์ชันแฮชรหัสผ่าน
     private string HashPassword(string password)
     {
@@ -152,6 +226,43 @@ public class AccountController : Controller
             Array.Copy(hash, 0, hashWithSalt, 16, 20);
             
             return Convert.ToBase64String(hashWithSalt);
+        }
+    }
+
+    // ฟังก์ชันยืนยันรหัสผ่าน
+    private bool VerifyPassword(string password, string hash)
+    {
+        try
+        {
+            // แปลง hash จาก Base64
+            byte[] hashWithSalt = Convert.FromBase64String(hash);
+            
+            // แยก salt ออกจาก hash
+            byte[] salt = new byte[16];
+            Array.Copy(hashWithSalt, 0, salt, 0, 16);
+            
+            // แฮชรหัสผ่านที่ป้อนเข้ามาด้วยเกลือเดิม
+            byte[] hashOfInput = Rfc2898DeriveBytes.Pbkdf2(
+                password: password,
+                salt: salt,
+                iterations: 10000,
+                hashAlgorithm: HashAlgorithmName.SHA256,
+                outputLength: 20
+            );
+            
+            // เปรียบเทียบกับ hash ที่เก็บไว้
+            for (int i = 0; i < 20; i++)
+            {
+                if (hashWithSalt[i + 16] != hashOfInput[i])
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+        catch
+        {
+            return false;
         }
     }
 }
