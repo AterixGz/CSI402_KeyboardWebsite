@@ -192,7 +192,78 @@ public class AccountController : Controller
 
     public IActionResult Profile()
     {
-        return View();
+        int? userId = HttpContext.Session.GetInt32("UserId");
+        if (userId == null)
+        {
+            return RedirectToAction("Login");
+        }
+
+        try
+        {
+            if (_connection.State == System.Data.ConnectionState.Closed)
+            {
+                _connection.Open();
+            }
+
+            string query = @"SELECT u.username, u.email, p.first_name, p.last_name, p.display_name
+                             FROM Users u
+                             LEFT JOIN User_Profiles p ON u.user_id = p.user_id
+                             WHERE u.user_id = @userId";
+
+            using (MySqlCommand cmd = new MySqlCommand(query, _connection))
+            {
+                cmd.Parameters.AddWithValue("@userId", userId.Value);
+                using (MySqlDataReader reader = cmd.ExecuteReader())
+                {
+                    if (reader.Read())
+                    {
+                        string username = reader["username"] as string ?? "User";
+                        string email = reader["email"] as string ?? "";
+                        string firstName = reader["first_name"] as string ?? "";
+                        string lastName = reader["last_name"] as string ?? "";
+                        string displayName = reader["display_name"] as string;
+
+                        if (string.IsNullOrWhiteSpace(displayName))
+                        {
+                            displayName = string.IsNullOrWhiteSpace(firstName) && string.IsNullOrWhiteSpace(lastName)
+                                ? username
+                                : $"{firstName} {lastName}".Trim();
+                        }
+
+                        ViewBag.User = new
+                        {
+                            Name = displayName,
+                            MemberSince = "สมาชิกใหม่",
+                            Points = 0,
+                            OrderCount = 0,
+                            WishCount = 0,
+                            Email = email,
+                            Phone = "",
+                            Address = "",
+                            AvatarUrl = string.Empty
+                        };
+                    }
+                    else
+                    {
+                        return RedirectToAction("Login");
+                    }
+                }
+            }
+
+            return View();
+        }
+        catch (Exception ex)
+        {
+            ModelState.AddModelError("", $"เกิดข้อผิดพลาด: {ex.Message}");
+            return View();
+        }
+        finally
+        {
+            if (_connection.State == System.Data.ConnectionState.Open)
+            {
+                _connection.Close();
+            }
+        }
     }
 
     public IActionResult Logout()

@@ -1,3 +1,4 @@
+using CloudinaryDotNet;
 using MySql.Data.MySqlClient;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -5,6 +6,16 @@ var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
 builder.Services.AddTransient<MySqlConnection>(_ => new MySqlConnection(connectionString));
+builder.Services.AddSingleton(sp =>
+{
+    var config = sp.GetRequiredService<IConfiguration>();
+    var account = new Account(
+        config["Cloudinary:CloudName"] ?? string.Empty,
+        config["Cloudinary:ApiKey"] ?? string.Empty,
+        config["Cloudinary:ApiSecret"] ?? string.Empty
+    );
+    return new Cloudinary(account);
+});
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();

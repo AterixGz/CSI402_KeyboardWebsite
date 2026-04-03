@@ -81,17 +81,14 @@
                                 </li>
                         </ul>
                         <div class="d-flex align-items-center">
-                            @if (!isHome)
+                            @if (Context.Session.GetInt32("UserId") != null)
                             {
                                 <a asp-controller="Home" asp-action="Cart" title="Shopping Cart" style="margin-right: 25px;">
                                     <i class="bi bi-bag text-dark"></i>
                                 </a>
-                            }
-                            @if (Context.Session.GetInt32("UserId") != null)
-                            {
                                 <div class="dropdown">
-                                    <a class="btn-login dropdown-toggle" href="#" id="userMenu" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                        <i class="bi bi-person-circle me-2"></i>Profile
+                                    <a class="profile-icon-btn dropdown-toggle" href="#" id="userMenu" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="Profile">
+                                        <i class="bi bi-person-circle"></i>
                                     </a>
                                     <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenu">
                                         <li><a class="dropdown-item" asp-controller="Account" asp-action="Profile">My Profile</a></li>

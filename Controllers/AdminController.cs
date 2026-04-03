@@ -1,3 +1,7 @@
+using System.Net;
+using CloudinaryDotNet;
+using CloudinaryDotNet.Actions;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using MySql.Data.MySqlClient;
 using KeyboardWebsiteProject.Models;
@@ -6,10 +10,12 @@ using KeyboardWebsiteProject.Views.Admin;
 public class AdminController : Controller
 {
     private readonly MySqlConnection _connection;
+    private readonly Cloudinary _cloudinary;
 
-    public AdminController(MySqlConnection connection)
+    public AdminController(MySqlConnection connection, Cloudinary cloudinary)
     {
         _connection = connection;
+        _cloudinary = cloudinary;
     }
 
     public IActionResult Dashboard()
@@ -143,6 +149,39 @@ public class AdminController : Controller
         return View();
     }
 
+    [HttpPost]
+    public async Task<IActionResult> UploadProductImage(IFormFile image)
+    {
+        if (image == null || image.Length == 0)
+        {
+            return BadRequest(new { success = false, message = "No image file provided." });
+        }
+
+        try
+        {
+            var uploadParams = new ImageUploadParams
+            {
+                File = new FileDescription(image.FileName, image.OpenReadStream()),
+                Folder = "keyboard_products",
+                UseFilename = true,
+                UniqueFilename = true,
+                Overwrite = false
+            };
+
+            var uploadResult = await _cloudinary.UploadAsync(uploadParams);
+            if (uploadResult.StatusCode != HttpStatusCode.OK && uploadResult.StatusCode != HttpStatusCode.Created)
+            {
+                return BadRequest(new { success = false, message = uploadResult.Error?.Message ?? "Cloudinary upload failed." });
+            }
+
+            return Ok(new { success = true, imageUrl = uploadResult.SecureUrl?.ToString() });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { success = false, message = ex.Message });
+        }
+    }
+
     public IActionResult Promotions()
     {
         return View();
@@ -206,7 +245,7 @@ public class AdminController : Controller
                 cmd.Parameters.AddWithValue("@name", request.Name ?? "");
                 cmd.Parameters.AddWithValue("@price", request.Price);
                 cmd.Parameters.AddWithValue("@stock", request.StockQuantity);
-                cmd.Parameters.AddWithValue("@imageUrl", request.ImageUrl ?? "~/image/default.png");
+                cmd.Parameters.AddWithValue("@imageUrl", string.IsNullOrWhiteSpace(request.ImageUrl) ? "~/image/default.png" : request.ImageUrl);
                 cmd.Parameters.AddWithValue("@description", request.Description ?? "");
                 cmd.ExecuteNonQuery();
                 productId = (int)cmd.LastInsertedId;
@@ -303,7 +342,7 @@ public class AdminController : Controller
                 cmd.Parameters.AddWithValue("@name", request.Name ?? "");
                 cmd.Parameters.AddWithValue("@price", request.Price);
                 cmd.Parameters.AddWithValue("@stock", request.StockQuantity);
-                cmd.Parameters.AddWithValue("@imageUrl", request.ImageUrl ?? "~/image/default.png");
+                cmd.Parameters.AddWithValue("@imageUrl", string.IsNullOrWhiteSpace(request.ImageUrl) ? "~/image/default.png" : request.ImageUrl);
                 cmd.Parameters.AddWithValue("@description", request.Description ?? "");
                 cmd.Parameters.AddWithValue("@productId", request.ProductId);
                 cmd.ExecuteNonQuery();

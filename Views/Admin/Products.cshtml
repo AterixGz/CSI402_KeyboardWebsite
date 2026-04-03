@@ -183,7 +183,10 @@
             <div class="fg"><label>Stock Quantity</label><input type="number" id="mStock" placeholder="0" min="0" /></div>
         </div>
         <div class="mrow one">
-            <div class="fg"><label>Image URL</label><input type="text" id="mImage" placeholder="~/image/product.png" /></div>
+            <div class="fg"><label>Image URL</label><input type="text" id="mImage" placeholder="Enter existing image URL or upload a file" /></div>
+        </div>
+        <div class="mrow one">
+            <div class="fg"><label>Upload Image</label><input type="file" id="mImageFile" accept="image/*" /></div>
         </div>
         <div class="mrow one">
             <div class="fg"><label>Description (optional)</label><textarea id="mDesc" placeholder="Brief product description..."></textarea></div>
@@ -237,7 +240,10 @@
             <div class="fg"><label>Stock Quantity</label><input type="number" id="eStock" placeholder="0" min="0" /></div>
         </div>
         <div class="mrow one">
-            <div class="fg"><label>Image URL</label><input type="text" id="eImage" placeholder="~/image/product.png" /></div>
+            <div class="fg"><label>Image URL</label><input type="text" id="eImage" placeholder="Enter existing image URL or upload a file" /></div>
+        </div>
+        <div class="mrow one">
+            <div class="fg"><label>Upload Image</label><input type="file" id="eImageFile" accept="image/*" /></div>
         </div>
         <div class="mrow one">
             <div class="fg"><label>Description (optional)</label><textarea id="eDesc" placeholder="Brief product description..."></textarea></div>
@@ -455,7 +461,27 @@
     function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
     function closeModalOutside(e) { if (e.target === document.getElementById('modalOverlay')) closeModal(); }
 
-    function addProduct() {
+    async function uploadProductImage(file) {
+        const formData = new FormData();
+        formData.append('image', file);
+
+        const response = await fetch('/Admin/UploadProductImage', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => null);
+            const message = errorData?.message || response.statusText || 'Upload failed';
+            alert(`Image upload failed: ${message}`);
+            return null;
+        }
+
+        const data = await response.json();
+        return data.imageUrl;
+    }
+
+    async function addProduct() {
         const requiredFields = ['mName', 'mBrand', 'mCat'];
         
         if (!validateRequiredFields(requiredFields)) {
@@ -467,7 +493,19 @@
         const cat   = document.getElementById('mCat').value;
         const price = parseFloat(document.getElementById('mPrice').value) || 0;
         const stock = parseInt(document.getElementById('mStock').value) || 0;
-        const image = document.getElementById('mImage').value.trim();
+        const imageUrlInput = document.getElementById('mImage').value.trim();
+        const imageFile = document.getElementById('mImageFile').files[0];
+        let imageUrl = imageUrlInput;
+
+        if (imageFile) {
+            const uploadedUrl = await uploadProductImage(imageFile);
+            if (!uploadedUrl) {
+                return;
+            }
+            imageUrl = uploadedUrl;
+            document.getElementById('mImage').value = imageUrl;
+        }
+
         const desc  = document.getElementById('mDesc').value.trim();
         const specs = getSpecsFromContainer('mSpecs');
 
@@ -478,7 +516,7 @@
             categoryName: cat,
             price: price,
             stockQuantity: stock,
-            imageUrl: image || '~/image/default.png',
+            imageUrl: imageUrl || '~/image/default.png',
             description: desc,
             specifications: specs
         };
@@ -506,7 +544,7 @@
                     categoryName: cat,
                     price, 
                     stockQuantity: stock,
-                    imageUrl: image || '~/image/default.png',
+                    imageUrl: imageUrl || '~/image/default.png',
                     description: desc,
                     specifications: specs
                 });
@@ -515,6 +553,7 @@
                 filterTable();
                 closeModal();
                 ['mName','mBrand','mCat','mPrice','mStock','mImage','mDesc'].forEach(id => document.getElementById(id).value = '');
+                document.getElementById('mImageFile').value = '';
                 document.getElementById('mSpecs').innerHTML = '';
                 specCounter.mSpecs = 0;
                 clearFieldErrors(['mName', 'mBrand', 'mCat']);
@@ -603,7 +642,7 @@
         currentEditProduct = null;
     }
 
-    function updateProduct() {
+    async function updateProduct() {
         if (!currentEditProduct) return;
 
         const requiredFields = ['eName', 'eBrand', 'eCat'];
@@ -615,6 +654,19 @@
         const name = document.getElementById('eName').value.trim();
         const price = parseFloat(document.getElementById('ePrice').value) || 0;
         const stock = parseInt(document.getElementById('eStock').value) || 0;
+        const imageUrlInput = document.getElementById('eImage').value.trim();
+        const imageFile = document.getElementById('eImageFile').files[0];
+        let imageUrl = imageUrlInput;
+
+        if (imageFile) {
+            const uploadedUrl = await uploadProductImage(imageFile);
+            if (!uploadedUrl) {
+                return;
+            }
+            imageUrl = uploadedUrl;
+            document.getElementById('eImage').value = imageUrl;
+        }
+
         const specs = getSpecsFromContainer('eSpecs');
 
         const productData = {
@@ -624,7 +676,7 @@
             categoryName: document.getElementById('eCat').value,
             price: price,
             stockQuantity: stock,
-            imageUrl: document.getElementById('eImage').value.trim(),
+            imageUrl: imageUrl,
             description: document.getElementById('eDesc').value.trim(),
             specifications: specs
         };
@@ -654,7 +706,7 @@
                         categoryName: document.getElementById('eCat').value,
                         price: price,
                         stockQuantity: stock,
-                        imageUrl: document.getElementById('eImage').value.trim(),
+                        imageUrl: imageUrl,
                         description: document.getElementById('eDesc').value.trim(),
                         specifications: specs
                     };

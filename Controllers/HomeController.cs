@@ -151,7 +151,8 @@ public class HomeController : Controller
             }
         }
 
-        return View(products);
+        ViewBag.Products = products;
+        return View();
     }
 
     public IActionResult Cart()

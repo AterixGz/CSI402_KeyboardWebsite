@@ -1,16 +1,16 @@
 @{
     ViewData["Title"] = "โปรไฟล์ของฉัน";
 
-    var user = new {
-        Name        = "สมชาย ใจดี",
-        MemberSince = "มกราคม 2024",
-        Points      = 1250,
-        OrderCount  = 12,
-        WishCount   = 5,
-        Email       = "somchai@example.com",
-        Phone       = "081-234-5678",
-        Address     = "123 ถนนสุขุมวิท, คลองเตย\nกรุงเทพฯ 10110",
-        AvatarUrl   = ""   // ใส่ URL รูปโปรไฟล์ หรือปล่อยว่างให้แสดง initials
+    dynamic user = ViewBag.User ?? new {
+        Name = "สมาชิกใหม่",
+        MemberSince = "สมาชิกใหม่",
+        Points = 0,
+        OrderCount = 0,
+        WishCount = 0,
+        Email = "",
+        Phone = "",
+        Address = "",
+        AvatarUrl = string.Empty
     };
 
     var orders = new[]

@@ -1,8 +1,7 @@
 @{
     ViewData["Title"] = "Shop All Products";
+    var products = ViewBag.Products as List<KeyboardWebsiteProject.Models.Product> ?? new List<KeyboardWebsiteProject.Models.Product>();
 }
-
-@model List<KeyboardWebsiteProject.Models.Product>
 
 <!DOCTYPE html>
 <html lang="en">
@@ -117,7 +116,7 @@
     <!-- ── MAIN ── -->
     <main class="main-content">
         <div class="toolbar">
-            <span class="product-count">@Model.Count() products</span>
+            <span class="product-count">@products.Count products</span>
             <div class="toolbar-right">
                 <div class="view-toggle">
                     <button class="view-btn" title="List view">
@@ -137,9 +136,9 @@
         </div>
 
         <div class="product-grid" id="productGrid">
-            @if (Model != null && Model.Count > 0)
+            @if (products != null && products.Count > 0)
             {
-                @foreach (var product in Model)
+                @foreach (var product in products)
                 {
                     <div class="product-card" onclick="navigateToProduct(@product.ProductId, '@product.Name', '@product.Price.ToString("0.00")', '@product.Description')">
                         <div class="card-image">
@@ -151,17 +150,24 @@
                             {
                                 <span class="badge badge-few">@product.StockQuantity left</span>
                             }
-                            <svg class="kbd-placeholder" width="160" height="100" viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <rect x="4" y="18" width="152" height="64" rx="8" stroke="#10b981" stroke-width="2"/>
-                                @for (int r = 0; r < 3; r++) {
-                                    @for (int c = 0; c < 14; c++) {
-                                        <rect x="@(12+c*10)" y="@(28+r*12)" width="8" height="8" rx="1.5" fill="#10b981" opacity="0.5"/>
+                            @if (!string.IsNullOrWhiteSpace(product.ImageUrl) && !product.ImageUrl.Contains("~/image/default.png"))
+                            {
+                                <img src="@product.ImageUrl" alt="@product.Name" />
+                            }
+                            else
+                            {
+                                <svg class="kbd-placeholder" width="160" height="100" viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <rect x="4" y="18" width="152" height="64" rx="8" stroke="#10b981" stroke-width="2"/>
+                                    @for (int r = 0; r < 3; r++) {
+                                        @for (int c = 0; c < 14; c++) {
+                                            <rect x="@(12+c*10)" y="@(28+r*12)" width="8" height="8" rx="1.5" fill="#10b981" opacity="0.5"/>
+                                        }
                                     }
-                                }
-                                <rect x="12" y="64" width="24" height="8" rx="1.5" fill="#10b981" opacity="0.5"/>
-                                <rect x="40" y="64" width="76" height="8" rx="1.5" fill="#10b981" opacity="0.5"/>
-                                <rect x="120" y="64" width="28" height="8" rx="1.5" fill="#10b981" opacity="0.5"/>
-                            </svg>
+                                    <rect x="12" y="64" width="24" height="8" rx="1.5" fill="#10b981" opacity="0.5"/>
+                                    <rect x="40" y="64" width="76" height="8" rx="1.5" fill="#10b981" opacity="0.5"/>
+                                    <rect x="120" y="64" width="28" height="8" rx="1.5" fill="#10b981" opacity="0.5"/>
+                                </svg>
+                            }
                         </div>
                         <div class="card-body">
                             <div class="card-name">@product.Name</div>

@@ -2,7 +2,6 @@ D:\Coding\GithubRepo\CSI402_KeyboardWebsite\bin\Debug\net10.0\appsettings.Develo
 D:\Coding\GithubRepo\CSI402_KeyboardWebsite\bin\Debug\net10.0\appsettings.json
 D:\Coding\GithubRepo\CSI402_KeyboardWebsite\bin\Debug\net10.0\KeyboardWebsiteProject.staticwebassets.runtime.json
 D:\Coding\GithubRepo\CSI402_KeyboardWebsite\bin\Debug\net10.0\KeyboardWebsiteProject.staticwebassets.endpoints.json
-D:\Coding\GithubRepo\CSI402_KeyboardWebsite\bin\Debug\net10.0\KeyboardWebsiteProject.exe
 D:\Coding\GithubRepo\CSI402_KeyboardWebsite\bin\Debug\net10.0\KeyboardWebsiteProject.deps.json
 D:\Coding\GithubRepo\CSI402_KeyboardWebsite\bin\Debug\net10.0\KeyboardWebsiteProject.runtimeconfig.json
 D:\Coding\GithubRepo\CSI402_KeyboardWebsite\bin\Debug\net10.0\KeyboardWebsiteProject.dll
@@ -83,8 +82,6 @@ D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\00o8rf0
 D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\0piwua0k5j-{0}-muycvpuwrr-muycvpuwrr.gz
 D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\9jcgl7phny-{0}-87fc7y1x7t-87fc7y1x7t.gz
 D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\4r90basfe7-{0}-mlv21k5csn-mlv21k5csn.gz
-D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\i39p5xtw61-{0}-by7xxpd1d1-by7xxpd1d1.gz
-D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\uvtn8i3fhi-{0}-by7xxpd1d1-by7xxpd1d1.gz
 D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\staticwebassets.build.json
 D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\staticwebassets.build.json.cache
 D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\staticwebassets.development.json
@@ -101,7 +98,6 @@ D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\ayaujld
 D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\3jt9dvvc7w-{0}-56kn22g0f8-56kn22g0f8.gz
 D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\v76oufgymt-{0}-hft9be0lyi-hft9be0lyi.gz
 D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\nx2l9ou6eo-{0}-vv678w4fqt-vv678w4fqt.gz
-D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\2l0gn8o86o-{0}-tfesxovbji-tfesxovbji.gz
 D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\19x810m7fm-{0}-zot466ypvm-zot466ypvm.gz
 D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\v058n5zrcy-{0}-eyzkruvob9-eyzkruvob9.gz
 D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\KeyboardWebsiteProject.csproj.AssemblyReference.cache
@@ -126,6 +122,12 @@ D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\o1zt5q8
 D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\ua5m1f35h1-{0}-wgqysn345o-wgqysn345o.gz
 D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\wjjz0euiuh-{0}-vcbw3f1srx-vcbw3f1srx.gz
 D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\ub7ai92iiv-{0}-av6lhs82a3-av6lhs82a3.gz
-D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\2q3xsexe13-{0}-gc9ur1d2c1-gc9ur1d2c1.gz
 D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\Keyboard.6B34D50E.Up2Date
 D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\kppr6cfrm8-{0}-0hat46s4oj-0hat46s4oj.gz
+D:\Coding\GithubRepo\CSI402_KeyboardWebsite\bin\Debug\net10.0\CloudinaryDotNet.dll
+D:\Coding\GithubRepo\CSI402_KeyboardWebsite\bin\Debug\net10.0\Newtonsoft.Json.dll
+D:\Coding\GithubRepo\CSI402_KeyboardWebsite\bin\Debug\net10.0\KeyboardWebsiteProject.exe
+D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\2q3xsexe13-{0}-wta8ohe2nm-wta8ohe2nm.gz
+D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\2l0gn8o86o-{0}-t51aohhjzj-t51aohhjzj.gz
+D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\i39p5xtw61-{0}-tp93nxd1wb-tp93nxd1wb.gz
+D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\uvtn8i3fhi-{0}-tp93nxd1wb-tp93nxd1wb.gz

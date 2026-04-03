@@ -237,6 +237,30 @@ a:hover {
     color: rgb(0, 0, 0);
 }
 
+.profile-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    color: var(--text-primary);
+    font-size: 1.5rem;
+    transition: all 0.25s ease;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.profile-icon-btn:hover {
+    background-color: rgba(0, 223, 154, 0.1);
+    color: var(--primary-color);
+    transform: scale(1.1);
+}
+
+.profile-icon-btn::after {
+    display: none;
+}
+
 /* Footer */
 footer {
     background-color: rgb(255, 255, 255);
