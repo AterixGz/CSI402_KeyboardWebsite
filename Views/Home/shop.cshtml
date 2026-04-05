@@ -140,7 +140,7 @@
             {
                 @foreach (var product in products)
                 {
-                    <div class="product-card" onclick="navigateToProduct(@product.ProductId, '@product.Name', '@product.Price.ToString("0.00")', '@product.Description')">
+                    <a class="product-card" href="@Url.Action("Productdetails", "Home", new { id = product.ProductId })">
                         <div class="card-image">
                             @if (product.StockQuantity == 0)
                             {
@@ -174,10 +174,10 @@
                             <div class="card-desc">@product.CategoryName - @product.BrandName</div>
                             <div class="card-footer">
                                 <span class="card-price">฿@product.Price.ToString("0.00")</span>
-                                <button class="add-btn" title="Add to cart">+</button>
+                                <button type="button" class="add-btn" title="Add to cart">+</button>
                             </div>
                         </div>
-                    </div>
+                    </a>
                 }
             }
             else
@@ -194,17 +194,6 @@
 <script>
     function toggleTag(el) {
         el.classList.toggle('active');
-    }
-
-    // Navigate to product details
-    function navigateToProduct(id, name, price, description) {
-        const params = new URLSearchParams({
-            id: id,
-            name: name,
-            price: price,
-            description: description
-        });
-        window.location.href = `/Home/ProductDetails?${params.toString()}`;
     }
 
     // Simple client-side search

@@ -21,6 +21,20 @@ public class Specification
     public string? SpecValue { get; set; }
 }
 
+public class CartItem
+{
+    public int CartId { get; set; }
+    public int ProductId { get; set; }
+    public string? Name { get; set; }
+    public decimal Price { get; set; }
+    public int Quantity { get; set; }
+    public int StockQuantity { get; set; }
+    public string? ImageUrl { get; set; }
+    public string? CategoryName { get; set; }
+    public string? BrandName { get; set; }
+    public decimal Total => Price * Quantity;
+}
+
 // Models สำหรับ API request
 public class CreateProductRequest
 {

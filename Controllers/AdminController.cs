@@ -68,11 +68,14 @@ public class AdminController : Controller
                 }
             }
 
-            // สร้าง SQL query ดึงข้อมูล Products กับ Categories และ Brands
-            string query = @"SELECT p.product_id, p.name, p.price, p.stock_quantity, p.image_url, p.description,
+            // สร้าง SQL query ดึงข้อมูล Products กับ Product_Images, Categories และ Brands
+            string query = @"SELECT p.product_id, p.name, p.price, p.stock_quantity,
+                                   COALESCE(pi.image_url, '~/image/default.png') AS image_url,
+                                   p.description,
                                    COALESCE(c.category_name, 'Uncategorized') as category_name,
                                    COALESCE(b.brand_name, '') as brand_name
                             FROM Products p 
+                            LEFT JOIN Product_Images pi ON p.product_id = pi.product_id AND pi.is_main = 1
                             LEFT JOIN Categories c ON p.category_id = c.category_id 
                             LEFT JOIN Brands b ON p.brand_id = b.brand_id
                             ORDER BY p.product_id DESC";
@@ -235,8 +238,8 @@ public class AdminController : Controller
             }
 
             // 3. เพิ่มสินค้า
-            string insertProductQuery = @"INSERT INTO Products (category_id, brand_id, name, price, stock_quantity, image_url, description) 
-                                         VALUES (@categoryId, @brandId, @name, @price, @stock, @imageUrl, @description)";
+            string insertProductQuery = @"INSERT INTO Products (category_id, brand_id, name, price, stock_quantity, description) 
+                                         VALUES (@categoryId, @brandId, @name, @price, @stock, @description)";
             int productId = 0;
             using (MySqlCommand cmd = new MySqlCommand(insertProductQuery, _connection))
             {
@@ -245,10 +248,19 @@ public class AdminController : Controller
                 cmd.Parameters.AddWithValue("@name", request.Name ?? "");
                 cmd.Parameters.AddWithValue("@price", request.Price);
                 cmd.Parameters.AddWithValue("@stock", request.StockQuantity);
-                cmd.Parameters.AddWithValue("@imageUrl", string.IsNullOrWhiteSpace(request.ImageUrl) ? "~/image/default.png" : request.ImageUrl);
                 cmd.Parameters.AddWithValue("@description", request.Description ?? "");
                 cmd.ExecuteNonQuery();
                 productId = (int)cmd.LastInsertedId;
+            }
+
+            // 3.1 เพิ่มรูปภาพหลักลง Product_Images
+            string imageUrl = string.IsNullOrWhiteSpace(request.ImageUrl) ? "~/image/default.png" : request.ImageUrl;
+            string insertImageQuery = "INSERT INTO Product_Images (product_id, image_url, is_main) VALUES (@productId, @imageUrl, 1)";
+            using (MySqlCommand cmd = new MySqlCommand(insertImageQuery, _connection))
+            {
+                cmd.Parameters.AddWithValue("@productId", productId);
+                cmd.Parameters.AddWithValue("@imageUrl", imageUrl);
+                cmd.ExecuteNonQuery();
             }
 
             // 4. เพิ่ม specifications ถ้ามี
@@ -332,7 +344,7 @@ public class AdminController : Controller
             // 3. อัปเดตสินค้า
             string updateProductQuery = @"UPDATE Products 
                                          SET category_id = @categoryId, brand_id = @brandId, name = @name, 
-                                             price = @price, stock_quantity = @stock, image_url = @imageUrl, 
+                                             price = @price, stock_quantity = @stock, 
                                              description = @description 
                                          WHERE product_id = @productId";
             using (MySqlCommand cmd = new MySqlCommand(updateProductQuery, _connection))
@@ -342,10 +354,30 @@ public class AdminController : Controller
                 cmd.Parameters.AddWithValue("@name", request.Name ?? "");
                 cmd.Parameters.AddWithValue("@price", request.Price);
                 cmd.Parameters.AddWithValue("@stock", request.StockQuantity);
-                cmd.Parameters.AddWithValue("@imageUrl", string.IsNullOrWhiteSpace(request.ImageUrl) ? "~/image/default.png" : request.ImageUrl);
                 cmd.Parameters.AddWithValue("@description", request.Description ?? "");
                 cmd.Parameters.AddWithValue("@productId", request.ProductId);
                 cmd.ExecuteNonQuery();
+            }
+
+            // 3.1 อัปเดตรูปภาพหลักใน Product_Images
+            string imageUrl = string.IsNullOrWhiteSpace(request.ImageUrl) ? "~/image/default.png" : request.ImageUrl;
+            string updateImageQuery = @"UPDATE Product_Images SET image_url = @imageUrl WHERE product_id = @productId AND is_main = 1";
+            using (MySqlCommand cmd = new MySqlCommand(updateImageQuery, _connection))
+            {
+                cmd.Parameters.AddWithValue("@productId", request.ProductId);
+                cmd.Parameters.AddWithValue("@imageUrl", imageUrl);
+                int affected = cmd.ExecuteNonQuery();
+
+                if (affected == 0)
+                {
+                    string insertImageQuery = "INSERT INTO Product_Images (product_id, image_url, is_main) VALUES (@productId, @imageUrl, 1)";
+                    using (var insertCmd = new MySqlCommand(insertImageQuery, _connection))
+                    {
+                        insertCmd.Parameters.AddWithValue("@productId", request.ProductId);
+                        insertCmd.Parameters.AddWithValue("@imageUrl", imageUrl);
+                        insertCmd.ExecuteNonQuery();
+                    }
+                }
             }
 
             // 4. ลบ specifications เก่า
@@ -405,7 +437,15 @@ public class AdminController : Controller
                 cmd.ExecuteNonQuery();
             }
 
-            // 2. ลบสินค้า
+            // 2. ลบ product images
+            string deleteImagesQuery = "DELETE FROM Product_Images WHERE product_id = @productId";
+            using (MySqlCommand cmd = new MySqlCommand(deleteImagesQuery, _connection))
+            {
+                cmd.Parameters.AddWithValue("@productId", productId);
+                cmd.ExecuteNonQuery();
+            }
+
+            // 3. ลบสินค้า
             string deleteProductQuery = "DELETE FROM Products WHERE product_id = @productId";
             using (MySqlCommand cmd = new MySqlCommand(deleteProductQuery, _connection))
             {
@@ -414,6 +454,185 @@ public class AdminController : Controller
             }
 
             return Ok(new { success = true, message = "Product deleted successfully" });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { success = false, message = ex.Message });
+        }
+        finally
+        {
+            if (_connection.State == System.Data.ConnectionState.Open)
+            {
+                _connection.Close();
+            }
+        }
+    }
+
+    [HttpGet]
+    public IActionResult GetProductImages(int productId)
+    {
+        try
+        {
+            if (_connection.State == System.Data.ConnectionState.Closed)
+            {
+                _connection.Open();
+            }
+
+            var images = new List<dynamic>();
+            string query = "SELECT image_id, product_id, image_url, is_main FROM Product_Images WHERE product_id = @productId ORDER BY is_main DESC, image_id ASC";
+            
+            using (MySqlCommand cmd = new MySqlCommand(query, _connection))
+            {
+                cmd.Parameters.AddWithValue("@productId", productId);
+                using (MySqlDataReader reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        images.Add(new
+                        {
+                            imageId = reader.GetInt32("image_id"),
+                            productId = reader.GetInt32("product_id"),
+                            imageUrl = reader.GetString("image_url"),
+                            isMain = reader.GetInt32("is_main") == 1
+                        });
+                    }
+                }
+            }
+
+            return Ok(new { success = true, images = images });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { success = false, message = ex.Message });
+        }
+        finally
+        {
+            if (_connection.State == System.Data.ConnectionState.Open)
+            {
+                _connection.Close();
+            }
+        }
+    }
+
+    [HttpPost]
+    public IActionResult DeleteProductImage(int imageId, int productId)
+    {
+        try
+        {
+            if (_connection.State == System.Data.ConnectionState.Closed)
+            {
+                _connection.Open();
+            }
+
+            // ลบรูปภาพ
+            string deleteQuery = "DELETE FROM Product_Images WHERE image_id = @imageId AND product_id = @productId";
+            using (MySqlCommand cmd = new MySqlCommand(deleteQuery, _connection))
+            {
+                cmd.Parameters.AddWithValue("@imageId", imageId);
+                cmd.Parameters.AddWithValue("@productId", productId);
+                cmd.ExecuteNonQuery();
+            }
+
+            return Ok(new { success = true, message = "Image deleted successfully" });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { success = false, message = ex.Message });
+        }
+        finally
+        {
+            if (_connection.State == System.Data.ConnectionState.Open)
+            {
+                _connection.Close();
+            }
+        }
+    }
+
+    [HttpPost]
+    public IActionResult SetMainProductImage(int imageId, int productId)
+    {
+        try
+        {
+            if (_connection.State == System.Data.ConnectionState.Closed)
+            {
+                _connection.Open();
+            }
+
+            // ยกเลิก main status ของรูปอื่นๆ
+            string updateOthersQuery = "UPDATE Product_Images SET is_main = 0 WHERE product_id = @productId";
+            using (MySqlCommand cmd = new MySqlCommand(updateOthersQuery, _connection))
+            {
+                cmd.Parameters.AddWithValue("@productId", productId);
+                cmd.ExecuteNonQuery();
+            }
+
+            // ตั้งรูปใหม่เป็น main
+            string updateMainQuery = "UPDATE Product_Images SET is_main = 1 WHERE image_id = @imageId AND product_id = @productId";
+            using (MySqlCommand cmd = new MySqlCommand(updateMainQuery, _connection))
+            {
+                cmd.Parameters.AddWithValue("@imageId", imageId);
+                cmd.Parameters.AddWithValue("@productId", productId);
+                cmd.ExecuteNonQuery();
+            }
+
+            return Ok(new { success = true, message = "Main image set successfully" });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { success = false, message = ex.Message });
+        }
+        finally
+        {
+            if (_connection.State == System.Data.ConnectionState.Open)
+            {
+                _connection.Close();
+            }
+        }
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> AddProductImage(int productId, IFormFile image)
+    {
+        if (image == null || image.Length == 0)
+        {
+            return BadRequest(new { success = false, message = "No image file provided." });
+        }
+
+        try
+        {
+            if (_connection.State == System.Data.ConnectionState.Closed)
+            {
+                _connection.Open();
+            }
+
+            // อัพโหลดไป Cloudinary
+            var uploadParams = new ImageUploadParams
+            {
+                File = new FileDescription(image.FileName, image.OpenReadStream()),
+                Folder = "keyboard_products",
+                UseFilename = true,
+                UniqueFilename = true,
+                Overwrite = false
+            };
+
+            var uploadResult = await _cloudinary.UploadAsync(uploadParams);
+            if (uploadResult.StatusCode != HttpStatusCode.OK && uploadResult.StatusCode != HttpStatusCode.Created)
+            {
+                return BadRequest(new { success = false, message = uploadResult.Error?.Message ?? "Cloudinary upload failed." });
+            }
+
+            string imageUrl = uploadResult.SecureUrl?.ToString();
+
+            // เพิ่มรูปลงตาราง Product_Images
+            string insertQuery = "INSERT INTO Product_Images (product_id, image_url, is_main) VALUES (@productId, @imageUrl, 0)";
+            using (MySqlCommand cmd = new MySqlCommand(insertQuery, _connection))
+            {
+                cmd.Parameters.AddWithValue("@productId", productId);
+                cmd.Parameters.AddWithValue("@imageUrl", imageUrl);
+                cmd.ExecuteNonQuery();
+            }
+
+            return Ok(new { success = true, message = "Image added successfully", imageUrl = imageUrl });
         }
         catch (Exception ex)
         {
