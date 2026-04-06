@@ -144,6 +144,11 @@
 
             <div class="price-row">
                 <span class="price">฿@Model?.Price.ToString("0.00")</span>
+                <button type="button" class="btn-favorite @(ViewBag.IsFavorite == true ? "active" : "")" id="favoriteBtn" onclick="toggleFavorite()" title="@(ViewBag.IsFavorite == true ? "Remove from favorites" : "Add to favorites")">
+                    <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                    </svg>
+                </button>
             </div>
 
             <p class="desc">
@@ -216,6 +221,42 @@
     <!-- ── SPECIFICATIONS ── -->
     <section>
         <h2 class="section-title">Specifications</h2>
+
+<style>
+    .price-row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .btn-favorite {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #d1d5db;
+        transition: all 0.2s ease;
+        border-radius: 6px;
+    }
+
+    .btn-favorite:hover {
+        color: #ef4444;
+        background: #fee2e2;
+    }
+
+    .btn-favorite.active {
+        color: #ef4444;
+        fill: currentColor;
+    }
+
+    .btn-favorite.active:hover {
+        background: #fecaca;
+    }
+</style>
         @if (Model?.Specifications != null && Model.Specifications.Count > 0)
         {
             <table class="spec-table">
@@ -319,6 +360,43 @@
         toast.style.display = 'block';
         clearTimeout(toast._t);
         toast._t = setTimeout(() => toast.style.display = 'none', 3000);
+    }
+
+    // ── Toggle Favorite ──
+    function toggleFavorite() {
+        const btn = document.getElementById('favoriteBtn');
+        const productId = '@Model?.ProductId';
+        const isFavorite = btn.classList.contains('active');
+
+        // Toggle UI immediately for responsiveness
+        btn.classList.toggle('active');
+
+        const newState = btn.classList.contains('active');
+        const action = newState ? 'AddToWishlist' : 'RemoveFromWishlist';
+
+        fetch(`/Home/${action}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: `productId=${productId}`
+        })
+        .then(async response => {
+            if (!response.ok) {
+                throw new Error('Request failed');
+            }
+            const result = await response.json();
+            if (!result.success) {
+                btn.classList.toggle('active');
+                alert(result.message || 'เกิดข้อผิดพลาดขณะบันทึกรายการโปรด');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            btn.classList.toggle('active');
+            alert('เกิดข้อผิดพลาดขณะบันทึกรายการโปรด');
+        });
     }
 </script>
 

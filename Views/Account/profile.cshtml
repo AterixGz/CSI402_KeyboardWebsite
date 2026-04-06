@@ -29,40 +29,8 @@
     // ── User_Addresses ─────────────────────────────────────────────────
     var addresses = ViewBag.Addresses as IEnumerable<dynamic> ?? Array.Empty<dynamic>();
 
-    // ── Wishlists (Mock Data from Wishlist table) ──────────────────────
-    var wishlists = new dynamic[]
-    {   
-        new {
-            WishlistId = 1,
-            ProductId = 101,
-            ProductName = "Delux Pro RGB Mechanical Keyboard",
-            Price = 2990m,
-            Category = "Keyboards",
-            ImageUrl = "~/image/keyboard-1.png",
-            AddedDate = "20 มี.ค. 2569",
-            InStock = true
-        },
-        new {
-            WishlistId = 2,
-            ProductId = 205,
-            ProductName = "Cherry MX Switch 3 Pack",
-            Price = 890m,
-            Category = "Switches",
-            ImageUrl = "~/image/switch-1.png",
-            AddedDate = "18 มี.ค. 2569",
-            InStock = true
-        },
-        new {
-            WishlistId = 3,
-            ProductId = 312,
-            ProductName = "GMK Oceanic Keycap Set",
-            Price = 1890m,
-            Category = "Keycaps",
-            ImageUrl = "~/image/keycap-1.png",
-            AddedDate = "15 มี.ค. 2569",
-            InStock = false
-        },
-    };
+    // ── Wishlists (from database) ─────────────────────────────────────
+    var wishlists = ViewBag.Wishlists as IEnumerable<dynamic> ?? Array.Empty<dynamic>();
 
     // ── Reviews (Mock Data from Reviews table) ──────────────────────────
     var reviews = new dynamic[]
@@ -475,12 +443,10 @@
                     <div style="padding: 16px 22px;">
                         @foreach (var wish in wishlists)
                         {
-                            <div style="display: grid; grid-template-columns: 80px 1fr auto; gap: 14px; padding: 14px 0; border-bottom: 1px solid #e5e7eb; align-items: center;">
+                            <div class="wishlist-item" data-product-id="@wish.ProductId" style="display: grid; grid-template-columns: 80px 1fr auto; gap: 14px; padding: 14px 0; border-bottom: 1px solid #e5e7eb; align-items: center;">
                                 <!-- Image -->
-                                <div style="width: 80px; height: 80px; background: #f9fafb; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 32px; flex-shrink: 0;">
-                                    @if (wish.Category == "Keyboards") { <span>⌨️</span> }
-                                    else if (wish.Category == "Switches") { <span>🔘</span> }
-                                    else { <span>🎨</span> }
+                                <div style="width: 80px; height: 80px; background: #f9fafb; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                    <img src="@(wish.ImageUrl ?? "~/image/default.png")" alt="@wish.ProductName" style="width:100%; height:100%; object-fit:cover;" />
                                 </div>
                                 
                                 <!-- Info -->
@@ -498,10 +464,10 @@
 
                                 <!-- Actions -->
                                 <div style="display: flex; flex-direction: column; gap: 6px;">
-                                    <button onclick="alert('✅ เพิ่มลงตะกร้าแล้ว')" style="background: #16a34a; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit;">
+                                    <button onclick="addToCartFromWishlist(@wish.ProductId, this)" style="background: #16a34a; color: #fff; border: none; padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit;">
                                         🛒 เพิ่มลงตะกร้า
                                     </button>
-                                    <button onclick="alert('❌ ลบออกจากรายการโปรด')" style="background: #fee2e2; color: #dc2626; border: none; padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit;">
+                                    <button onclick="removeFromWishlist(@wish.ProductId, this)" style="background: #fee2e2; color: #dc2626; border: none; padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit;">
                                         ลบออก
                                     </button>
                                 </div>
@@ -828,6 +794,68 @@ function saveAddress() {
     }).catch(error => {
         console.error('Error:', error);
         showToast('❌ เกิดข้อผิดพลาดในการบันทึกที่อยู่');
+    });
+}
+
+function addToCartFromWishlist(productId, button) {
+    if (!productId) return;
+    button.disabled = true;
+    fetch('/Home/AddToCart', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: new URLSearchParams({
+            productId: productId,
+            quantity: 1
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('✅ เพิ่มสินค้าลงตะกร้าเรียบร้อยแล้ว');
+        } else {
+            showToast('❌ ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('❌ เกิดข้อผิดพลาดในการเพิ่มสินค้าลงตะกร้า');
+    })
+    .finally(() => {
+        button.disabled = false;
+    });
+}
+
+function removeFromWishlist(productId, button) {
+    if (!productId) return;
+    button.disabled = true;
+    fetch('/Home/RemoveFromWishlist', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: new URLSearchParams({
+            productId: productId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('✅ ลบรายการโปรดเรียบร้อยแล้ว');
+            location.reload();
+        } else {
+            showToast('❌ ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('❌ เกิดข้อผิดพลาดในการลบรายการโปรด');
+    })
+    .finally(() => {
+        button.disabled = false;
     });
 }
 

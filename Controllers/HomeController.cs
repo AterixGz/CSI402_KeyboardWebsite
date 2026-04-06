@@ -471,6 +471,24 @@ public class HomeController : Controller
                     }
                 }
             }
+
+            // Load wishlist state for the current user
+            var currentUserId = HttpContext.Session.GetInt32("UserId");
+            if (currentUserId != null && product != null)
+            {
+                string wishlistQuery = "SELECT COUNT(*) FROM Wishlist WHERE user_id = @userId AND product_id = @productId";
+                using (var wishlistCmd = new MySqlCommand(wishlistQuery, _connection))
+                {
+                    wishlistCmd.Parameters.AddWithValue("@userId", currentUserId.Value);
+                    wishlistCmd.Parameters.AddWithValue("@productId", product.ProductId);
+                    var count = Convert.ToInt32(wishlistCmd.ExecuteScalar());
+                    ViewBag.IsFavorite = count > 0;
+                }
+            }
+            else
+            {
+                ViewBag.IsFavorite = false;
+            }
         }
         catch (Exception ex)
         {
@@ -487,7 +505,85 @@ public class HomeController : Controller
         return View(product);
     }
 
-   
+    [HttpPost]
+    public IActionResult AddToWishlist(int productId)
+    {
+        var userId = HttpContext.Session.GetInt32("UserId");
+        if (userId == null)
+        {
+            return Json(new { success = false, message = "กรุณาเข้าสู่ระบบก่อนกดรายการโปรด" });
+        }
+
+        try
+        {
+            if (_connection.State == System.Data.ConnectionState.Closed)
+                _connection.Open();
+
+            const string checkQuery = "SELECT wishlist_id FROM Wishlist WHERE user_id = @userId AND product_id = @productId LIMIT 1";
+            using (var checkCmd = new MySqlCommand(checkQuery, _connection))
+            {
+                checkCmd.Parameters.AddWithValue("@userId", userId.Value);
+                checkCmd.Parameters.AddWithValue("@productId", productId);
+                var existing = checkCmd.ExecuteScalar();
+                if (existing == null)
+                {
+                    const string insertQuery = "INSERT INTO Wishlist (user_id, product_id, added_at) VALUES (@userId, @productId, NOW())";
+                    using (var insertCmd = new MySqlCommand(insertQuery, _connection))
+                    {
+                        insertCmd.Parameters.AddWithValue("@userId", userId.Value);
+                        insertCmd.Parameters.AddWithValue("@productId", productId);
+                        insertCmd.ExecuteNonQuery();
+                    }
+                }
+            }
+
+            return Json(new { success = true, message = "เพิ่มรายการโปรดเรียบร้อยแล้ว" });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { success = false, message = $"เกิดข้อผิดพลาด: {ex.Message}" });
+        }
+        finally
+        {
+            if (_connection.State == System.Data.ConnectionState.Open)
+                _connection.Close();
+        }
+    }
+
+    [HttpPost]
+    public IActionResult RemoveFromWishlist(int productId)
+    {
+        var userId = HttpContext.Session.GetInt32("UserId");
+        if (userId == null)
+        {
+            return Json(new { success = false, message = "กรุณาเข้าสู่ระบบก่อนกดรายการโปรด" });
+        }
+
+        try
+        {
+            if (_connection.State == System.Data.ConnectionState.Closed)
+                _connection.Open();
+
+            const string deleteQuery = "DELETE FROM Wishlist WHERE user_id = @userId AND product_id = @productId";
+            using (var deleteCmd = new MySqlCommand(deleteQuery, _connection))
+            {
+                deleteCmd.Parameters.AddWithValue("@userId", userId.Value);
+                deleteCmd.Parameters.AddWithValue("@productId", productId);
+                deleteCmd.ExecuteNonQuery();
+            }
+
+            return Json(new { success = true, message = "ลบออกจากรายการโปรดแล้ว" });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { success = false, message = $"เกิดข้อผิดพลาด: {ex.Message}" });
+        }
+        finally
+        {
+            if (_connection.State == System.Data.ConnectionState.Open)
+                _connection.Close();
+        }
+    }
 
     [HttpPost]
     public IActionResult UpdateQuantity(int cartId, int newQuantity)

@@ -306,6 +306,38 @@ public class AccountController : Controller
                 }
             }
 
+            // Get wishlist items
+            var wishlists = new List<dynamic>();
+            string wishlistQuery = @"SELECT w.wishlist_id, p.product_id, p.name, p.price, p.stock_quantity,
+                                           COALESCE(pi.image_url, '~/image/default.png') AS image_url,
+                                           COALESCE(c.category_name, 'Uncategorized') AS category_name
+                                    FROM Wishlist w
+                                    JOIN Products p ON w.product_id = p.product_id
+                                    LEFT JOIN Product_Images pi ON p.product_id = pi.product_id AND pi.is_main = 1
+                                    LEFT JOIN Categories c ON p.category_id = c.category_id
+                                    WHERE w.user_id = @userId
+                                    ORDER BY w.added_at DESC";
+            using (MySqlCommand cmd = new MySqlCommand(wishlistQuery, _connection))
+            {
+                cmd.Parameters.AddWithValue("@userId", userId.Value);
+                using (MySqlDataReader reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        wishlists.Add(new
+                        {
+                            WishlistId = reader.GetInt32("wishlist_id"),
+                            ProductId = reader.GetInt32("product_id"),
+                            ProductName = reader["name"] as string ?? "",
+                            Price = reader.GetDecimal("price"),
+                            Category = reader["category_name"] as string ?? "Uncategorized",
+                            ImageUrl = reader["image_url"] as string ?? "~/image/default.png",
+                            InStock = reader.GetInt32("stock_quantity") > 0
+                        });
+                    }
+                }
+            }
+
             // Get recent orders (last 5)
             string orderQuery = @"SELECT o.order_id, o.order_date, o.total_amount, o.discount_amount, o.status, c.code AS coupon_code,
                                          COUNT(od.detail_id) as item_count
@@ -341,13 +373,14 @@ public class AccountController : Controller
 
             // Get counts
             int orderCount = orders.Count; // Or query total count
-            int wishCount = 0; // Wishlist not implemented yet
+            int wishCount = wishlists.Count;
             int addressCount = addresses.Count;
 
             ViewBag.User = user;
             ViewBag.Profile = profile;
             ViewBag.Addresses = addresses;
             ViewBag.RecentOrders = orders;
+            ViewBag.Wishlists = wishlists;
             ViewBag.OrderCount = orderCount;
             ViewBag.WishCount = wishCount;
             ViewBag.AddressCount = addressCount;
