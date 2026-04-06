@@ -21,8 +21,9 @@ public class AdminController : Controller
     // ตรวจสอบว่า user เป็น admin หรือไม่
     private bool IsAdmin()
     {
+        var userId = HttpContext.Session.GetInt32("UserId");
         var userRole = HttpContext.Session.GetInt32("UserRole");
-        return userRole != 4; // role_id = 4 คือ customer ห้ามเข้า, role อื่นสามารถเข้าได้
+        return userId != null && userRole != 4; // ต้อง login และ role_id = 4 คือ customer ห้ามเข้า, role อื่นสามารถเข้าได้
     }
 
     // Redirect ถ้า user ไม่ใช่ admin

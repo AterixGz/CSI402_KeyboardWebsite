@@ -307,12 +307,13 @@ public class AccountController : Controller
             }
 
             // Get recent orders (last 5)
-            string orderQuery = @"SELECT o.order_id, o.order_date, o.total_amount, o.discount_amount, o.coupon_code,
-                                         COUNT(oi.order_item_id) as item_count
+            string orderQuery = @"SELECT o.order_id, o.order_date, o.total_amount, o.discount_amount, o.status, c.code AS coupon_code,
+                                         COUNT(od.detail_id) as item_count
                                   FROM Orders o
-                                  LEFT JOIN Order_Items oi ON o.order_id = oi.order_id
+                                  LEFT JOIN OrderDetails od ON o.order_id = od.order_id
+                                  LEFT JOIN Coupons c ON o.coupon_id = c.coupon_id
                                   WHERE o.user_id = @userId
-                                  GROUP BY o.order_id
+                                  GROUP BY o.order_id, o.order_date, o.total_amount, o.discount_amount, o.status, c.code
                                   ORDER BY o.order_date DESC
                                   LIMIT 5";
             var orders = new List<dynamic>();
@@ -332,7 +333,7 @@ public class AccountController : Controller
                             DiscountAmount = reader.GetDecimal("discount_amount"),
                             TotalAmount = reader.GetDecimal("total_amount"),
                             CouponCode = reader["coupon_code"] as string,
-                            Status = "delivered" // Assuming all are delivered for now
+                            Status = reader["status"] as string ?? "pending"
                         });
                     }
                 }

@@ -75,8 +75,8 @@
                             <li class="nav-item">
                                 <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Shop">Switches</a>
                             </li>
-                            @* admin btn - only show for non-customer roles *@
-                            @if (Context.Session.GetInt32("UserRole") != 4)
+                            @* admin btn - only show for logged-in non-customer roles *@
+                            @if (Context.Session.GetInt32("UserId") != null && Context.Session.GetInt32("UserRole") != 4)
                             {
                                 <li class="nav-item">
                                     <a class="nav-link" asp-area="" asp-controller="Admin" asp-action="Dashboard">Admin</a>
