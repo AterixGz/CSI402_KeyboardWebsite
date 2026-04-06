@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("KeyboardWebsiteProject")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1834caa4923699709ad2aa1930c83327d48b45a4")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4626408532ec65778dcce509e03432594f5f0496")]
 [assembly: System.Reflection.AssemblyProductAttribute("KeyboardWebsiteProject")]
 [assembly: System.Reflection.AssemblyTitleAttribute("KeyboardWebsiteProject")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

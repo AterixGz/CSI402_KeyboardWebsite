@@ -28,35 +28,12 @@
                 </svg>
                 Store
             </a>
-            <a class="nav-item" onclick="switchTab(this, 'notifications')">
-                <!-- Bell icon -->
-                <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-                    <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/>
-                </svg>
-                Notifications
-            </a>
             <a class="nav-item" onclick="switchTab(this, 'security')">
                 <!-- Shield icon -->
                 <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                 </svg>
                 Security
-            </a>
-            <a class="nav-item" onclick="switchTab(this, 'payments')">
-                <!-- Card icon -->
-                <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-                    <rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/>
-                </svg>
-                Payments
-            </a>
-            <a class="nav-item" onclick="switchTab(this, 'shipping')">
-                <!-- Truck icon -->
-                <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-                    <rect x="1" y="3" width="15" height="13" rx="1.5"/>
-                    <path d="M16 8h4l3 5v3h-7V8z"/>
-                    <circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
-                </svg>
-                Shipping
             </a>
         </nav>
 
@@ -162,13 +139,6 @@
             </div>
         </div>
 
-        <div class="settings-panel" id="panel-notifications" style="display:none;">
-            <div class="panel-title">Notification Preferences</div>
-            <div class="panel-sub">Choose how and when you receive notifications.</div>
-            <hr class="divider"/>
-            <p style="font-size:14px;color:var(--text-muted);">Notification settings coming soon.</p>
-        </div>
-
         <div class="settings-panel" id="panel-security" style="display:none;">
             <div class="panel-title">Security</div>
             <div class="panel-sub">Manage your password and two-factor authentication.</div>
@@ -197,20 +167,6 @@
             </div>
         </div>
 
-        <div class="settings-panel" id="panel-payments" style="display:none;">
-            <div class="panel-title">Payment Methods</div>
-            <div class="panel-sub">Manage payment gateways and billing settings.</div>
-            <hr class="divider"/>
-            <p style="font-size:14px;color:var(--text-muted);">Payment settings coming soon.</p>
-        </div>
-
-        <div class="settings-panel" id="panel-shipping" style="display:none;">
-            <div class="panel-title">Shipping</div>
-            <div class="panel-sub">Configure shipping zones, rates, and carriers.</div>
-            <hr class="divider"/>
-            <p style="font-size:14px;color:var(--text-muted);">Shipping settings coming soon.</p>
-        </div>
-
     </div>
 </div>
 
@@ -218,7 +174,7 @@
 <div class="toast" id="toast">Changes saved successfully!</div>
 
 <script>
-    const tabs = ['profile','store','notifications','security','payments','shipping'];
+    const tabs = ['profile','store','security'];
 
     function switchTab(el, tab) {
         // Update nav active state

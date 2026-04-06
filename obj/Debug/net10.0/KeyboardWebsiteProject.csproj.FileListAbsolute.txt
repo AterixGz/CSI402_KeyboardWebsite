@@ -39,7 +39,6 @@ D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\scopedcss\Views\Sh
 D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\scopedcss\bundle\KeyboardWebsiteProject.styles.css
 D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\scopedcss\projectbundle\KeyboardWebsiteProject.bundle.scp.css
 D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\wjjz0euiuh-{0}-vcbw3f1srx-vcbw3f1srx.gz
-D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\o1zt5q8v56-{0}-iwa298h129-iwa298h129.gz
 D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\ua5m1f35h1-{0}-wgqysn345o-wgqysn345o.gz
 D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\v058n5zrcy-{0}-eyzkruvob9-eyzkruvob9.gz
 D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\ayaujldjzn-{0}-55o0tiqlgi-55o0tiqlgi.gz
@@ -132,3 +131,5 @@ D:\Coding\GithubRepo\CSI402_KeyboardWebsite\bin\Debug\net10.0\KeyboardWebsitePro
 D:\Coding\GithubRepo\CSI402_KeyboardWebsite\bin\Debug\net10.0\KeyboardWebsiteProject.pdb
 D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\KeyboardWebsiteProject.genruntimeconfig.cache
 D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\ref\KeyboardWebsiteProject.dll
+D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\d01r68krg5-{0}-y3bqq3brpz-y3bqq3brpz.gz
+D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\o1zt5q8v56-{0}-kznkpfdlee-kznkpfdlee.gz

@@ -1,33 +1,88 @@
 @{
     ViewData["Title"] = "โปรไฟล์ของฉัน";
 
+    // ── Users (authentication data) ────────────────────────────────────
     dynamic user = ViewBag.User ?? new {
-        Name = "สมาชิกใหม่",
-        MemberSince = "สมาชิกใหม่",
-        Points = 0,
-        OrderCount = 0,
-        WishCount = 0,
-        Email = "",
-        Phone = "",
-        Address = "",
-        AvatarUrl = string.Empty
+        UserId       = 0,
+        RoleName     = "สมาชิก",
+        Username     = "",
+        Email        = "",
+        Phone        = ""
     };
 
-    var orders = new[]
-    {
-        new { Id = "ORD-001", Date = "15 มี.ค. 2026", Items = 2, Total = 5990m, Status = "delivered" },
-        new { Id = "ORD-002", Date = "10 มี.ค. 2026", Items = 1, Total = 2990m, Status = "shipping"  },
-        new { Id = "ORD-003", Date = "28 ก.พ. 2026",  Items = 3, Total = 8450m, Status = "delivered" },
+    // ── User_Profiles (profile data) ───────────────────────────────────
+    dynamic profile = ViewBag.Profile ?? new {
+        ProfileId   = 0,
+        FirstName   = "สมาชิก",
+        LastName    = "ใหม่",
+        DisplayName = "",
+        BirthDate   = (DateTime?)null,
+        AvatarUrl   = "",
+        Bio         = ""
     };
 
-    var menuItems = new[]
+    // ── Stats ──────────────────────────────────────────────────────────
+    int orderCount  = ViewBag.OrderCount  ?? 0;
+    int wishCount   = ViewBag.WishCount   ?? 0;
+    int addressCount = ViewBag.AddressCount ?? 0;
+
+    // ── User_Addresses ─────────────────────────────────────────────────
+    var addresses = ViewBag.Addresses as IEnumerable<dynamic> ?? Array.Empty<dynamic>();
+
+    // ── Recent Orders ──────────────────────────────────────────────────
+    var orders = ViewBag.RecentOrders as IEnumerable<dynamic> ?? new dynamic[]
     {
-        new { Icon = "📦", Label = "คำสั่งซื้อของฉัน",  Count = 12,  Href = "#orders"  },
-        new { Icon = "🤍", Label = "รายการโปรด",         Count = 5,   Href = "#wishlist" },
-        new { Icon = "📍", Label = "ที่อยู่จัดส่ง",      Count = 0,   Href = "#address"  },
-        new { Icon = "💳", Label = "วิธีชำระเงิน",       Count = 0,   Href = "#payment"  },
-        new { Icon = "⚙️", Label = "ตั้งค่าบัญชี",       Count = 0,   Href = "#settings" },
+        new {
+            OrderId         = "ORD-001",
+            OrderDate       = "15 มี.ค. 2569",
+            ItemCount       = 2,
+            Subtotal        = 5990m,
+            DiscountAmount  = 0m,
+            TotalAmount     = 5990m,
+            CouponCode      = (string?)null,
+            Status          = "delivered"
+        },
+        new {
+            OrderId         = "ORD-002",
+            OrderDate       = "10 มี.ค. 2569",
+            ItemCount       = 1,
+            Subtotal        = 3490m,
+            DiscountAmount  = 500m,
+            TotalAmount     = 2990m,
+            CouponCode      = "SAVE500",
+            Status          = "shipping"
+        },
+        new {
+            OrderId         = "ORD-003",
+            OrderDate       = "28 ก.พ. 2569",
+            ItemCount       = 3,
+            Subtotal        = 8450m,
+            DiscountAmount  = 0m,
+            TotalAmount     = 8450m,
+            CouponCode      = (string?)null,
+            Status          = "pending"
+        },
     };
+
+    // ── Helpers ────────────────────────────────────────────────────────
+    string FullName(dynamic p) {
+        var fn = (string)(p.FirstName ?? "");
+        var ln = (string)(p.LastName  ?? "");
+        return (fn + " " + ln).Trim();
+    }
+
+    string DisplayLabel(dynamic p) {
+        var dn = (string)(p.DisplayName ?? "");
+        return !string.IsNullOrWhiteSpace(dn) ? dn : FullName(p);
+    }
+
+    string Initials(dynamic p) {
+        var fn = (string)(p.FirstName ?? "");
+        var ln = (string)(p.LastName  ?? "");
+        if (fn.Length > 0 && ln.Length > 0) return $"{fn[0]}{ln[0]}";
+        if (fn.Length > 0) return fn[0].ToString();
+        return "?";
+    }
 
     string StatusLabel(string s) => s switch {
         "delivered" => "จัดส่งแล้ว",
@@ -36,6 +91,7 @@
         "cancelled" => "ยกเลิก",
         _           => s
     };
+
     string StatusClass(string s) => s switch {
         "delivered" => "delivered",
         "shipping"  => "shipping",
@@ -44,12 +100,22 @@
         _           => ""
     };
 
-    string Initials(string name) {
-        var parts = name.Split(' ');
-        return parts.Length >= 2
-            ? $"{parts[0][0]}{parts[1][0]}"
-            : name.Length > 0 ? name[0].ToString() : "?";
-    }
+    string StatusIcon(string s) => s switch {
+        "delivered" => "✓",
+        "shipping"  => "⟳",
+        "pending"   => "⏱",
+        "cancelled" => "✕",
+        _           => "•"
+    };
+
+    var menuItems = new[]
+    {
+        new { Icon = "📦", Label = "คำสั่งซื้อของฉัน", Count = orderCount,  Href = "#orders"   },
+        new { Icon = "🤍", Label = "รายการโปรด",        Count = wishCount,   Href = "#wishlist"  },
+        new { Icon = "📍", Label = "ที่อยู่จัดส่ง",     Count = addressCount,Href = "#addresses" },
+        new { Icon = "⭐", Label = "รีวิวของฉัน",        Count = 0,           Href = "#reviews"   },
+        new { Icon = "⚙️", Label = "ตั้งค่าบัญชี",      Count = 0,           Href = "#settings"  },
+    };
 }
 <!DOCTYPE html>
 <html lang="th">
@@ -63,53 +129,74 @@
 </head>
 <body>
 
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
 <div class="page">
     <div class="layout">
 
-        <!-- ── LEFT COLUMN ── -->
-        <div>
+        <!-- ══ LEFT COLUMN ══════════════════════════════════════════════ -->
+        <div class="left-col">
             <div class="card" style="margin-bottom:20px;">
-                <!-- Profile -->
+
+                <!-- Avatar + name -->
                 <div class="profile-card">
                     <div class="avatar-wrap">
                         <div class="avatar" id="avatar-display">
-                            @if (!string.IsNullOrEmpty(user.AvatarUrl))
+                            @if (!string.IsNullOrEmpty((string)profile.AvatarUrl))
                             {
-                                <img src="@user.AvatarUrl" alt="avatar" />
+                                <img src="@profile.AvatarUrl" alt="avatar" />
                             }
                             else
                             {
-                                @Initials(user.Name)
+                                @Initials(profile)
                             }
                         </div>
                         <label class="avatar-edit-btn" for="avatar-input" title="เปลี่ยนรูปโปรไฟล์">✏️</label>
-                        <input type="file" id="avatar-input" accept="image/*" style="display:none" onchange="previewAvatar(this)" />
+                        <input type="file" id="avatar-input" accept="image/*" style="display:none"
+                               onchange="previewAvatar(this)" />
                     </div>
-                    <div class="profile-name" id="display-name">@user.Name</div>
-                    <div class="profile-since">สมาชิกตั้งแต่ @user.MemberSince</div>
-                    <div class="points-badge">
-                        <span class="points-dot"></span>
-                        <span id="display-points">@user.Points.ToString("N0")</span> คะแนนสะสม
+
+                    <!-- display_name หรือ first_name + last_name -->
+                    <div class="profile-name" id="display-name">@DisplayLabel(profile)</div>
+
+                    <!-- username + role จาก Users + Roles -->
+                    <div class="profile-meta">
+                        @if (!string.IsNullOrEmpty((string)user.Username))
+                        {
+                            <span class="profile-username">@@@user.Username</span>
+                        }
+                        <span class="role-badge">@user.RoleName</span>
                     </div>
+
+                    @if (!string.IsNullOrEmpty((string)profile.Bio))
+                    {
+                        <div class="profile-bio">@profile.Bio</div>
+                    }
                 </div>
 
-                <!-- Stats -->
+                <!-- Stats row (Orders + Wishlist) -->
                 <div class="stats-row">
                     <div class="stat-item">
-                        <div class="stat-num">@user.OrderCount</div>
+                        <div class="stat-num">@orderCount</div>
                         <div class="stat-label">คำสั่งซื้อ</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-num">@user.WishCount</div>
+                        <div class="stat-num">@wishCount</div>
                         <div class="stat-label">รายการโปรด</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-num">@addressCount</div>
+                        <div class="stat-label">ที่อยู่</div>
                     </div>
                 </div>
 
-                <!-- Menu -->
+                <!-- Side menu -->
                 <div class="side-menu">
                     @foreach (var item in menuItems)
                     {
                         <a class="menu-item" href="@item.Href">
+                            <span class="menu-icon">@item.Icon</span>
                             <span class="menu-label">@item.Label</span>
                             @if (item.Count > 0)
                             {
@@ -130,65 +217,198 @@
             </div>
         </div>
 
-        <!-- ── RIGHT COLUMN ── -->
-        <div>
+        <!-- ══ RIGHT COLUMN ══════════════════════════════════════════════ -->
+        <div class="right-col">
 
-            <!-- Personal Info -->
+            <!-- ── Personal Info (Users + User_Profiles) ─────────────── -->
             <div class="card section-card" id="info-card">
                 <div class="section-header">
                     <span class="section-title">ข้อมูลส่วนตัว</span>
-                    <button class="btn-edit" onclick="toggleEdit()">
-                        แก้ไข
-                    </button>
+                    <button class="btn-edit" onclick="toggleEdit('info')">แก้ไข</button>
                 </div>
 
+                <!-- Display mode -->
                 <div class="info-grid" id="info-display">
+                    <!-- จาก User_Profiles -->
                     <div class="info-item">
-                        <div class="info-label"> ชื่อ-นามสกุล</div>
-                        <div class="info-value" id="iv-name">@user.Name</div>
+                        <div class="info-label">ชื่อจริง</div>
+                        <div class="info-value" id="iv-firstname">@profile.FirstName</div>
                     </div>
                     <div class="info-item">
-                        <div class="info-label"> อีเมล</div>
+                        <div class="info-label">นามสกุล</div>
+                        <div class="info-value" id="iv-lastname">@profile.LastName</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">ชื่อที่แสดง (Display Name)</div>
+                        <div class="info-value" id="iv-displayname">
+                            @(string.IsNullOrEmpty((string)profile.DisplayName) ? "–" : profile.DisplayName)
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">วันเกิด</div>
+                        <div class="info-value" id="iv-birthdate">
+                            @(profile.BirthDate != null
+                                ? ((DateTime)profile.BirthDate).ToString("dd MMM yyyy")
+                                : "–")
+                        </div>
+                    </div>
+                    <!-- จาก Users -->
+                    <div class="info-item">
+                        <div class="info-label">ชื่อผู้ใช้ (Username)</div>
+                        <div class="info-value" id="iv-username">@user.Username</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">อีเมล</div>
                         <div class="info-value" id="iv-email">@user.Email</div>
                     </div>
                     <div class="info-item">
-                        <div class="info-label"> เบอร์โทรศัพท์</div>
+                        <div class="info-label">เบอร์โทรศัพท์</div>
                         <div class="info-value" id="iv-phone">@user.Phone</div>
                     </div>
-                    <div class="info-item">
-                        <div class="info-label"> ที่อยู่</div>
-                        <div class="info-value" id="iv-address" style="white-space:pre-line;">@user.Address</div>
+                    <!-- Bio ยาว full width -->
+                    <div class="info-item info-item--full">
+                        <div class="info-label">Bio</div>
+                        <div class="info-value" id="iv-bio" style="white-space:pre-line;">
+                            @(string.IsNullOrEmpty((string)profile.Bio) ? "–" : profile.Bio)
+                        </div>
                     </div>
                 </div>
 
-                <!-- Edit Form -->
-                <div class="edit-form" id="edit-form">
+                <!-- Edit form -->
+                <div class="edit-form" id="edit-form-info">
                     <div class="edit-grid">
                         <div class="field">
-                            <label>ชื่อ-นามสกุล</label>
-                            <input id="ef-name" type="text" value="@user.Name" />
+                            <label>ชื่อจริง <span class="req">*</span></label>
+                            <input id="ef-firstname" type="text" value="@profile.FirstName" />
                         </div>
                         <div class="field">
-                            <label>อีเมล</label>
+                            <label>นามสกุล <span class="req">*</span></label>
+                            <input id="ef-lastname" type="text" value="@profile.LastName" />
+                        </div>
+                        <div class="field">
+                            <label>ชื่อที่แสดง (Display Name)</label>
+                            <input id="ef-displayname" type="text" value="@profile.DisplayName"
+                                   placeholder="ปล่อยว่างเพื่อใช้ชื่อ-นามสกุล" />
+                        </div>
+                        <div class="field">
+                            <label>วันเกิด</label>
+                            <input id="ef-birthdate" type="date"
+                                   value="@(profile.BirthDate != null ? ((DateTime)profile.BirthDate).ToString("yyyy-MM-dd") : "")" />
+                        </div>
+                        <div class="field">
+                            <label>Username</label>
+                            <input id="ef-username" type="text" value="@user.Username" />
+                        </div>
+                        <div class="field">
+                            <label>อีเมล <span class="req">*</span></label>
                             <input id="ef-email" type="email" value="@user.Email" />
                         </div>
                         <div class="field">
                             <label>เบอร์โทรศัพท์</label>
                             <input id="ef-phone" type="tel" value="@user.Phone" />
                         </div>
-                        <div class="field">
-                            <label>ที่อยู่</label>
-                            <textarea id="ef-address" rows="3">@user.Address</textarea>
+                        <div class="field field--full">
+                            <label>Bio</label>
+                            <textarea id="ef-bio" rows="3">@profile.Bio</textarea>
                         </div>
                     </div>
                     <div class="edit-actions">
-                        <button class="btn-cancel-edit" onclick="toggleEdit()">ยกเลิก</button>
+                        <button class="btn-cancel-edit" onclick="toggleEdit('info')">ยกเลิก</button>
                         <button class="btn-save" onclick="saveInfo()">บันทึก</button>
                     </div>
                 </div>
             </div>
 
-            <!-- Orders -->
+            <!-- ── User_Addresses ─────────────────────────────────────── -->
+            <div class="card section-card" id="addresses">
+                <div class="section-header">
+                    <span class="section-title">ที่อยู่จัดส่ง</span>
+                    <button class="btn-edit" onclick="toggleEdit('addr')">+ เพิ่มที่อยู่</button>
+                </div>
+
+                @if (!addresses.Any())
+                {
+                    <div class="empty-state">
+                        <span class="empty-icon">📍</span>
+                        <p>ยังไม่มีที่อยู่จัดส่ง</p>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var addr in addresses)
+                    {
+                        <div class="address-row @(addr.IsDefault ? "address-row--default" : "")">
+                            <div class="address-body">
+                                <div class="address-receiver">
+                                    @addr.ReceiverName
+                                    @if (addr.IsDefault)
+                                    {
+                                        <span class="default-badge">ค่าเริ่มต้น</span>
+                                    }
+                                </div>
+                                <div class="address-phone">@addr.PhoneNumber</div>
+                                <div class="address-line">
+                                    @addr.AddressLine1, แขวง@addr.SubDistrict,
+                                    เขต@addr.District, @addr.Province @addr.PostalCode
+                                </div>
+                            </div>
+                            <div class="address-actions">
+                                <button class="btn-text">แก้ไข</button>
+                                @if (!addr.IsDefault)
+                                {
+                                    <button class="btn-text btn-text--muted">ตั้งเป็นค่าเริ่มต้น</button>
+                                }
+                            </div>
+                        </div>
+                    }
+                }
+
+                <!-- Add address form -->
+                <div class="edit-form" id="edit-form-addr">
+                    <div class="edit-grid">
+                        <div class="field">
+                            <label>ชื่อผู้รับ <span class="req">*</span></label>
+                            <input id="af-receiver" type="text" placeholder="ชื่อ-นามสกุลผู้รับ" />
+                        </div>
+                        <div class="field">
+                            <label>เบอร์โทรผู้รับ <span class="req">*</span></label>
+                            <input id="af-phone" type="tel" placeholder="0xx-xxx-xxxx" />
+                        </div>
+                        <div class="field field--full">
+                            <label>บ้านเลขที่ / ถนน / ซอย <span class="req">*</span></label>
+                            <input id="af-line1" type="text" placeholder="เช่น 123/4 ถ.สุขุมวิท" />
+                        </div>
+                        <div class="field">
+                            <label>แขวง / ตำบล <span class="req">*</span></label>
+                            <input id="af-subdistrict" type="text" />
+                        </div>
+                        <div class="field">
+                            <label>เขต / อำเภอ <span class="req">*</span></label>
+                            <input id="af-district" type="text" />
+                        </div>
+                        <div class="field">
+                            <label>จังหวัด <span class="req">*</span></label>
+                            <input id="af-province" type="text" />
+                        </div>
+                        <div class="field">
+                            <label>รหัสไปรษณีย์ <span class="req">*</span></label>
+                            <input id="af-postal" type="text" maxlength="5" />
+                        </div>
+                        <div class="field field--full">
+                            <label class="checkbox-label">
+                                <input id="af-default" type="checkbox" />
+                                ตั้งเป็นที่อยู่ค่าเริ่มต้น
+                            </label>
+                        </div>
+                    </div>
+                    <div class="edit-actions">
+                        <button class="btn-cancel-edit" onclick="toggleEdit('addr')">ยกเลิก</button>
+                        <button class="btn-save" onclick="saveAddress()">บันทึกที่อยู่</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── Orders (recent) ────────────────────────────────────── -->
             <div class="card" id="orders">
                 <div class="orders-header">
                     <span class="orders-title">คำสั่งซื้อล่าสุด</span>
@@ -197,83 +417,221 @@
 
                 @foreach (var order in orders)
                 {
-                    <div class="order-row">
+                    <div class="order-row" onclick="window.location.href='#order-@order.OrderId'">
+                        <div class="order-icon">📦</div>
                         <div class="order-meta">
-                            <div class="order-id">@order.Id</div>
-                            <div class="order-date">@order.Date · @order.Items รายการ</div>
+                            <div class="order-id">@order.OrderId</div>
+                            <div class="order-date">
+                                @order.OrderDate · @order.ItemCount รายการ
+                                @if (!string.IsNullOrEmpty((string)order.CouponCode))
+                                {
+                                    <span class="coupon-tag">🏷 @order.CouponCode</span>
+                                }
+                            </div>
                         </div>
                         <div class="order-right">
-                            <div class="order-price">฿@order.Total.ToString("N0")</div>
-                            <span class="status-badge @StatusClass(order.Status)">@StatusLabel(order.Status)</span>
+                            @if ((decimal)order.DiscountAmount > 0)
+                            {
+                                <div class="order-subtotal">฿@order.Subtotal.ToString("N0")</div>
+                            }
+                            <div class="order-price">฿@order.TotalAmount.ToString("N0")</div>
+                            <span class="status-badge @StatusClass(order.Status)">
+                                @StatusIcon(order.Status) @StatusLabel(order.Status)
+                            </span>
                         </div>
                     </div>
                 }
             </div>
 
-        </div>
-    </div>
-</div>
+        </div><!-- /right-col -->
+    </div><!-- /layout -->
+</div><!-- /page -->
 
 <script>
-    // ── Toggle edit form ──
-    function toggleEdit() {
-        const form = document.getElementById('edit-form');
-        form.classList.toggle('open');
-        if (form.classList.contains('open')) {
-            // Sync current display values into fields
-            document.getElementById('ef-name').value    = document.getElementById('iv-name').textContent.trim();
-            document.getElementById('ef-email').value   = document.getElementById('iv-email').textContent.trim();
-            document.getElementById('ef-phone').value   = document.getElementById('iv-phone').textContent.trim();
-            document.getElementById('ef-address').value = document.getElementById('iv-address').textContent.trim();
+// ── Toggle edit panels ──────────────────────────────────────────────────────
+function toggleEdit(key) {
+    const id = key === 'info' ? 'edit-form-info' : 'edit-form-addr';
+    const form = document.getElementById(id);
+    form.classList.toggle('open');
+}
+
+// ── Save personal info (User_Profiles + Users) ──────────────────────────────
+function saveInfo() {
+    const firstName   = document.getElementById('ef-firstname').value.trim();
+    const lastName    = document.getElementById('ef-lastname').value.trim();
+    const displayName = document.getElementById('ef-displayname').value.trim();
+    const birthdate   = document.getElementById('ef-birthdate').value;
+    const username    = document.getElementById('ef-username').value.trim();
+    const email       = document.getElementById('ef-email').value.trim();
+    const phone       = document.getElementById('ef-phone').value.trim();
+    const bio         = document.getElementById('ef-bio').value.trim();
+
+    if (!firstName || !lastName || !email) {
+        alert('กรุณากรอกชื่อจริง นามสกุล และอีเมลให้ครบถ้วน');
+        return;
+    }
+
+    // Update display values
+    document.getElementById('iv-firstname').textContent   = firstName;
+    document.getElementById('iv-lastname').textContent    = lastName;
+    document.getElementById('iv-displayname').textContent = displayName || '–';
+    document.getElementById('iv-username').textContent    = username;
+    document.getElementById('iv-email').textContent       = email;
+    document.getElementById('iv-phone').textContent       = phone;
+    document.getElementById('iv-bio').textContent         = bio || '–';
+
+    if (birthdate) {
+        const d = new Date(birthdate);
+        document.getElementById('iv-birthdate').textContent =
+            d.toLocaleDateString('th-TH', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+
+    // Update displayed name in sidebar
+    const label = displayName || `${firstName} ${lastName}`;
+    document.getElementById('display-name').textContent = label;
+
+    document.getElementById('edit-form-info').classList.remove('open');
+    showToast('✅ บันทึกข้อมูลเรียบร้อยแล้ว');
+
+    // POST to UpdateProfile and UpdateUser
+    fetch('/Account/UpdateProfile', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+            firstName: firstName,
+            lastName: lastName,
+            displayName: displayName,
+            birthdate: birthdate,
+            bio: bio
+        })
+    }).then(response => response.json())
+    .then(data => {
+        if (!data.success) {
+            showToast('❌ ' + data.message);
         }
-    }
+    }).catch(error => {
+        console.error('Error:', error);
+        showToast('❌ เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+    });
 
-    // ── Save info ──
-    function saveInfo() {
-        const name    = document.getElementById('ef-name').value.trim();
-        const email   = document.getElementById('ef-email').value.trim();
-        const phone   = document.getElementById('ef-phone').value.trim();
-        const address = document.getElementById('ef-address').value.trim();
-
-        if (!name || !email || !phone) { alert('กรุณากรอกข้อมูลให้ครบถ้วน'); return; }
-
-        document.getElementById('iv-name').textContent    = name;
-        document.getElementById('iv-email').textContent   = email;
-        document.getElementById('iv-phone').textContent   = phone;
-        document.getElementById('iv-address').textContent = address;
-        document.getElementById('display-name').textContent = name;
-
-        document.getElementById('edit-form').classList.remove('open');
-        showToast('✅ บันทึกข้อมูลเรียบร้อยแล้ว');
-    }
-
-    // ── Preview avatar ──
-    function previewAvatar(input) {
-        if (!input.files || !input.files[0]) return;
-        const reader = new FileReader();
-        reader.onload = e => {
-            const el = document.getElementById('avatar-display');
-            el.innerHTML = `<img src="${e.target.result}" alt="avatar" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`;
-        };
-        reader.readAsDataURL(input.files[0]);
-    }
-
-    // ── Logout confirm ──
-    function confirmLogout() {
-        if (confirm('ออกจากระบบใช่หรือไม่?')) {
-            showToast('👋 ออกจากระบบแล้ว');
-            // window.location.href = '/logout';
+    fetch('/Account/UpdateUser', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+            username: username,
+            email: email,
+            phone: phone
+        })
+    }).then(response => response.json())
+    .then(data => {
+        if (!data.success) {
+            showToast('❌ ' + data.message);
         }
+    }).catch(error => {
+        console.error('Error:', error);
+        showToast('❌ เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+    });
+}
+
+// ── Save new address (User_Addresses) ──────────────────────────────────────
+function saveAddress() {
+    const receiver   = document.getElementById('af-receiver').value.trim();
+    const phone      = document.getElementById('af-phone').value.trim();
+    const line1      = document.getElementById('af-line1').value.trim();
+    const subdistrict= document.getElementById('af-subdistrict').value.trim();
+    const district   = document.getElementById('af-district').value.trim();
+    const province   = document.getElementById('af-province').value.trim();
+    const postal     = document.getElementById('af-postal').value.trim();
+    const isDefault  = document.getElementById('af-default').checked;
+
+    if (!receiver || !phone || !line1 || !subdistrict || !district || !province || !postal) {
+        alert('กรุณากรอกข้อมูลที่อยู่ให้ครบถ้วน');
+        return;
     }
 
-    // ── Toast ──
-    function showToast(msg) {
-        const t = document.getElementById('toast');
-        t.textContent = msg;
-        t.style.display = 'block';
-        clearTimeout(t._t);
-        t._t = setTimeout(() => t.style.display = 'none', 3000);
+    document.getElementById('edit-form-addr').classList.remove('open');
+    showToast('✅ บันทึกที่อยู่เรียบร้อยแล้ว');
+
+    // POST to AddAddress
+    fetch('/Account/AddAddress', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+            receiver: receiver,
+            phone: phone,
+            line1: line1,
+            subdistrict: subdistrict,
+            district: district,
+            province: province,
+            postal: postal,
+            isDefault: isDefault
+        })
+    }).then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Reload page to show new address
+            location.reload();
+        } else {
+            showToast('❌ ' + data.message);
+        }
+    }).catch(error => {
+        console.error('Error:', error);
+        showToast('❌ เกิดข้อผิดพลาดในการบันทึกที่อยู่');
+    });
+}
+
+// ── Avatar preview ─────────────────────────────────────────────────────────
+function previewAvatar(input) {
+    if (!input.files || !input.files[0]) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        const el = document.getElementById('avatar-display');
+        el.innerHTML = `<img src="${e.target.result}" alt="avatar"
+            style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`;
+    };
+    reader.readAsDataURL(input.files[0]);
+
+    // Upload avatar
+    const formData = new FormData();
+    formData.append('avatar', input.files[0]);
+
+    fetch('/Account/UpdateAvatar', {
+        method: 'POST',
+        body: formData
+    }).then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showToast('✅ อัปโหลดรูปโปรไฟล์เรียบร้อยแล้ว');
+        } else {
+            showToast('❌ ' + data.message);
+        }
+    }).catch(error => {
+        console.error('Error:', error);
+        showToast('❌ เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ');
+    });
+}
+
+// ── Logout ─────────────────────────────────────────────────────────────────
+function confirmLogout() {
+    if (confirm('ออกจากระบบใช่หรือไม่?')) {
+        window.location.href = '/Account/Logout';
     }
+}
+
+// ── Toast ──────────────────────────────────────────────────────────────────
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.display = 'block';
+    clearTimeout(t._t);
+    t._t = setTimeout(() => t.style.display = 'none', 3000);
+}
 </script>
 
 </body>

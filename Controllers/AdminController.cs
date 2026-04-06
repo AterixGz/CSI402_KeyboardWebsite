@@ -18,8 +18,30 @@ public class AdminController : Controller
         _cloudinary = cloudinary;
     }
 
+    // ตรวจสอบว่า user เป็น admin หรือไม่
+    private bool IsAdmin()
+    {
+        var userRole = HttpContext.Session.GetInt32("UserRole");
+        return userRole != 4; // role_id = 4 คือ customer ห้ามเข้า, role อื่นสามารถเข้าได้
+    }
+
+    // Redirect ถ้า user ไม่ใช่ admin
+    private IActionResult CheckAdminAccess()
+    {
+        if (!IsAdmin())
+        {
+            TempData["ErrorMessage"] = "คุณไม่มีสิทธิ์เข้าถึงหน้านี้"; 
+            return RedirectToAction("Index", "Home");
+        }
+        return null;
+    }
+
     public IActionResult Dashboard()
     {
+        // ตรวจสอบสิทธิ์
+        var accessCheck = CheckAdminAccess();
+        if (accessCheck != null) return accessCheck;
+
         // 1. สร้างก้อนข้อมูลขึ้นมา
         var myDashboard = new DashboardModel(); 
         
@@ -29,21 +51,37 @@ public class AdminController : Controller
 
     public IActionResult Settings()
     {
+        // ตรวจสอบสิทธิ์
+        var accessCheck = CheckAdminAccess();
+        if (accessCheck != null) return accessCheck;
+
         return View();
     }
 
     public IActionResult Customers()
     {
+        // ตรวจสอบสิทธิ์
+        var accessCheck = CheckAdminAccess();
+        if (accessCheck != null) return accessCheck;
+
         return View();
     }
 
     public IActionResult Orders()
     {
+        // ตรวจสอบสิทธิ์
+        var accessCheck = CheckAdminAccess();
+        if (accessCheck != null) return accessCheck;
+
         return View();
     }
 
     public IActionResult Products()
     {
+        // ตรวจสอบสิทธิ์
+        var accessCheck = CheckAdminAccess();
+        if (accessCheck != null) return accessCheck;
+
         var products = new List<Product>();
         var categories = new List<string>();
 
@@ -146,9 +184,98 @@ public class AdminController : Controller
 
         return View(products);
     }
-    
+
+    public IActionResult Categories()
+    {
+        // ตรวจสอบสิทธิ์
+        var accessCheck = CheckAdminAccess();
+        if (accessCheck != null) return accessCheck;
+
+        var model = new CategoriesModel();
+
+        try
+        {
+            if (_connection.State == System.Data.ConnectionState.Closed)
+            {
+                _connection.Open();
+            }
+
+            string query = @"SELECT c.category_id, c.category_name, COUNT(p.product_id) AS product_count
+FROM Categories c
+LEFT JOIN Products p ON p.category_id = c.category_id
+GROUP BY c.category_id, c.category_name
+ORDER BY c.category_name";
+            using (MySqlCommand cmd = new MySqlCommand(query, _connection))
+            {
+                using (MySqlDataReader reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        model.Categories.Add(new CategoryItem
+                        {
+                            Name = reader.GetString("category_name"),
+                            Description = string.Empty,
+                            ProductCount = reader.GetInt32("product_count"),
+                            Status = "Active",
+                            IsFeatured = false,
+                            IsExpanded = false,
+                            SubcategoryCount = null
+                        });
+                    }
+                }
+            }
+
+            int totalProducts = model.Categories.Sum(c => c.ProductCount);
+            model.Stats.Add(new CategoryStat
+            {
+                Label = "Total Categories",
+                Value = model.Categories.Count.ToString(),
+                IconClass = "si-blue",
+                IconSvg = "<svg width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" viewBox=\"0 0 24 24\"><path d=\"M12 5v14M5 12h14\"/></svg>"
+            });
+            model.Stats.Add(new CategoryStat
+            {
+                Label = "Active Categories",
+                Value = model.Categories.Count.ToString(),
+                IconClass = "si-green",
+                IconSvg = "<svg width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" viewBox=\"0 0 24 24\"><path d=\"M5 13l4 4L19 7\"/></svg>"
+            });
+            model.Stats.Add(new CategoryStat
+            {
+                Label = "Products Linked",
+                Value = totalProducts.ToString(),
+                IconClass = "si-orange",
+                IconSvg = "<svg width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" viewBox=\"0 0 24 24\"><path d=\"M4 7h16M4 12h16M4 17h16\"/></svg>"
+            });
+            model.Stats.Add(new CategoryStat
+            {
+                Label = "Featured",
+                Value = "0",
+                IconClass = "si-purple",
+                IconSvg = "<svg width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" viewBox=\"0 0 24 24\"><path d=\"M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 22 12 18.56 5.82 22 7 14.14l-5-4.87 6.91-1.01L12 2z\"/></svg>"
+            });
+        }
+        catch (Exception ex)
+        {
+            ViewBag.ErrorMessage = $"เกิดข้อผิดพลาด: {ex.Message}";
+        }
+        finally
+        {
+            if (_connection.State == System.Data.ConnectionState.Open)
+            {
+                _connection.Close();
+            }
+        }
+
+        return View(model);
+    }
+
     public IActionResult Roles()
     {
+        // ตรวจสอบสิทธิ์
+        var accessCheck = CheckAdminAccess();
+        if (accessCheck != null) return accessCheck;
+
         return View();
     }
 
@@ -187,12 +314,19 @@ public class AdminController : Controller
 
     public IActionResult Promotions()
     {
+        // ตรวจสอบสิทธิ์
+        var accessCheck = CheckAdminAccess();
+        if (accessCheck != null) return accessCheck;
+
         return View();
     }
 
     [HttpPost]
     public IActionResult CreateProduct([FromBody] CreateProductRequest request)
     {
+        // ตรวจสอบสิทธิ์
+        var accessCheck = CheckAdminAccess();
+        if (accessCheck != null) return accessCheck;
         try
         {
             if (_connection.State == System.Data.ConnectionState.Closed)
@@ -297,6 +431,9 @@ public class AdminController : Controller
     [HttpPost]
     public IActionResult UpdateProduct([FromBody] UpdateProductRequest request)
     {
+        // ตรวจสอบสิทธิ์
+        var accessCheck = CheckAdminAccess();
+        if (accessCheck != null) return accessCheck;
         try
         {
             if (_connection.State == System.Data.ConnectionState.Closed)
@@ -422,6 +559,9 @@ public class AdminController : Controller
     [HttpPost]
     public IActionResult DeleteProduct(int productId)
     {
+        // ตรวจสอบสิทธิ์
+        var accessCheck = CheckAdminAccess();
+        if (accessCheck != null) return accessCheck;
         try
         {
             if (_connection.State == System.Data.ConnectionState.Closed)
@@ -471,6 +611,9 @@ public class AdminController : Controller
     [HttpGet]
     public IActionResult GetProductImages(int productId)
     {
+        // ตรวจสอบสิทธิ์
+        var accessCheck = CheckAdminAccess();
+        if (accessCheck != null) return accessCheck;
         try
         {
             if (_connection.State == System.Data.ConnectionState.Closed)
@@ -517,6 +660,9 @@ public class AdminController : Controller
     [HttpPost]
     public IActionResult DeleteProductImage(int imageId, int productId)
     {
+        // ตรวจสอบสิทธิ์
+        var accessCheck = CheckAdminAccess();
+        if (accessCheck != null) return accessCheck;
         try
         {
             if (_connection.State == System.Data.ConnectionState.Closed)
@@ -551,6 +697,9 @@ public class AdminController : Controller
     [HttpPost]
     public IActionResult SetMainProductImage(int imageId, int productId)
     {
+        // ตรวจสอบสิทธิ์
+        var accessCheck = CheckAdminAccess();
+        if (accessCheck != null) return accessCheck;
         try
         {
             if (_connection.State == System.Data.ConnectionState.Closed)

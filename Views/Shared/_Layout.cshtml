@@ -75,10 +75,13 @@
                             <li class="nav-item">
                                 <a class="nav-link" asp-area="" asp-controller="Home" asp-action="Shop">Switches</a>
                             </li>
-                            @* admin btn *@
+                            @* admin btn - only show for non-customer roles *@
+                            @if (Context.Session.GetInt32("UserRole") != 4)
+                            {
                                 <li class="nav-item">
                                     <a class="nav-link" asp-area="" asp-controller="Admin" asp-action="Dashboard">Admin</a>
                                 </li>
+                            }
                         </ul>
                         <div class="d-flex align-items-center">
                             @if (Context.Session.GetInt32("UserId") != null)
