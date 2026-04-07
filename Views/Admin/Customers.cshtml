@@ -1,9 +1,16 @@
+@using System.Text.Json
+@model KeyboardWebsiteProject.Models.AdminCustomerViewModel
 @{
     ViewData["Title"] = "Customers";
     Layout = "_AdminLayout";
 }
 
 <div class="page">
+
+    @if (ViewBag.ErrorMessage != null)
+    {
+        <div class="alert alert-error">@ViewBag.ErrorMessage</div>
+    }
 
     <!-- ── Top bar ── -->
     <div class="topbar">
@@ -44,7 +51,7 @@
             </div>
             <div>
                 <div class="stat-label">Total Customers</div>
-                <div class="stat-value" id="totalCustomers">2,847</div>
+                <div class="stat-value" id="totalCustomers">@Model.TotalCustomers.ToString("N0")</div>
             </div>
         </div>
         <div class="stat-card">
@@ -57,7 +64,7 @@
             </div>
             <div>
                 <div class="stat-label">New This Month</div>
-                <div class="stat-value">156</div>
+                <div class="stat-value">@Model.NewThisMonth.ToString("N0")</div>
             </div>
         </div>
         <div class="stat-card">
@@ -70,7 +77,7 @@
             </div>
             <div>
                 <div class="stat-label">Active</div>
-                <div class="stat-value">2,341</div>
+                <div class="stat-value">@Model.ActiveCustomers.ToString("N0")</div>
             </div>
         </div>
         <div class="stat-card">
@@ -82,7 +89,7 @@
             </div>
             <div>
                 <div class="stat-label">VIP Members</div>
-                <div class="stat-value">89</div>
+                <div class="stat-value">@Model.VipMembers.ToString("N0")</div>
             </div>
         </div>
     </div>
@@ -95,13 +102,6 @@
             </svg>
             <input type="text" id="searchInput" placeholder="Search customers by name or email..." oninput="filterTable()" />
         </div>
-
-        <select class="filter-select" id="statusFilter" onchange="filterTable()">
-            <option value="">All Status</option>
-            <option value="Active">Active</option>
-            <option value="Inactive">Inactive</option>
-            <option value="VIP">VIP</option>
-        </select>
 
         <select class="filter-select" id="sortFilter" onchange="filterTable()">
             <option value="recent">Most Recent</option>
@@ -130,9 +130,8 @@
                     <th>Phone</th>
                     <th>Orders</th>
                     <th>Total Spent</th>
-                    <th>Status</th>
-                    <th>Join Date</th>
-                    <th>Last Order</th>
+                    <th>Created</th>
+                    <th>Order Date</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -190,32 +189,16 @@
 <div class="toast" id="toast">Customer added successfully!</div>
 
 <script>
-    // ── Sample data ──
-    const customers = [
-        { id:1, first:'James',   last:'Wilson',  email:'james.wilson@email.com',    phone:'+1 (555) 123-4567', orders:12, spent:1847, status:'Active',   joined:'Jan 15, 2024', lastOrder:'Mar 23, 2026', color:'blue'   },
-        { id:2, first:'Sarah',   last:'Chen',    email:'sarah.chen@email.com',      phone:'+1 (555) 234-5678', orders:8,  spent:1256, status:'Active',   joined:'Feb 22, 2024', lastOrder:'Mar 23, 2026', color:'green'  },
-        { id:3, first:'Michael', last:'Brown',   email:'m.brown@email.com',         phone:'+1 (555) 345-6789', orders:5,  spent:689,  status:'Active',   joined:'Mar 10, 2024', lastOrder:'Mar 22, 2026', color:'purple' },
-        { id:4, first:'Emily',   last:'Davis',   email:'emily.davis@email.com',     phone:'+1 (555) 456-7890', orders:21, spent:3240, status:'VIP',      joined:'Nov 5, 2023',  lastOrder:'Mar 21, 2026', color:'orange' },
-        { id:5, first:'Daniel',  last:'Martinez',email:'d.martinez@email.com',      phone:'+1 (555) 567-8901', orders:3,  spent:312,  status:'Active',   joined:'Apr 18, 2024', lastOrder:'Mar 20, 2026', color:'teal'   },
-        { id:6, first:'Olivia',  last:'Taylor',  email:'olivia.t@email.com',        phone:'+1 (555) 678-9012', orders:0,  spent:0,    status:'Inactive', joined:'May 30, 2024', lastOrder:'—',            color:'pink'   },
-        { id:7, first:'William', last:'Johnson', email:'will.j@email.com',          phone:'+1 (555) 789-0123', orders:15, spent:2100, status:'VIP',      joined:'Jan 3, 2024',  lastOrder:'Mar 19, 2026', color:'blue'   },
-        { id:8, first:'Ava',     last:'Anderson',email:'ava.anderson@email.com',    phone:'+1 (555) 890-1234', orders:7,  spent:945,  status:'Active',   joined:'Jun 12, 2024', lastOrder:'Mar 18, 2026', color:'green'  },
-        { id:9, first:'Liam',    last:'Thomas',  email:'liam.t@email.com',          phone:'+1 (555) 901-2345', orders:2,  spent:198,  status:'Active',   joined:'Jul 22, 2024', lastOrder:'Mar 17, 2026', color:'purple' },
-        { id:10,first:'Sophia',  last:'White',   email:'sophia.w@email.com',        phone:'+1 (555) 012-3456', orders:9,  spent:1430, status:'Active',   joined:'Aug 8, 2024',  lastOrder:'Mar 16, 2026', color:'orange' },
-        { id:11,first:'Noah',    last:'Harris',  email:'noah.harris@email.com',     phone:'+1 (555) 123-9999', orders:4,  spent:520,  status:'Inactive', joined:'Sep 15, 2024', lastOrder:'Feb 10, 2026', color:'teal'   },
-        { id:12,first:'Mia',     last:'Jackson', email:'mia.jackson@email.com',     phone:'+1 (555) 234-8888', orders:18, spent:2875, status:'VIP',      joined:'Oct 20, 2023', lastOrder:'Mar 15, 2026', color:'pink'   },
-    ];
-
+    // ── Data from DB ──
+    const customers = @Html.Raw(JsonSerializer.Serialize(Model.Customers, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
     const PER_PAGE = 8;
     let currentPage = 1;
     let filtered = [...customers];
 
-    function initials(c) { return c.first.charAt(0) + c.last.charAt(0); }
-
-    function badgeClass(status) {
-        if (status === 'Active')   return 'badge-active';
-        if (status === 'VIP')      return 'badge-vip';
-        return 'badge-inactive';
+    function initials(c) {
+        if (c.initials) return c.initials;
+        const parts = (c.name || '').split(' ').filter(p => p.length > 0);
+        return parts.slice(0, 2).map(p => p.charAt(0)).join('').toUpperCase() || '--';
     }
 
     function renderTable() {
@@ -223,26 +206,33 @@
         const page  = filtered.slice(start, start + PER_PAGE);
         const tbody = document.getElementById('customerTable');
 
-        tbody.innerHTML = page.map(c => `
-            <tr>
-                <td>
-                    <div class="cust-cell">
-                        <div class="av av-${c.color}">${initials(c)}</div>
-                        <div>
-                            <div class="cust-name">${c.first} ${c.last}</div>
-                            <div class="cust-email">${c.email}</div>
+        if (page.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="empty-row">No customers found.</td>
+                </tr>
+            `;
+        } else {
+            tbody.innerHTML = page.map(c => `
+                <tr>
+                    <td>
+                        <div class="cust-cell">
+                            <div class="av av-${c.color}">${initials(c)}</div>
+                            <div>
+                                <div class="cust-name">${c.name}</div>
+                                <div class="cust-email">${c.email}</div>
+                            </div>
                         </div>
-                    </div>
-                </td>
-                <td class="phone-cell">${c.phone}</td>
-                <td class="orders-cell">${c.orders}</td>
-                <td class="spent-cell">฿${c.spent.toLocaleString('th-TH')}</td>
-                <td><span class="badge ${badgeClass(c.status)}">${c.status}</span></td>
-                <td>${c.joined}</td>
-                <td>${c.lastOrder}</td>
-                <td><button class="actions-btn" title="Options">···</button></td>
-            </tr>
-        `).join('');
+                    </td>
+                    <td class="phone-cell">${c.phone || '—'}</td>
+                    <td class="orders-cell">${c.orders}</td>
+                    <td class="spent-cell">฿${Number(c.spent).toLocaleString('en-US')}</td>
+                    <td>${c.created}</td>
+                    <td>${c.lastOrder}</td>
+                    <td><button class="actions-btn" title="Options">···</button></td>
+                </tr>
+            `).join('');
+        }
 
         const total = filtered.length;
         const end   = Math.min(start + PER_PAGE, total);
@@ -258,17 +248,14 @@
     }
 
     function filterTable() {
-        const q      = document.getElementById('searchInput').value.toLowerCase();
-        const status = document.getElementById('statusFilter').value;
-        const sort   = document.getElementById('sortFilter').value;
+        const q    = document.getElementById('searchInput').value.toLowerCase();
+        const sort = document.getElementById('sortFilter').value;
 
         filtered = customers.filter(c => {
-            const matchQ = !q || `${c.first} ${c.last} ${c.email}`.toLowerCase().includes(q);
-            const matchS = !status || c.status === status;
-            return matchQ && matchS;
+            return !q || `${c.name} ${c.email}`.toLowerCase().includes(q);
         });
 
-        if (sort === 'name')   filtered.sort((a,b) => a.last.localeCompare(b.last));
+        if (sort === 'name')   filtered.sort((a,b) => a.name.localeCompare(b.name));
         if (sort === 'spent')  filtered.sort((a,b) => b.spent - a.spent);
         if (sort === 'orders') filtered.sort((a,b) => b.orders - a.orders);
 

@@ -65,7 +65,7 @@ public class AdminController : Controller
     {
         if (!IsAdmin())
         {
-            TempData["ErrorMessage"] = "คุณไม่มีสิทธิ์เข้าถึงหน้านี้"; 
+            TempData["ErrorMessage"] = "You do not have permission to access this page.";
             return RedirectToAction("Index", "Home");
         }
         return null;
@@ -298,7 +298,119 @@ public class AdminController : Controller
         var accessCheck = CheckAdminAccess();
         if (accessCheck != null) return accessCheck;
 
-        return View();
+        var model = new AdminCustomerViewModel();
+
+        try
+        {
+            if (_connection.State == System.Data.ConnectionState.Closed)
+            {
+                _connection.Open();
+            }
+
+            const string statsSql = @"
+                SELECT
+                    COUNT(*) AS total_customers,
+                    SUM(CASE WHEN EXISTS(
+                        SELECT 1 FROM Orders o2
+                        WHERE o2.user_id = u.user_id
+                        AND MONTH(o2.order_date) = MONTH(CURRENT_DATE())
+                        AND YEAR(o2.order_date) = YEAR(CURRENT_DATE())
+                    ) THEN 1 ELSE 0 END) AS new_this_month,
+                    SUM(CASE WHEN EXISTS(
+                        SELECT 1 FROM Orders o2
+                        WHERE o2.user_id = u.user_id
+                        AND o2.order_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)
+                    ) THEN 1 ELSE 0 END) AS active_customers,
+                    SUM(CASE WHEN (
+                        SELECT COALESCE(SUM(o3.total_amount), 0)
+                        FROM Orders o3
+                        WHERE o3.user_id = u.user_id
+                    ) >= 2000 THEN 1 ELSE 0 END) AS vip_members
+                FROM Users u
+                WHERE u.role_id = 4";
+
+            using (var cmd = new MySqlCommand(statsSql, _connection))
+            using (var reader = cmd.ExecuteReader())
+            {
+                if (reader.Read())
+                {
+                    model.TotalCustomers = reader.GetInt32("total_customers");
+                    model.NewThisMonth = reader.GetInt32("new_this_month");
+                    model.ActiveCustomers = reader.GetInt32("active_customers");
+                    model.VipMembers = reader.GetInt32("vip_members");
+                }
+            }
+
+            const string customersSql = @"
+                SELECT
+                    u.user_id,
+                    COALESCE(up.first_name, '') AS first_name,
+                    COALESCE(up.last_name, '') AS last_name,
+                    COALESCE(u.email, '') AS email,
+                    COALESCE(u.phone, '') AS phone,
+                    u.created_at AS created_at,
+                    COUNT(o.order_id) AS order_count,
+                    COALESCE(SUM(o.total_amount), 0) AS total_spent,
+                    MIN(o.order_date) AS first_order_date,
+                    MAX(o.order_date) AS last_order_date
+                FROM Users u
+                LEFT JOIN User_Profiles up ON up.user_id = u.user_id
+                LEFT JOIN Orders o ON o.user_id = u.user_id
+                WHERE u.role_id = 4
+                GROUP BY u.user_id, up.first_name, up.last_name, u.email, u.phone, u.created_at
+                ORDER BY last_order_date DESC, total_spent DESC";
+
+            using (var cmd = new MySqlCommand(customersSql, _connection))
+            using (var reader = cmd.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    var firstName = reader.GetString("first_name");
+                    var lastName = reader.GetString("last_name");
+                    var name = string.IsNullOrWhiteSpace(firstName) && string.IsNullOrWhiteSpace(lastName)
+                        ? reader.GetString("email")
+                        : $"{firstName} {lastName}".Trim();
+
+                    var spent = reader.GetDecimal("total_spent");
+                    var lastOrderDate = reader.IsDBNull(reader.GetOrdinal("last_order_date"))
+                        ? (DateTime?)null
+                        : reader.GetDateTime("last_order_date");
+
+                    var status = "Inactive";
+                    if (spent >= 2000) status = "VIP";
+                    else if (lastOrderDate.HasValue && lastOrderDate.Value >= DateTime.Today.AddDays(-30)) status = "Active";
+
+                    model.Customers.Add(new AdminCustomerItem
+                    {
+                        UserId = reader.GetInt32("user_id"),
+                        Name = name,
+                        Email = reader.GetString("email"),
+                        Phone = reader.GetString("phone"),
+                        Orders = reader.GetInt32("order_count"),
+                        Spent = spent,
+                        Created = reader.IsDBNull(reader.GetOrdinal("created_at"))
+                            ? "-"
+                            : reader.GetDateTime("created_at").ToString("MMM d, yyyy"),
+                        LastOrder = lastOrderDate?.ToString("MMM d, yyyy") ?? "-",
+                        Initials = GetInitials(name),
+                        Color = status == "VIP" ? "orange" : status == "Active" ? "green" : "purple"
+                    });
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            ViewBag.ErrorMessage = $"Failed to load customer data: {ex.Message}";
+        }
+        finally
+        {
+            if (_connection.State == System.Data.ConnectionState.Open)
+            {
+                _connection.Close();
+            }
+        }
+
+        return View(model);
     }
 
     public IActionResult Orders()
