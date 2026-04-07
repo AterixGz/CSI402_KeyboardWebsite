@@ -64,9 +64,11 @@ namespace KeyboardWebsiteProject.Views.Admin
 
     public class RecentOrder
     {
+        public int OrderId { get; set; }
         public string Initials { get; set; } = "";
         public string Name { get; set; } = "";
         public string Product { get; set; } = "";
+        public string ImageUrl { get; set; } = "";
         public string Amount { get; set; } = "";
         public string Status { get; set; } = "";
         public string BadgeClass { get; set; } = "";

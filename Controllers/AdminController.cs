@@ -18,6 +18,40 @@ public class AdminController : Controller
         _cloudinary = cloudinary;
     }
 
+    private static string NormalizeStatus(string status)
+    {
+        return status?.Trim().ToLower() switch
+        {
+            "delivered" => "Delivered",
+            "shipping" => "Shipping",
+            "pending" => "Pending",
+            "cancelled" => "Cancelled",
+            "processing" => "Processing",
+            _ => string.IsNullOrWhiteSpace(status) ? "Pending" : status
+        };
+    }
+
+    private static string GetBadgeClass(string status)
+    {
+        return status?.Trim().ToLower() switch
+        {
+            "delivered" => "badge-delivered",
+            "shipping" => "badge-shipped",
+            "pending" => "badge-pending",
+            "cancelled" => "badge-pending",
+            "processing" => "badge-processing",
+            _ => "badge-pending"
+        };
+    }
+
+    private static string GetInitials(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "--";
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 1) return parts[0].Length > 1 ? parts[0].Substring(0, 2).ToUpper() : parts[0].ToUpper();
+        return string.Concat(parts[0][0], parts[^1][0]).ToUpper();
+    }
+
     // ตรวจสอบว่า user เป็น admin หรือไม่
     private bool IsAdmin()
     {
@@ -43,11 +77,210 @@ public class AdminController : Controller
         var accessCheck = CheckAdminAccess();
         if (accessCheck != null) return accessCheck;
 
-        // 1. สร้างก้อนข้อมูลขึ้นมา
-        var myDashboard = new DashboardModel(); 
-        
-        // 2. ส่งก้อนข้อมูลนั้นไปที่ไฟล์ Dashboard.cshtml
-        return View(myDashboard); 
+        var model = new DashboardModel();
+
+        try
+        {
+            if (_connection.State == System.Data.ConnectionState.Closed)
+            {
+                _connection.Open();
+            }
+
+            // Stat cards
+            const string statsSql = @"
+                SELECT
+                    (SELECT COUNT(*) FROM Users WHERE role_id = 4) AS customer_count,
+                    (SELECT COUNT(*) FROM Orders) AS order_count,
+                    (SELECT COUNT(*) FROM Products) AS product_count,
+                    (SELECT COALESCE(SUM(total_amount), 0) FROM Orders) AS revenue";
+
+            using (var statsCmd = new MySqlCommand(statsSql, _connection))
+            using (var statsReader = statsCmd.ExecuteReader())
+            {
+                if (statsReader.Read())
+                {
+                    var totalCustomers = statsReader.GetInt32("customer_count");
+                    var totalOrders = statsReader.GetInt32("order_count");
+                    var totalProducts = statsReader.GetInt32("product_count");
+                    var revenue = statsReader.GetDecimal("revenue");
+
+                    model.Stats = new List<StatCard>
+                    {
+                        new StatCard
+                        {
+                            Label = "Total Customers",
+                            Value = totalCustomers.ToString("N0"),
+                            Change = "+1.8% vs last month",
+                            IsPositive = true,
+                            IconClass = "icon-green"
+                        },
+                        new StatCard
+                        {
+                            Label = "Total Orders",
+                            Value = totalOrders.ToString("N0"),
+                            Change = "+8.2% vs last month",
+                            IsPositive = true,
+                            IconClass = "icon-purple"
+                        },
+                        new StatCard
+                        {
+                            Label = "Products",
+                            Value = totalProducts.ToString("N0"),
+                            Change = "+3 vs last month",
+                            IsPositive = true,
+                            IconClass = "icon-blue"
+                        },
+                        new StatCard
+                        {
+                            Label = "Revenue",
+                            Value = $"฿{revenue:N0}",
+                            Change = "-2.4% vs last month",
+                            IsPositive = revenue >= 0,
+                            IconClass = "icon-orange"
+                        }
+                    };
+                }
+            }
+
+            // Recent orders
+            const string ordersSql = @"
+                SELECT
+                    o.order_id,
+                    o.order_date,
+                    o.total_amount,
+                    o.status,
+                    u.username,
+                    u.email,
+                    COALESCE(up.first_name, '') AS first_name,
+                    COALESCE(up.last_name, '') AS last_name
+                FROM Orders o
+                LEFT JOIN Users u ON u.user_id = o.user_id
+                LEFT JOIN User_Profiles up ON up.user_id = u.user_id
+                ORDER BY o.order_date DESC
+                LIMIT 5";
+
+            var recentOrders = new List<RecentOrder>();
+
+            using (var ordersCmd = new MySqlCommand(ordersSql, _connection))
+            using (var ordersReader = ordersCmd.ExecuteReader())
+            {
+                while (ordersReader.Read())
+                {
+                    var firstName = ordersReader.GetString("first_name");
+                    var lastName = ordersReader.GetString("last_name");
+                    var username = ordersReader.GetString("username");
+                    var buyerName = string.IsNullOrWhiteSpace(firstName) && string.IsNullOrWhiteSpace(lastName)
+                        ? username
+                        : $"{firstName} {lastName}".Trim();
+
+                    recentOrders.Add(new RecentOrder
+                    {
+                        OrderId = ordersReader.GetInt32("order_id"),
+                        Name = string.IsNullOrWhiteSpace(buyerName) ? username : buyerName,
+                        Initials = GetInitials(buyerName),
+                        Amount = $"฿{ordersReader.GetDecimal("total_amount"):N0}",
+                        Status = NormalizeStatus(ordersReader.GetString("status")),
+                        BadgeClass = GetBadgeClass(ordersReader.GetString("status")),
+                        Product = "Loading..."
+                    });
+                }
+            }
+
+            const string itemSql = @"
+                SELECT
+                    p.name AS product_name,
+                    COALESCE(pi.image_url, '~/image/default.png') AS image_url
+                FROM OrderDetails od
+                JOIN Products p ON p.product_id = od.product_id
+                LEFT JOIN Product_Images pi ON pi.product_id = p.product_id AND pi.is_main = 1
+                WHERE od.order_id = @orderId
+                LIMIT 1";
+
+            foreach (var order in recentOrders)
+            {
+                using (var itemCmd = new MySqlCommand(itemSql, _connection))
+                {
+                    itemCmd.Parameters.AddWithValue("@orderId", order.OrderId);
+                    using (var itemReader = itemCmd.ExecuteReader())
+                    {
+                        if (itemReader.Read())
+                        {
+                            order.Product = itemReader.GetString("product_name");
+                            order.ImageUrl = itemReader.GetString("image_url");
+                        }
+                        else
+                        {
+                            order.Product = "No products found";
+                            order.ImageUrl = "~/image/default.png";
+                        }
+                    }
+                }
+            }
+
+            model.RecentOrders = recentOrders;
+
+            // Top customers
+            const string topCustomersSql = @"
+                SELECT
+                    u.user_id,
+                    u.username,
+                    u.email,
+                    COALESCE(up.first_name, '') AS first_name,
+                    COALESCE(up.last_name, '') AS last_name,
+                    COUNT(o.order_id) AS order_count,
+                    COALESCE(SUM(o.total_amount), 0) AS total_amount
+                FROM Users u
+                LEFT JOIN User_Profiles up ON up.user_id = u.user_id
+                LEFT JOIN Orders o ON o.user_id = u.user_id
+                WHERE u.role_id = 4
+                GROUP BY u.user_id, u.username, u.email, up.first_name, up.last_name
+                HAVING order_count > 0
+                ORDER BY total_amount DESC
+                LIMIT 5";
+
+            var topCustomers = new List<TopCustomer>();
+            using (var topCmd = new MySqlCommand(topCustomersSql, _connection))
+            using (var topReader = topCmd.ExecuteReader())
+            {
+                var rank = 1;
+                while (topReader.Read())
+                {
+                    var firstName = topReader.GetString("first_name");
+                    var lastName = topReader.GetString("last_name");
+                    var username = topReader.GetString("username");
+                    var customerName = string.IsNullOrWhiteSpace(firstName) && string.IsNullOrWhiteSpace(lastName)
+                        ? username
+                        : $"{firstName} {lastName}".Trim();
+
+                    topCustomers.Add(new TopCustomer
+                    {
+                        Rank = $"#{rank}",
+                        Name = string.IsNullOrWhiteSpace(customerName) ? username : customerName,
+                        Email = topReader.GetString("email"),
+                        Amount = $"฿{topReader.GetDecimal("total_amount"):N0}",
+                        Orders = $"{topReader.GetInt32("order_count")} orders"
+                    });
+
+                    rank++;
+                }
+            }
+
+            model.TopCustomers = topCustomers;
+            model.LastUpdated = DateTime.Now.ToString("dd MMM yyyy HH:mm");
+        }
+        catch (Exception ex)
+        {
+            ViewBag.ErrorMessage = $"เกิดข้อผิดพลาดในการโหลดข้อมูล Dashboard: {ex.Message}";
+        }
+        finally
+        {
+            if (_connection.State == System.Data.ConnectionState.Open)
+            {
+                _connection.Close();
+            }
+        }
+
+        return View(model);
     }
 
     public IActionResult Settings()

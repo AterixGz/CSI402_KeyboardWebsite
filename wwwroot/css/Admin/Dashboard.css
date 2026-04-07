@@ -160,6 +160,13 @@
     font-weight: 600;
     color: var(--text-secondary);
     flex-shrink: 0;
+    overflow: hidden;
+}
+
+.order-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 /* Order information (customer name & product) */

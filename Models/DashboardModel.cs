@@ -15,9 +15,11 @@ namespace KeyboardWebsiteProject.Pages
 
     public class RecentOrder
     {
+        public int    OrderId    { get; set; }
         public string Initials   { get; set; } = "";
         public string Name       { get; set; } = "";
         public string Product    { get; set; } = "";
+        public string ImageUrl   { get; set; } = "";
         public string Amount     { get; set; } = "";
         public string Status     { get; set; } = "";    // shipped / processing / delivered / pending
         public string BadgeClass { get; set; } = "";    // e.g. "badge-shipped"
@@ -36,10 +38,10 @@ namespace KeyboardWebsiteProject.Pages
 
     public class DashboardModel : PageModel
     {
-        public List<StatCard>     Stats         { get; private set; } = new();
-        public List<RecentOrder>  RecentOrders  { get; private set; } = new();
-        public List<TopCustomer>  TopCustomers  { get; private set; } = new();
-        public string             LastUpdated   { get; private set; } = "Just now";
+        public List<StatCard>     Stats         { get; set; } = new();
+        public List<RecentOrder>  RecentOrders  { get; set; } = new();
+        public List<TopCustomer>  TopCustomers  { get; set; } = new();
+        public string             LastUpdated   { get; set; } = "Just now";
 
         public void OnGet()
         {

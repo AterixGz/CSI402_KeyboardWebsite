@@ -181,7 +181,6 @@ C:\DATA\Coding\Github\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\ua5m1f
 C:\DATA\Coding\Github\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\v058n5zrcy-{0}-eyzkruvob9-eyzkruvob9.gz
 C:\DATA\Coding\Github\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\d01r68krg5-{0}-y3bqq3brpz-y3bqq3brpz.gz
 C:\DATA\Coding\Github\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\ayaujldjzn-{0}-55o0tiqlgi-55o0tiqlgi.gz
-C:\DATA\Coding\Github\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\nyb9w8fi7u-{0}-s09mty85qn-s09mty85qn.gz
 C:\DATA\Coding\Github\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\3jt9dvvc7w-{0}-56kn22g0f8-56kn22g0f8.gz
 C:\DATA\Coding\Github\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\kppr6cfrm8-{0}-0hat46s4oj-0hat46s4oj.gz
 C:\DATA\Coding\Github\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\19x810m7fm-{0}-zot466ypvm-zot466ypvm.gz
@@ -350,4 +349,5 @@ C:\DATA\Coding\Github\CSI402_KeyboardWebsite\bin\Debug\net10.0\out_temp2\out_tem
 C:\DATA\Coding\Github\CSI402_KeyboardWebsite\bin\Debug\net10.0\out_temp2\out_temp\KeyboardWebsiteProject.runtimeconfig.json
 C:\DATA\Coding\Github\CSI402_KeyboardWebsite\bin\Debug\net10.0\out_temp2\out_temp\KeyboardWebsiteProject.staticwebassets.endpoints.json
 C:\DATA\Coding\Github\CSI402_KeyboardWebsite\bin\Debug\net10.0\out_temp2\out_temp\KeyboardWebsiteProject.staticwebassets.runtime.json
-C:\DATA\Coding\Github\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\o1zt5q8v56-{0}-g6hiz1wlnj-g6hiz1wlnj.gz
+C:\DATA\Coding\Github\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\o1zt5q8v56-{0}-fp0nup0a0b-fp0nup0a0b.gz
+C:\DATA\Coding\Github\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\nyb9w8fi7u-{0}-prqs1yuqp2-prqs1yuqp2.gz
