@@ -688,10 +688,34 @@
                     <a class="view-all" href="#">ดูทั้งหมด ›</a>
                 </div>
 
-                @foreach (var order in orders)
+                @foreach (dynamic order in orders)
                 {
-                    <div class="order-row" onclick="window.location.href='#order-@order.OrderId'">
-                        <div class="order-icon">📦</div>
+                    <div class="order-row clickable" onclick="toggleOrderDetails('details-@order.OrderId')">
+                        @{ 
+                            dynamic firstItem = null;
+                            if (order.OrderItems != null) {
+                                foreach (var oi in order.OrderItems) {
+                                    firstItem = oi;
+                                    break;
+                                }
+                            }
+                        }
+                        <div class="order-thumbnail">
+                            @if (firstItem != null)
+                            {
+                                <div class="order-thumbnail-image">
+                                    <img src="@Url.Content(firstItem.ImageUrl ?? "~/image/default.png")" alt="@firstItem.ProductName" />
+                                </div>
+                                <div class="order-thumbnail-info">
+                                    <div class="order-thumbnail-name">@firstItem.ProductName</div>
+                                    <div class="order-thumbnail-sub">คำสั่งซื้อแรกจากรายการนี้</div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="order-icon">📦</div>
+                            }
+                        </div>
                         <div class="order-meta">
                             <div class="order-id">@order.OrderId</div>
                             <div class="order-date">
@@ -711,6 +735,81 @@
                             <span class="status-badge @StatusClass(order.Status)">
                                 @StatusIcon(order.Status) @StatusLabel(order.Status)
                             </span>
+                        </div>
+                    </div>
+                    <div class="order-details" id="details-@order.OrderId">
+                        <div class="order-details-grid">
+                            <div class="order-details-column order-items-column">
+                                <div class="order-details-header">
+                                    <div>
+                                        <div class="order-details-title">รายการสินค้า</div>
+                                        <div class="order-details-subtitle">@order.ItemCount รายการ</div>
+                                    </div>
+                                </div>
+                                <div class="order-items-list">
+                                    @foreach (var item in order.OrderItems)
+                                    {
+                                        <div class="order-item">
+                                            <div class="order-item-image">
+                                                <img src="@Url.Content(item.ImageUrl ?? "~/image/default.png")" alt="@item.ProductName" />
+                                            </div>
+                                            <div class="order-item-meta">
+                                                <div class="order-item-name">@item.ProductName</div>
+                                                <div class="order-item-quantity">จำนวน @item.Quantity ชิ้น</div>
+                                            </div>
+                                            <div class="order-item-price-block">
+                                                <div class="order-item-total">฿@item.TotalPrice.ToString("N0")</div>
+                                                <div class="order-item-unit">฿@item.UnitPrice.ToString("N0") / ชิ้น</div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+
+                            <div class="order-details-column order-summary-column">
+                                <div class="order-details-header">
+                                    <div>
+                                        <div class="order-details-title">สรุปคำสั่งซื้อ</div>
+                                        <div class="order-details-subtitle">ยอดชำระล่าสุดและที่อยู่จัดส่ง</div>
+                                    </div>
+                                </div>
+                                <div class="order-summary-card">
+                                    <div class="order-summary-row">
+                                        <span>ยอดรวม</span>
+                                        <span>฿@order.Subtotal.ToString("N0")</span>
+                                    </div>
+                                    <div class="order-summary-row">
+                                        <span>ส่วนลด</span>
+                                        <span>฿@order.DiscountAmount.ToString("N0")</span>
+                                    </div>
+                                    <div class="order-summary-row order-summary-total">
+                                        <span>ยอดชำระ</span>
+                                        <span>฿@order.TotalAmount.ToString("N0")</span>
+                                    </div>
+                                    <div class="order-summary-row">
+                                        <span>สถานะ</span>
+                                        <span class="status-badge @StatusClass(order.Status)">@StatusLabel(order.Status)</span>
+                                    </div>
+                                    @if (!string.IsNullOrEmpty((string)order.CouponCode))
+                                    {
+                                        <div class="order-summary-row">
+                                            <span>คูปอง</span>
+                                            <span>@order.CouponCode</span>
+                                        </div>
+                                    }
+                                </div>
+
+                                <div class="shipping-card">
+                                    <div class="order-details-title">ที่อยู่จัดส่ง</div>
+                                    <div class="shipping-info">
+                                        <div class="shipping-name">@order.ShippingAddress.ReceiverName</div>
+                                        <div>โทร: @order.ShippingAddress.PhoneNumber</div>
+                                        <div>@order.ShippingAddress.AddressLine1</div>
+                                        <div>@order.ShippingAddress.SubDistrict, @order.ShippingAddress.District</div>
+                                        <div>@order.ShippingAddress.Province @order.ShippingAddress.PostalCode</div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 }
@@ -746,6 +845,17 @@ document.addEventListener('DOMContentLoaded', function() {
         firstMenuItem.style.background = '#f0f0f0';
     }
 });
+
+function toggleOrderDetails(detailsId) {
+    const details = document.getElementById(detailsId);
+    if (!details) return;
+    if (details.style.display === 'none' || details.style.display === '') {
+        details.style.display = 'block';
+        details.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+        details.style.display = 'none';
+    }
+}
 
 // ── Toggle edit panels ──────────────────────────────────────────────────────
 function toggleEdit(key) {

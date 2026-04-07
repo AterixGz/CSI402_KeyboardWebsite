@@ -402,6 +402,94 @@ public class HomeController : Controller
         }
     }
 
+    [HttpGet]
+    public IActionResult GetCoupon(string code)
+    {
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            return Json(new { success = false, message = "กรุณากรอกรหัสคูปอง" });
+        }
+
+        var userId = HttpContext.Session.GetInt32("UserId");
+        if (userId == null)
+        {
+            return Json(new { success = false, message = "กรุณาเข้าสู่ระบบก่อนใช้คูปอง" });
+        }
+
+        try
+        {
+            if (_connection.State == System.Data.ConnectionState.Closed)
+                _connection.Open();
+
+            const string query = @"SELECT coupon_id, code, discount_value, discount_type, expiry_date, usage_limit, used_count
+                                   FROM Coupons
+                                   WHERE code = @code
+                                   LIMIT 1";
+
+            using var cmd = new MySqlCommand(query, _connection);
+            cmd.Parameters.AddWithValue("@code", code.Trim());
+
+            using var reader = cmd.ExecuteReader();
+            if (!reader.Read())
+            {
+                return Json(new { success = false, message = "คูปองไม่ถูกต้อง" });
+            }
+
+            var couponId = reader.GetInt32("coupon_id");
+            var expiryDate = reader.GetDateTime("expiry_date");
+            if (DateTime.UtcNow > expiryDate.ToUniversalTime())
+            {
+                return Json(new { success = false, message = "คูปองนี้หมดอายุแล้ว" });
+            }
+
+            var usageLimit = reader.IsDBNull(reader.GetOrdinal("usage_limit")) ? (int?)null : reader.GetInt32("usage_limit");
+            var usedCount = reader.IsDBNull(reader.GetOrdinal("used_count")) ? 0 : reader.GetInt32("used_count");
+            if (usageLimit.HasValue && usedCount >= usageLimit.Value)
+            {
+                return Json(new { success = false, message = "คูปองนี้ถูกใช้ครบโควต้าแล้ว" });
+            }
+
+            var discountValue = reader.GetDecimal("discount_value");
+            var discountType = reader.GetString("discount_type");
+            reader.Close();
+
+            const string usageQuery = @"SELECT COUNT(*) FROM Coupon_Usage WHERE coupon_id = @couponId AND user_id = @userId";
+            using (var usageCmd = new MySqlCommand(usageQuery, _connection))
+            {
+                usageCmd.Parameters.AddWithValue("@couponId", couponId);
+                usageCmd.Parameters.AddWithValue("@userId", userId.Value);
+                var alreadyUsed = Convert.ToInt32(usageCmd.ExecuteScalar());
+                if (alreadyUsed > 0)
+                {
+                    return Json(new { success = false, message = "คุณใช้คูปองนี้ไปแล้ว" });
+                }
+            }
+
+            return Json(new
+            {
+                success = true,
+                coupon = new
+                {
+                    code = code.Trim().ToUpperInvariant(),
+                    discountValue,
+                    discountType = discountType?.ToLowerInvariant(),
+                    expiryDate = expiryDate.ToString("o"),
+                    usageLimit,
+                    usedCount
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { success = false, message = $"เกิดข้อผิดพลาดในการตรวจสอบคูปอง: {ex.Message}" });
+        }
+        finally
+        {
+            if (_connection.State == System.Data.ConnectionState.Open)
+                _connection.Close();
+        }
+    }
+
     private List<CartItem> GetCartItems(int userId)
     {
         var cartItems = new List<CartItem>();
@@ -444,8 +532,151 @@ public class HomeController : Controller
         return cartItems;
     }
 
+    private List<CartItem> GetSelectedCartItems(int userId)
+    {
+        return GetCartItems(userId).Where(item => item.IsSelected).ToList();
+    }
+
+    private bool TryGetCouponByCode(string code, int userId, out int couponId, out decimal discountValue, out string discountType, out string errorMessage)
+    {
+        couponId = 0;
+        discountValue = 0m;
+        discountType = string.Empty;
+        errorMessage = string.Empty;
+
+        const string query = @"SELECT coupon_id, discount_value, discount_type, expiry_date, usage_limit, used_count
+                               FROM Coupons
+                               WHERE code = @code
+                               LIMIT 1";
+
+        using var cmd = new MySqlCommand(query, _connection);
+        cmd.Parameters.AddWithValue("@code", code.Trim());
+
+        using var reader = cmd.ExecuteReader();
+        if (!reader.Read())
+        {
+            errorMessage = "คูปองไม่ถูกต้อง";
+            return false;
+        }
+
+        var couponIdValue = reader.GetInt32("coupon_id");
+        var expiryDate = reader.GetDateTime("expiry_date");
+        if (DateTime.UtcNow > expiryDate.ToUniversalTime())
+        {
+            errorMessage = "คูปองนี้หมดอายุแล้ว";
+            return false;
+        }
+
+        var usageLimit = reader.IsDBNull(reader.GetOrdinal("usage_limit")) ? (int?)null : reader.GetInt32("usage_limit");
+        var usedCount = reader.IsDBNull(reader.GetOrdinal("used_count")) ? 0 : reader.GetInt32("used_count");
+        if (usageLimit.HasValue && usedCount >= usageLimit.Value)
+        {
+            errorMessage = "คูปองนี้ถูกใช้ครบโควต้าแล้ว";
+            return false;
+        }
+
+        var discountValueValue = reader.GetDecimal("discount_value");
+        var discountTypeValue = reader.GetString("discount_type")?.ToLowerInvariant() ?? string.Empty;
+        reader.Close();
+
+        const string usageQuery = @"SELECT COUNT(*) FROM Coupon_Usage WHERE coupon_id = @couponId AND user_id = @userId";
+        using (var usageCmd = new MySqlCommand(usageQuery, _connection))
+        {
+            usageCmd.Parameters.AddWithValue("@couponId", couponIdValue);
+            usageCmd.Parameters.AddWithValue("@userId", userId);
+            var alreadyUsed = Convert.ToInt32(usageCmd.ExecuteScalar());
+            if (alreadyUsed > 0)
+            {
+                errorMessage = "คุณใช้คูปองนี้ไปแล้ว";
+                return false;
+            }
+        }
+
+        couponId = couponIdValue;
+        discountValue = discountValueValue;
+        discountType = discountTypeValue;
+
+        return true;
+    }
+
+    private decimal CalculateCouponAmount(decimal subtotal, string discountType, decimal discountValue)
+    {
+        if (discountType == "percentage")
+        {
+            return Math.Min(subtotal * discountValue / 100m, subtotal);
+        }
+
+        if (discountType == "fixed")
+        {
+            return Math.Min(discountValue, subtotal);
+        }
+
+        return 0m;
+    }
+
+    private int InsertOrder(int userId, int shippingAddressId, int? couponId, decimal subtotal, decimal discountAmount, decimal totalAmount, string status)
+    {
+        const string sql = @"INSERT INTO Orders (user_id, shipping_address_id, coupon_id, order_date, subtotal, discount_amount, total_amount, status)
+                             VALUES (@userId, @shippingAddressId, @couponId, NOW(), @subtotal, @discountAmount, @totalAmount, @status)";
+        using var cmd = new MySqlCommand(sql, _connection);
+        cmd.Parameters.AddWithValue("@userId", userId);
+        cmd.Parameters.AddWithValue("@shippingAddressId", shippingAddressId);
+        cmd.Parameters.AddWithValue("@couponId", couponId.HasValue ? (object)couponId.Value : DBNull.Value);
+        cmd.Parameters.AddWithValue("@subtotal", subtotal);
+        cmd.Parameters.AddWithValue("@discountAmount", discountAmount);
+        cmd.Parameters.AddWithValue("@totalAmount", totalAmount);
+        cmd.Parameters.AddWithValue("@status", status);
+        cmd.ExecuteNonQuery();
+        return (int)cmd.LastInsertedId;
+    }
+
+    private void InsertOrderDetails(int orderId, List<CartItem> items)
+    {
+        const string sql = @"INSERT INTO OrderDetails (order_id, product_id, quantity, unit_price)
+                             VALUES (@orderId, @productId, @quantity, @unitPrice)";
+        using var cmd = new MySqlCommand(sql, _connection);
+        cmd.Parameters.AddWithValue("@orderId", orderId);
+        cmd.Parameters.Add("@productId", MySqlDbType.Int32);
+        cmd.Parameters.Add("@quantity", MySqlDbType.Int32);
+        cmd.Parameters.Add("@unitPrice", MySqlDbType.Decimal);
+
+        foreach (var item in items)
+        {
+            cmd.Parameters["@productId"].Value = item.ProductId;
+            cmd.Parameters["@quantity"].Value = item.Quantity;
+            cmd.Parameters["@unitPrice"].Value = item.Price;
+            cmd.ExecuteNonQuery();
+        }
+    }
+
+    private void RecordCouponUsage(int couponId, int userId, int orderId)
+    {
+        const string sql = "INSERT INTO Coupon_Usage (coupon_id, user_id, order_id, used_at) VALUES (@couponId, @userId, @orderId, NOW())";
+        using var cmd = new MySqlCommand(sql, _connection);
+        cmd.Parameters.AddWithValue("@couponId", couponId);
+        cmd.Parameters.AddWithValue("@userId", userId);
+        cmd.Parameters.AddWithValue("@orderId", orderId);
+        cmd.ExecuteNonQuery();
+    }
+
+    private void IncrementCouponUsedCount(int couponId)
+    {
+        const string sql = "UPDATE Coupons SET used_count = used_count + 1 WHERE coupon_id = @couponId";
+        using var cmd = new MySqlCommand(sql, _connection);
+        cmd.Parameters.AddWithValue("@couponId", couponId);
+        cmd.ExecuteNonQuery();
+    }
+
+    private void DeleteSelectedCartItems(int userId)
+    {
+        const string sql = "DELETE FROM Cart WHERE user_id = @userId AND is_selected = 1";
+        using var cmd = new MySqlCommand(sql, _connection);
+        cmd.Parameters.AddWithValue("@userId", userId);
+        cmd.ExecuteNonQuery();
+    }
+
     [HttpPost]
-    public IActionResult Checkout()
+    public IActionResult Checkout(int? addressId, string couponCode)
     {
         var userId = HttpContext.Session.GetInt32("UserId");
         if (userId == null)
@@ -458,29 +689,109 @@ public class HomeController : Controller
             if (_connection.State == System.Data.ConnectionState.Closed)
                 _connection.Open();
 
-            var cartItems = GetCartItems(userId.Value).Where(item => item.IsSelected).ToList();
+            if (addressId == null || addressId <= 0)
+            {
+                TempData["CartMessage"] = "กรุณาเลือกที่อยู่จัดส่งก่อนชำระเงิน";
+                return RedirectToAction("Cart");
+            }
+
+            const string addressQuery = @"SELECT COUNT(*) FROM User_Addresses WHERE address_id = @addressId AND user_id = @userId";
+            using (var addressCmd = new MySqlCommand(addressQuery, _connection))
+            {
+                addressCmd.Parameters.AddWithValue("@addressId", addressId.Value);
+                addressCmd.Parameters.AddWithValue("@userId", userId.Value);
+                var count = Convert.ToInt32(addressCmd.ExecuteScalar());
+                if (count == 0)
+                {
+                    TempData["CartMessage"] = "ที่อยู่จัดส่งไม่ถูกต้อง";
+                    return RedirectToAction("Cart");
+                }
+            }
+
+            var cartItems = GetSelectedCartItems(userId.Value);
             if (!cartItems.Any())
             {
                 TempData["CartMessage"] = "กรุณาเลือกสินค้าอย่างน้อย 1 รายการก่อนชำระเงิน";
                 return RedirectToAction("Cart");
             }
 
+            int? couponId = null;
+            string couponCodeStored = string.Empty;
+            decimal couponDiscount = 0m;
+            if (!string.IsNullOrWhiteSpace(couponCode))
+            {
+                if (!TryGetCouponByCode(couponCode, userId.Value, out int availableCouponId, out decimal discountValue, out string discountType, out string couponError))
+                {
+                    TempData["CartMessage"] = couponError;
+                    return RedirectToAction("Cart");
+                }
+
+                couponId = availableCouponId;
+                couponCodeStored = couponCode.Trim();
+            }
+
+            var subtotal = cartItems.Sum(item => item.Price * item.Quantity);
+            if (couponId.HasValue)
+            {
+                // Revalidate discount in case the coupon was just created or changed
+                if (!TryGetCouponByCode(couponCodeStored, userId.Value, out _, out decimal discountValue, out string discountType, out _))
+                {
+                    TempData["CartMessage"] = "คูปองไม่สามารถใช้งานได้ในขณะนี้";
+                    return RedirectToAction("Cart");
+                }
+                couponDiscount = CalculateCouponAmount(subtotal, discountType, discountValue);
+            }
+
+            HttpContext.Session.SetInt32("CheckoutAddressId", addressId.Value);
+            if (couponId.HasValue)
+            {
+                HttpContext.Session.SetInt32("CheckoutCouponId", couponId.Value);
+                HttpContext.Session.SetString("CheckoutCouponCode", couponCodeStored);
+            }
+            else
+            {
+                HttpContext.Session.Remove("CheckoutCouponId");
+                HttpContext.Session.Remove("CheckoutCouponCode");
+            }
+
+            var totalAmount = Math.Max(0, subtotal - couponDiscount);
+
+            if (totalAmount <= 0)
+            {
+                var orderId = InsertOrder(userId.Value, addressId.Value, couponId, subtotal, couponDiscount, totalAmount, "paid");
+                InsertOrderDetails(orderId, cartItems);
+                if (couponId.HasValue)
+                {
+                    RecordCouponUsage(couponId.Value, userId.Value, orderId);
+                    IncrementCouponUsedCount(couponId.Value);
+                }
+                DeleteSelectedCartItems(userId.Value);
+                HttpContext.Session.Remove("CheckoutAddressId");
+                HttpContext.Session.Remove("CheckoutCouponId");
+                HttpContext.Session.Remove("CheckoutCouponCode");
+                TempData["CartMessage"] = "ชำระเงินเรียบร้อยแล้ว";
+                return RedirectToAction("Cart");
+            }
+
             Stripe.StripeConfiguration.ApiKey = _configuration["Stripe:SecretKey"] ?? string.Empty;
 
-            var lineItems = cartItems.Select(item => new SessionLineItemOptions
+            var lineItems = new List<SessionLineItemOptions>
             {
-                PriceData = new SessionLineItemPriceDataOptions
+                new SessionLineItemOptions
                 {
-                    Currency = "thb",
-                    UnitAmount = (long)(item.Price * 100m),
-                    ProductData = new SessionLineItemPriceDataProductDataOptions
+                    PriceData = new SessionLineItemPriceDataOptions
                     {
-                        Name = item.Name,
-                        Images = item.ImageUrl != null ? new List<string> { Url.Content(item.ImageUrl) } : null
-                    }
-                },
-                Quantity = item.Quantity
-            }).ToList();
+                        Currency = "thb",
+                        UnitAmount = (long)(totalAmount * 100m),
+                        ProductData = new SessionLineItemPriceDataProductDataOptions
+                        {
+                            Name = "Order Total",
+                            Description = couponId.HasValue ? $"รวมส่วนลดคูปอง {couponCodeStored}" : "Order total"
+                        }
+                    },
+                    Quantity = 1
+                }
+            };
 
             var successUrl = $"{Request.Scheme}://{Request.Host}{Url.Action("CheckoutSuccess", "Home")}?session_id={{CHECKOUT_SESSION_ID}}";
             var cancelUrl = $"{Request.Scheme}://{Request.Host}{Url.Action("Cart", "Home")}";
@@ -524,14 +835,79 @@ public class HomeController : Controller
             return RedirectToAction("Cart");
         }
 
+        var userId = HttpContext.Session.GetInt32("UserId");
+        if (userId == null)
+        {
+            TempData["CartMessage"] = "กรุณาเข้าสู่ระบบก่อนทำรายการ";
+            return RedirectToAction("Login", "Account");
+        }
+
         try
         {
             Stripe.StripeConfiguration.ApiKey = _configuration["Stripe:SecretKey"] ?? string.Empty;
             var service = new SessionService();
             var session = service.Get(session_id);
-            TempData["CartMessage"] = session.PaymentStatus == "paid"
-                ? "ชำระเงินเรียบร้อยแล้ว"
-                : $"สถานะการชำระเงิน: {session.PaymentStatus}";
+
+            if (session.PaymentStatus != "paid")
+            {
+                TempData["CartMessage"] = $"สถานะการชำระเงิน: {session.PaymentStatus}";
+                return RedirectToAction("Cart");
+            }
+
+            if (_connection.State == System.Data.ConnectionState.Closed)
+                _connection.Open();
+
+            var addressId = HttpContext.Session.GetInt32("CheckoutAddressId");
+            if (addressId == null || addressId <= 0)
+            {
+                TempData["CartMessage"] = "ที่อยู่จัดส่งไม่ถูกต้อง";
+                return RedirectToAction("Cart");
+            }
+
+            var cartItems = GetSelectedCartItems(userId.Value);
+            if (!cartItems.Any())
+            {
+                TempData["CartMessage"] = "ไม่พบสินค้าที่เลือกสำหรับชำระเงิน";
+                return RedirectToAction("Cart");
+            }
+
+            int? couponId = null;
+            string couponCodeStored = HttpContext.Session.GetString("CheckoutCouponCode") ?? string.Empty;
+            if (HttpContext.Session.GetInt32("CheckoutCouponId") is int savedCouponId)
+            {
+                couponId = savedCouponId;
+            }
+
+            var subtotal = cartItems.Sum(item => item.Price * item.Quantity);
+            decimal couponDiscount = 0m;
+            if (couponId.HasValue)
+            {
+                if (!TryGetCouponByCode(couponCodeStored, userId.Value, out _, out decimal discountValue, out string discountType, out _))
+                {
+                    couponId = null;
+                }
+                else
+                {
+                    couponDiscount = CalculateCouponAmount(subtotal, discountType, discountValue);
+                }
+            }
+
+            var totalAmount = Math.Max(0, subtotal - couponDiscount);
+            var orderId = InsertOrder(userId.Value, addressId.Value, couponId, subtotal, couponDiscount, totalAmount, "paid");
+            InsertOrderDetails(orderId, cartItems);
+
+            if (couponId.HasValue)
+            {
+                RecordCouponUsage(couponId.Value, userId.Value, orderId);
+                IncrementCouponUsedCount(couponId.Value);
+            }
+
+            DeleteSelectedCartItems(userId.Value);
+            HttpContext.Session.Remove("CheckoutAddressId");
+            HttpContext.Session.Remove("CheckoutCouponId");
+            HttpContext.Session.Remove("CheckoutCouponCode");
+
+            TempData["CartMessage"] = "ชำระเงินเรียบร้อยแล้ว";
         }
         catch (Exception ex)
         {

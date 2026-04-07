@@ -129,7 +129,16 @@
                     </div>
                 </div>
                 <div class="sum-row"><span class="sum-lbl">Subtotal</span><span class="sum-val" id="selectedSubtotal">฿0.00</span></div>
+                <div class="promo-label">Have a coupon?</div>
+                <div class="promo-row">
+                    <div class="promo-ico">🏷️</div>
+                    <input id="couponCode" class="promo-input" type="text" placeholder="Enter coupon code" />
+                    <button type="button" class="promo-apply" onclick="applyCoupon()">Apply</button>
+                </div>
+                <div id="couponMessage" class="promo-hint" style="display:none; margin-top: 10px;"></div>
+                <div id="appliedCouponsList" class="applied-coupons" style="display:none; margin-top: 12px;"></div>
                 <div class="sum-row"><span class="sum-lbl">Shipping</span><span class="sum-val free">Free</span></div>
+                <div id="discountRow" class="sum-row" style="display:none;"><span class="sum-lbl">Discount</span><span class="sum-val" id="discountValue">-฿0.00</span></div>
                 <div class="total-row"><span class="total-lbl">Total</span><span class="total-val" id="selectedTotal">฿0.00</span></div>
                 <button class="checkout-btn" type="button" onclick="proceedToCheckout()">Proceed to Checkout</button>
             }
@@ -214,7 +223,24 @@
             // Update display
             document.getElementById('selectedCount').textContent = selectedCount;
             document.getElementById('selectedSubtotal').textContent = '฿' + selectedSubtotal.toFixed(2);
-            document.getElementById('selectedTotal').textContent = '฿' + selectedSubtotal.toFixed(2);
+
+            const discountRow = document.getElementById('discountRow');
+            const discountValue = document.getElementById('discountValue');
+            let total = selectedSubtotal;
+
+            if (appliedCoupons.length > 0) {
+                const totalDiscount = Math.min(selectedSubtotal, appliedCoupons.reduce((sum, coupon) => sum + getCouponAmount(coupon, selectedSubtotal), 0));
+                discountValue.textContent = `-฿${totalDiscount.toFixed(2)}`;
+                total = Math.max(0, selectedSubtotal - totalDiscount);
+                discountRow.style.display = totalDiscount > 0 ? 'flex' : 'none';
+            } else {
+                discountRow.style.display = 'none';
+            }
+
+            document.getElementById('selectedTotal').textContent = `฿${total.toFixed(2)}`;
+            if (appliedCoupons.length > 0) {
+                renderCouponSummary(selectedSubtotal);
+            }
         }
 
         async function updateCartSelection(cartId, isSelected) {
@@ -235,12 +261,16 @@
             }
         }
 
+        let couponLookupCache = {};
+        let appliedCoupons = [];
+
         function proceedToCheckout() {
             const selectedCheckboxes = document.querySelectorAll('.item-checkbox:checked');
             const addressDisplay = document.getElementById('addressDisplay');
             const addressError = document.getElementById('addressError');
             const selectedName = document.getElementById('selectedName').textContent.trim();
             const selectedAddress = document.getElementById('selectedAddress').textContent.trim();
+            const subtotal = parseFloat(document.getElementById('selectedSubtotal').textContent.replace(/[^0-9.-]+/g, '')) || 0;
 
             const noAddress = selectedName === 'No address selected' || selectedAddress === '-' || selectedAddress.length === 0;
 
@@ -259,11 +289,183 @@
                 return;
             }
 
+            if (appliedCoupons.length > 0) {
+                const totalDiscount = Math.min(subtotal, appliedCoupons.reduce((sum, coupon) => sum + getCouponAmount(coupon, subtotal), 0));
+                alert(`คูปองที่ใช้: ${appliedCoupons.map(c => c.code).join(', ')}\nรวมส่วนลด -฿${totalDiscount.toFixed(2)}`);
+            }
+
             const form = document.createElement('form');
             form.method = 'POST';
             form.action = '/Home/Checkout';
+            form.style.display = 'none';
+
+            const addressInput = document.createElement('input');
+            addressInput.type = 'hidden';
+            addressInput.name = 'addressId';
+            addressInput.value = selectedAddressId || '';
+            form.appendChild(addressInput);
+
+            if (appliedCoupons.length > 0) {
+                const couponInput = document.createElement('input');
+                couponInput.type = 'hidden';
+                couponInput.name = 'couponCode';
+                couponInput.value = appliedCoupons[0].code;
+                form.appendChild(couponInput);
+            }
+
             document.body.appendChild(form);
             form.submit();
+        }
+
+        async function applyCoupon() {
+            const codeInput = document.getElementById('couponCode');
+            const couponMessage = document.getElementById('couponMessage');
+            const subtotal = parseFloat(document.getElementById('selectedSubtotal').textContent.replace(/[^0-9.-]+/g, '')) || 0;
+            const code = codeInput.value.trim().toUpperCase();
+
+            if (!code) {
+                couponMessage.textContent = 'กรุณากรอกรหัสคูปอง';
+                couponMessage.style.color = '#b91c1c';
+                couponMessage.style.display = 'block';
+                return;
+            }
+
+            if (appliedCoupons.length >= 1) {
+                couponMessage.textContent = 'ระบบรองรับคูปองได้เพียง 1 ใบเท่านั้น';
+                couponMessage.style.color = '#b91c1c';
+                couponMessage.style.display = 'block';
+                return;
+            }
+
+            if (appliedCoupons.some(c => c.code === code)) {
+                couponMessage.textContent = `คุณใช้คูปอง ${code} ไปแล้ว`;
+                couponMessage.style.color = '#b91c1c';
+                couponMessage.style.display = 'block';
+                return;
+            }
+
+            let couponData = couponLookupCache[code];
+            if (!couponData) {
+                try {
+                    const response = await fetch(`/Home/GetCoupon?code=${encodeURIComponent(code)}`);
+                    const result = await response.json();
+                    if (!result.success) {
+                        couponMessage.textContent = result.message || 'คูปองไม่ถูกต้อง โปรดลองอีกครั้ง';
+                        couponMessage.style.color = '#b91c1c';
+                        couponMessage.style.display = 'block';
+                        return;
+                    }
+                    couponData = result.coupon;
+                    couponLookupCache[code] = couponData;
+                } catch (error) {
+                    couponMessage.textContent = 'เกิดข้อผิดพลาดขณะตรวจสอบคูปอง';
+                    couponMessage.style.color = '#b91c1c';
+                    couponMessage.style.display = 'block';
+                    return;
+                }
+            }
+
+            const coupon = buildCouponFromServer(couponData);
+            if (!coupon) {
+                couponMessage.textContent = 'ประเภทคูปองไม่รองรับ';
+                couponMessage.style.color = '#b91c1c';
+                couponMessage.style.display = 'block';
+                return;
+            }
+
+            appliedCoupons.push(coupon);
+            renderCouponSummary(subtotal);
+            codeInput.value = '';
+        }
+
+        function buildCouponFromServer(couponData) {
+            const type = couponData.discountType;
+            const value = parseFloat(couponData.discountValue);
+            if (type === 'percentage') {
+                return {
+                    code: couponData.code.toUpperCase(),
+                    discountType: 'percentage',
+                    discountValue: value,
+                    text: `ลด ${value}%`
+                };
+            }
+            if (type === 'fixed') {
+                return {
+                    code: couponData.code.toUpperCase(),
+                    discountType: 'fixed',
+                    discountValue: value,
+                    text: `ลดทันที ฿${value.toFixed(2)}`
+                };
+            }
+            return null;
+        }
+
+        function getCouponAmount(coupon, subtotal) {
+            if (coupon.discountType === 'percentage') {
+                return Math.min(subtotal * coupon.discountValue / 100, subtotal);
+            }
+            if (coupon.discountType === 'fixed') {
+                return Math.min(coupon.discountValue, subtotal);
+            }
+            return 0;
+        }
+
+        function removeCoupon(code) {
+            appliedCoupons = appliedCoupons.filter(coupon => coupon.code !== code);
+            const subtotal = parseFloat(document.getElementById('selectedSubtotal').textContent.replace(/[^0-9.-]+/g, '')) || 0;
+            renderCouponSummary(subtotal);
+        }
+
+        function renderAppliedCouponsList() {
+            const listContainer = document.getElementById('appliedCouponsList');
+            if (!listContainer) return;
+
+            if (appliedCoupons.length === 0) {
+                listContainer.style.display = 'none';
+                listContainer.innerHTML = '';
+                return;
+            }
+
+            listContainer.style.display = 'flex';
+            listContainer.style.flexWrap = 'wrap';
+            listContainer.innerHTML = appliedCoupons.map(coupon => `
+                <span class="coupon-chip" style="display:inline-flex; align-items:center; gap:8px; background:#eef2ff; color:#1e3a8a; border-radius:999px; padding:8px 12px; margin:4px; font-size:13px;">
+                    ${coupon.code} - ${coupon.text}
+                    <button type="button" onclick="removeCoupon('${coupon.code}')" style="background:none; border:none; color:#1e3a8a; font-weight:700; cursor:pointer;">✕</button>
+                </span>
+            `).join('');
+        }
+
+        function renderCouponSummary(subtotal) {
+            const couponMessage = document.getElementById('couponMessage');
+            const discountRow = document.getElementById('discountRow');
+            const discountValue = document.getElementById('discountValue');
+            const selectedTotalEl = document.getElementById('selectedTotal');
+
+            if (appliedCoupons.length === 0) {
+                discountRow.style.display = 'none';
+                selectedTotalEl.textContent = `฿${subtotal.toFixed(2)}`;
+                couponMessage.style.display = 'none';
+                renderAppliedCouponsList();
+                return;
+            }
+
+            const codes = appliedCoupons.map(c => c.code).join(', ');
+            const totalDiscount = Math.min(subtotal, appliedCoupons.reduce((sum, coupon) => sum + getCouponAmount(coupon, subtotal), 0));
+            const newTotal = Math.max(0, subtotal - totalDiscount);
+
+            if (totalDiscount > 0) {
+                discountValue.textContent = `-฿${totalDiscount.toFixed(2)}`;
+                discountRow.style.display = 'flex';
+            } else {
+                discountRow.style.display = 'none';
+            }
+
+            selectedTotalEl.textContent = `฿${newTotal.toFixed(2)}`;
+            couponMessage.textContent = `ใช้คูปอง: ${codes} | ${appliedCoupons.map(c => c.text).join(', ')}`;
+            couponMessage.style.color = '#16a34a';
+            couponMessage.style.display = 'block';
+            renderAppliedCouponsList();
         }
 
         // Initialize on page load

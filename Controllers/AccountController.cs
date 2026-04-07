@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using MySql.Data.MySqlClient;
 using KeyboardWebsiteProject.Models;
+using System.Dynamic;
 using System.Security.Cryptography;
 
 namespace KeyboardWebsiteProject.Controllers;
@@ -340,12 +341,15 @@ public class AccountController : Controller
 
             // Get recent orders (last 5)
             string orderQuery = @"SELECT o.order_id, o.order_date, o.total_amount, o.discount_amount, o.status, c.code AS coupon_code,
-                                         COUNT(od.detail_id) as item_count
+                                         COUNT(od.detail_id) as item_count,
+                                         ua.receiver_name, ua.phone_number, ua.address_line1, ua.sub_district, ua.district, ua.province, ua.postal_code
                                   FROM Orders o
                                   LEFT JOIN OrderDetails od ON o.order_id = od.order_id
                                   LEFT JOIN Coupons c ON o.coupon_id = c.coupon_id
+                                  LEFT JOIN User_Addresses ua ON o.shipping_address_id = ua.address_id
                                   WHERE o.user_id = @userId
-                                  GROUP BY o.order_id, o.order_date, o.total_amount, o.discount_amount, o.status, c.code
+                                  GROUP BY o.order_id, o.order_date, o.total_amount, o.discount_amount, o.status, c.code,
+                                           ua.receiver_name, ua.phone_number, ua.address_line1, ua.sub_district, ua.district, ua.province, ua.postal_code
                                   ORDER BY o.order_date DESC
                                   LIMIT 5";
             var orders = new List<dynamic>();
@@ -356,19 +360,64 @@ public class AccountController : Controller
                 {
                     while (reader.Read())
                     {
-                        orders.Add(new
+                        dynamic order = new ExpandoObject();
+                        var orderDict = (IDictionary<string, object>)order;
+                        orderDict["OrderId"] = $"ORD-{reader.GetInt32("order_id"):D3}";
+                        orderDict["RawOrderId"] = reader.GetInt32("order_id");
+                        orderDict["OrderDate"] = reader.GetDateTime("order_date").ToString("dd MMM yyyy");
+                        orderDict["ItemCount"] = reader.GetInt32("item_count");
+                        orderDict["Subtotal"] = reader.GetDecimal("total_amount") + reader.GetDecimal("discount_amount");
+                        orderDict["DiscountAmount"] = reader.GetDecimal("discount_amount");
+                        orderDict["TotalAmount"] = reader.GetDecimal("total_amount");
+                        orderDict["CouponCode"] = reader["coupon_code"] as string;
+                        orderDict["Status"] = reader["status"] as string ?? "pending";
+                        orderDict["ShippingAddress"] = new
                         {
-                            OrderId = $"ORD-{reader.GetInt32("order_id"):D3}",
-                            OrderDate = reader.GetDateTime("order_date").ToString("dd MMM yyyy"),
-                            ItemCount = reader.GetInt32("item_count"),
-                            Subtotal = reader.GetDecimal("total_amount") + reader.GetDecimal("discount_amount"),
-                            DiscountAmount = reader.GetDecimal("discount_amount"),
-                            TotalAmount = reader.GetDecimal("total_amount"),
-                            CouponCode = reader["coupon_code"] as string,
-                            Status = reader["status"] as string ?? "pending"
-                        });
+                            ReceiverName = reader["receiver_name"] as string ?? "",
+                            PhoneNumber = reader["phone_number"] as string ?? "",
+                            AddressLine1 = reader["address_line1"] as string ?? "",
+                            SubDistrict = reader["sub_district"] as string ?? "",
+                            District = reader["district"] as string ?? "",
+                            Province = reader["province"] as string ?? "",
+                            PostalCode = reader["postal_code"] as string ?? ""
+                        };
+                        orderDict["OrderItems"] = new List<dynamic>();
+                        orders.Add(order);
                     }
                 }
+            }
+
+            string orderItemsQuery = @"SELECT od.detail_id, od.product_id, od.quantity, od.unit_price,
+                                             p.name AS product_name,
+                                             COALESCE(pi.image_url, '~/image/default.png') AS image_url
+                                      FROM OrderDetails od
+                                      JOIN Products p ON od.product_id = p.product_id
+                                      LEFT JOIN Product_Images pi ON p.product_id = pi.product_id AND pi.is_main = 1
+                                      WHERE od.order_id = @orderId";
+
+            foreach (dynamic order in orders)
+            {
+                var items = new List<dynamic>();
+                using (MySqlCommand detailCmd = new MySqlCommand(orderItemsQuery, _connection))
+                {
+                    detailCmd.Parameters.AddWithValue("@orderId", (int)order.RawOrderId);
+                    using (MySqlDataReader detailReader = detailCmd.ExecuteReader())
+                    {
+                        while (detailReader.Read())
+                        {
+                            items.Add(new
+                            {
+                                ProductName = detailReader["product_name"] as string ?? "",
+                                Quantity = detailReader.GetInt32("quantity"),
+                                UnitPrice = detailReader.GetDecimal("unit_price"),
+                                TotalPrice = detailReader.GetDecimal("unit_price") * detailReader.GetInt32("quantity"),
+                                ImageUrl = detailReader["image_url"] as string ?? "~/image/default.png"
+                            });
+                        }
+                    }
+                }
+
+                ((IDictionary<string, object>)order)["OrderItems"] = items;
             }
 
             // Get counts
