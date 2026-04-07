@@ -1,7 +1,9 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using MySql.Data.MySqlClient;
 using KeyboardWebsiteProject.Models;
+using Stripe.Checkout;
 
 namespace KeyboardWebsiteProject.Controllers;
 
@@ -9,11 +11,13 @@ public class HomeController : Controller
 {
     private readonly ILogger<HomeController> _logger;
     private readonly MySqlConnection _connection;
+    private readonly IConfiguration _configuration;
 
-    public HomeController(ILogger<HomeController> logger, MySqlConnection connection)
+    public HomeController(ILogger<HomeController> logger, MySqlConnection connection, IConfiguration configuration)
     {
         _logger = logger;
         _connection = connection;
+        _configuration = configuration;
     }
 
     public IActionResult Index()
@@ -357,6 +361,144 @@ public class HomeController : Controller
         }
     }
 
+    private List<CartItem> GetCartItems(int userId)
+    {
+        var cartItems = new List<CartItem>();
+        string query = @"SELECT c.cart_id, c.product_id, c.quantity, p.name, p.price, p.stock_quantity,
+                                   COALESCE(pi.image_url, '~/image/default.png') AS image_url,
+                                   COALESCE(cat.category_name, 'Uncategorized') AS category_name,
+                                   COALESCE(b.brand_name, '') AS brand_name
+                             FROM Cart c
+                             JOIN Products p ON c.product_id = p.product_id
+                             LEFT JOIN Product_Images pi ON p.product_id = pi.product_id AND pi.is_main = 1
+                             LEFT JOIN Categories cat ON p.category_id = cat.category_id
+                             LEFT JOIN Brands b ON p.brand_id = b.brand_id
+                             WHERE c.user_id = @userId
+                             ORDER BY c.added_at DESC";
+
+        using (var cmd = new MySqlCommand(query, _connection))
+        {
+            cmd.Parameters.AddWithValue("@userId", userId);
+            using (var reader = cmd.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    cartItems.Add(new CartItem
+                    {
+                        CartId = reader.GetInt32("cart_id"),
+                        ProductId = reader.GetInt32("product_id"),
+                        Quantity = reader.GetInt32("quantity"),
+                        Name = reader.GetString("name"),
+                        Price = reader.GetDecimal("price"),
+                        StockQuantity = reader.GetInt32("stock_quantity"),
+                        ImageUrl = reader.IsDBNull(reader.GetOrdinal("image_url")) ? "~/image/default.png" : reader.GetString("image_url"),
+                        CategoryName = reader.GetString("category_name"),
+                        BrandName = reader.GetString("brand_name")
+                    });
+                }
+            }
+        }
+
+        return cartItems;
+    }
+
+    [HttpPost]
+    public IActionResult Checkout()
+    {
+        var userId = HttpContext.Session.GetInt32("UserId");
+        if (userId == null)
+        {
+            return RedirectToAction("Login", "Account");
+        }
+
+        try
+        {
+            if (_connection.State == System.Data.ConnectionState.Closed)
+                _connection.Open();
+
+            var cartItems = GetCartItems(userId.Value);
+            if (!cartItems.Any())
+            {
+                TempData["CartMessage"] = "ตะกร้าของคุณยังว่างอยู่";
+                return RedirectToAction("Cart");
+            }
+
+            Stripe.StripeConfiguration.ApiKey = _configuration["Stripe:SecretKey"] ?? string.Empty;
+
+            var lineItems = cartItems.Select(item => new SessionLineItemOptions
+            {
+                PriceData = new SessionLineItemPriceDataOptions
+                {
+                    Currency = "thb",
+                    UnitAmount = (long)(item.Price * 100m),
+                    ProductData = new SessionLineItemPriceDataProductDataOptions
+                    {
+                        Name = item.Name,
+                        Images = item.ImageUrl != null ? new List<string> { Url.Content(item.ImageUrl) } : null
+                    }
+                },
+                Quantity = item.Quantity
+            }).ToList();
+
+            var successUrl = $"{Request.Scheme}://{Request.Host}{Url.Action("CheckoutSuccess", "Home")}?session_id={{CHECKOUT_SESSION_ID}}";
+            var cancelUrl = $"{Request.Scheme}://{Request.Host}{Url.Action("Cart", "Home")}";
+
+            var options = new SessionCreateOptions
+            {
+                PaymentMethodTypes = new List<string> { "card" },
+                LineItems = lineItems,
+                Mode = "payment",
+                SuccessUrl = successUrl,
+                CancelUrl = cancelUrl
+            };
+
+            var service = new SessionService();
+            var session = service.Create(options);
+            if (string.IsNullOrEmpty(session.Url))
+            {
+                TempData["CartMessage"] = "ไม่สามารถสร้างเซสชันการชำระเงินได้";
+                return RedirectToAction("Cart");
+            }
+
+            return Redirect(session.Url);
+        }
+        catch (Exception ex)
+        {
+            TempData["CartMessage"] = $"เกิดข้อผิดพลาดขณะเชื่อมต่อ Stripe: {ex.Message}";
+            return RedirectToAction("Cart");
+        }
+        finally
+        {
+            if (_connection.State == System.Data.ConnectionState.Open)
+                _connection.Close();
+        }
+    }
+
+    public IActionResult CheckoutSuccess(string session_id)
+    {
+        if (string.IsNullOrEmpty(session_id))
+        {
+            TempData["CartMessage"] = "ตรวจสอบการชำระเงินไม่สำเร็จ";
+            return RedirectToAction("Cart");
+        }
+
+        try
+        {
+            Stripe.StripeConfiguration.ApiKey = _configuration["Stripe:SecretKey"] ?? string.Empty;
+            var service = new SessionService();
+            var session = service.Get(session_id);
+            TempData["CartMessage"] = session.PaymentStatus == "paid"
+                ? "ชำระเงินเรียบร้อยแล้ว"
+                : $"สถานะการชำระเงิน: {session.PaymentStatus}";
+        }
+        catch (Exception ex)
+        {
+            TempData["CartMessage"] = $"ตรวจสอบการชำระเงินไม่สำเร็จ: {ex.Message}";
+        }
+
+        return RedirectToAction("Cart");
+    }
+
     [HttpPost]
     public IActionResult RemoveFromCart(int cartId)
     {
@@ -640,13 +782,6 @@ public class HomeController : Controller
                 _connection.Close();
         }
 
-        return RedirectToAction("Cart");
-    }
-
-    public IActionResult Checkout()
-    {
-        // จุดจำลองการ checkout
-        TempData["CartMessage"] = "ยังไม่เปิดใช้งานการชำระเงิน (Checkout) ในส่วนนี้";
         return RedirectToAction("Cart");
     }
 

@@ -150,9 +150,9 @@
                             {
                                 <span class="badge badge-few">@product.StockQuantity left</span>
                             }
-                            @if (!string.IsNullOrWhiteSpace(product.ImageUrl) && !product.ImageUrl.Contains("~/image/default.png"))
+                            @if (!string.IsNullOrWhiteSpace(product.ImageUrl) && !product.ImageUrl.Contains("default.png"))
                             {
-                                <img src="@product.ImageUrl" alt="@product.Name" />
+                                <img src="@Url.Content(product.ImageUrl)" alt="@product.Name" />
                             }
                             else
                             {

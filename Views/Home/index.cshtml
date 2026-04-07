@@ -100,7 +100,7 @@
                         <div class="product-image">
                             @if (!string.IsNullOrEmpty(product.ImageUrl))
                             {
-                                <img src="@product.ImageUrl" alt="@product.Name" class="w-100" />
+                                <img src="@Url.Content(product.ImageUrl)" alt="@product.Name" class="w-100" />
                             }
                             else
                             {

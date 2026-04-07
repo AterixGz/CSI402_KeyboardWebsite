@@ -143,6 +143,23 @@
           }
         }
       },
+      "Stripe.net/41.0.0": {
+        "type": "package",
+        "dependencies": {
+          "Newtonsoft.Json": "12.0.3",
+          "System.Configuration.ConfigurationManager": "6.0.0"
+        },
+        "compile": {
+          "lib/net6.0/Stripe.net.dll": {
+            "related": ".xml"
+          }
+        },
+        "runtime": {
+          "lib/net6.0/Stripe.net.dll": {
+            "related": ".xml"
+          }
+        }
+      },
       "System.Configuration.ConfigurationManager/8.0.0": {
         "type": "package",
         "dependencies": {
@@ -417,6 +434,29 @@
         "packageIcon.png"
       ]
     },
+    "Stripe.net/41.0.0": {
+      "sha512": "latTCWJFk+3usXxZ5oOEwyVEujFtnBahq3MucfTEc8uXR+xqvRN4ArMnySWiQPBFW4fAs6dutk7w33uryU+Tkg==",
+      "type": "package",
+      "path": "stripe.net/41.0.0",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "LICENSE",
+        "icon.png",
+        "lib/net461/Stripe.net.dll",
+        "lib/net461/Stripe.net.xml",
+        "lib/net5.0/Stripe.net.dll",
+        "lib/net5.0/Stripe.net.xml",
+        "lib/net6.0/Stripe.net.dll",
+        "lib/net6.0/Stripe.net.xml",
+        "lib/netcoreapp3.1/Stripe.net.dll",
+        "lib/netcoreapp3.1/Stripe.net.xml",
+        "lib/netstandard2.0/Stripe.net.dll",
+        "lib/netstandard2.0/Stripe.net.xml",
+        "stripe.net.41.0.0.nupkg.sha512",
+        "stripe.net.nuspec"
+      ]
+    },
     "System.Configuration.ConfigurationManager/8.0.0": {
       "sha512": "JlYi9XVvIREURRUlGMr1F6vOFLk7YSY4p1vHo4kX3tQ0AGrjqlRWHDi66ImHhy6qwXBG3BJ6Y1QlYQ+Qz6Xgww==",
       "type": "package",
@@ -563,7 +603,8 @@
   "projectFileDependencyGroups": {
     "net10.0": [
       "CloudinaryDotNet >= 1.28.0",
-      "MySql.Data >= 9.6.0"
+      "MySql.Data >= 9.6.0",
+      "Stripe.net >= 41.0.0"
     ]
   },
   "packageFolders": {
@@ -616,6 +657,10 @@
           "MySql.Data": {
             "target": "Package",
             "version": "[9.6.0, )"
+          },
+          "Stripe.net": {
+            "target": "Package",
+            "version": "[41.0.0, )"
           }
         },
         "imports": [

@@ -27,7 +27,7 @@ public class AdminController : Controller
     }
 
     // Redirect ถ้า user ไม่ใช่ admin
-    private IActionResult CheckAdminAccess()
+    private IActionResult? CheckAdminAccess()
     {
         if (!IsAdmin())
         {
@@ -322,6 +322,21 @@ ORDER BY c.category_name";
         return View();
     }
 
+    private string NormalizeImageUrl(string? imageUrl)
+    {
+        if (string.IsNullOrWhiteSpace(imageUrl))
+        {
+            return "/image/default.png";
+        }
+
+        if (imageUrl.StartsWith("~/"))
+        {
+            return Url.Content(imageUrl);
+        }
+
+        return imageUrl;
+    }
+
     [HttpPost]
     public IActionResult CreateProduct([FromBody] CreateProductRequest request)
     {
@@ -389,7 +404,7 @@ ORDER BY c.category_name";
             }
 
             // 3.1 เพิ่มรูปภาพหลักลง Product_Images
-            string imageUrl = string.IsNullOrWhiteSpace(request.ImageUrl) ? "~/image/default.png" : request.ImageUrl;
+            string imageUrl = NormalizeImageUrl(request.ImageUrl);
             string insertImageQuery = "INSERT INTO Product_Images (product_id, image_url, is_main) VALUES (@productId, @imageUrl, 1)";
             using (MySqlCommand cmd = new MySqlCommand(insertImageQuery, _connection))
             {
@@ -497,23 +512,26 @@ ORDER BY c.category_name";
                 cmd.ExecuteNonQuery();
             }
 
-            // 3.1 อัปเดตรูปภาพหลักใน Product_Images
-            string imageUrl = string.IsNullOrWhiteSpace(request.ImageUrl) ? "~/image/default.png" : request.ImageUrl;
-            string updateImageQuery = @"UPDATE Product_Images SET image_url = @imageUrl WHERE product_id = @productId AND is_main = 1";
-            using (MySqlCommand cmd = new MySqlCommand(updateImageQuery, _connection))
+            // 3.1 อัปเดตรูปภาพหลักใน Product_Images ถ้ามี imageUrl ใหม่
+            if (!string.IsNullOrWhiteSpace(request.ImageUrl))
             {
-                cmd.Parameters.AddWithValue("@productId", request.ProductId);
-                cmd.Parameters.AddWithValue("@imageUrl", imageUrl);
-                int affected = cmd.ExecuteNonQuery();
-
-                if (affected == 0)
+                string imageUrl = NormalizeImageUrl(request.ImageUrl);
+                string updateImageQuery = @"UPDATE Product_Images SET image_url = @imageUrl WHERE product_id = @productId AND is_main = 1";
+                using (MySqlCommand cmd = new MySqlCommand(updateImageQuery, _connection))
                 {
-                    string insertImageQuery = "INSERT INTO Product_Images (product_id, image_url, is_main) VALUES (@productId, @imageUrl, 1)";
-                    using (var insertCmd = new MySqlCommand(insertImageQuery, _connection))
+                    cmd.Parameters.AddWithValue("@productId", request.ProductId);
+                    cmd.Parameters.AddWithValue("@imageUrl", imageUrl);
+                    int affected = cmd.ExecuteNonQuery();
+
+                    if (affected == 0)
                     {
-                        insertCmd.Parameters.AddWithValue("@productId", request.ProductId);
-                        insertCmd.Parameters.AddWithValue("@imageUrl", imageUrl);
-                        insertCmd.ExecuteNonQuery();
+                        string insertImageQuery = "INSERT INTO Product_Images (product_id, image_url, is_main) VALUES (@productId, @imageUrl, 1)";
+                        using (var insertCmd = new MySqlCommand(insertImageQuery, _connection))
+                        {
+                            insertCmd.Parameters.AddWithValue("@productId", request.ProductId);
+                            insertCmd.Parameters.AddWithValue("@imageUrl", imageUrl);
+                            insertCmd.ExecuteNonQuery();
+                        }
                     }
                 }
             }
@@ -771,7 +789,11 @@ ORDER BY c.category_name";
                 return BadRequest(new { success = false, message = uploadResult.Error?.Message ?? "Cloudinary upload failed." });
             }
 
-            string imageUrl = uploadResult.SecureUrl?.ToString();
+            string imageUrl = uploadResult.SecureUrl?.ToString() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(imageUrl))
+            {
+                return BadRequest(new { success = false, message = "Cloudinary upload did not return a valid image URL." });
+            }
 
             // เพิ่มรูปลงตาราง Product_Images
             string insertQuery = "INSERT INTO Product_Images (product_id, image_url, is_main) VALUES (@productId, @imageUrl, 0)";

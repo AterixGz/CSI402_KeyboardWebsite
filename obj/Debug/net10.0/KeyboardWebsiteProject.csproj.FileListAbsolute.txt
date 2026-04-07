@@ -268,3 +268,4 @@ C:\DATA\Coding\Github\CSI402_KeyboardWebsite\obj\Debug\net10.0\refint\KeyboardWe
 C:\DATA\Coding\Github\CSI402_KeyboardWebsite\obj\Debug\net10.0\KeyboardWebsiteProject.pdb
 C:\DATA\Coding\Github\CSI402_KeyboardWebsite\obj\Debug\net10.0\KeyboardWebsiteProject.genruntimeconfig.cache
 C:\DATA\Coding\Github\CSI402_KeyboardWebsite\obj\Debug\net10.0\ref\KeyboardWebsiteProject.dll
+C:\DATA\Coding\Github\CSI402_KeyboardWebsite\bin\Debug\net10.0\Stripe.net.dll
