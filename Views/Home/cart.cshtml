@@ -30,8 +30,8 @@
                 <p style="color: #b91c1c; margin-top: 8px;">@ViewBag.ErrorMessage</p>
             }
         </div>
-        <form method="post" asp-action="ClearCart" asp-controller="Home">
-            <button type="submit" class="clear-btn">
+        <form id="clearCartForm" method="post" asp-action="ClearCart" asp-controller="Home">
+            <button type="button" class="clear-btn" onclick="confirmClearCart()">
                 <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
                 </svg>
@@ -49,7 +49,6 @@
             {
                 <div class="cart-card">
                     <p>Your cart is empty.</p>
-                    <a href="/Shop" class="continue">Continue Shopping</a>
                 </div>
             }
             else
@@ -58,6 +57,7 @@
                 {
                     <div class="cart-card" style="margin-bottom: 16px;">
                         <div class="cart-item">
+                            <input type="checkbox" class="item-checkbox" data-cart-id="@item.CartId" @(item.IsSelected ? "checked" : "") />
                             <img class="item-thumb" src="@Url.Content(item.ImageUrl)" alt="@item.Name" style="object-fit: cover;" />
                             <div class="item-info">
                                 <div class="item-name">@item.Name</div>
@@ -85,7 +85,7 @@
                 }
             }
 
-            <a href="/Shop" class="continue">
+            <a href="/Home/Shop" class="continue">
                 <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
                     <path d="M19 12H5M12 5l-7 7 7 7"/>
                 </svg>
@@ -96,20 +96,21 @@
         <!-- RIGHT: Delivery Address & Order summary -->
         <div class="summary">
             <!-- ── Delivery Address ── -->
-            <div style="background: #f9fafb; border-radius: 12px; padding: 16px; margin-bottom: 20px; border: 1px solid #e5e7eb; cursor: pointer; transition: all 0.2s; position: relative;" onclick="openAddressModal()" id="addressDisplay" onmouseover="this.style.background='#f3f4f6'; this.style.borderColor='#d1d5db';" onmouseout="this.style.background='#f9fafb'; this.style.borderColor='#e5e7eb';">
+            <div class="address-display" onclick="openAddressModal()" id="addressDisplay">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                     <h3 style="margin: 0; font-size: 15px; font-weight: 600; color: #1f2937;">📍 Delivery Address</h3>
-                    <span style="color: #3b82f6; font-size: 18px;">✎</span>
+                    <span class="address-edit-icon">✎</span>
                 </div>
                 
                 <div style="color: #1f2937; font-size: 14px;">
-                    <div style="font-weight: 600; margin-bottom: 6px;" id="selectedName">นาย สมชาย ใจดี</div>
+                    <div style="font-weight: 600; margin-bottom: 6px;" id="selectedName">@((ViewBag.SelectedUserAddress as KeyboardWebsiteProject.Models.UserAddress)?.ReceiverName ?? "No address selected")</div>
                     <div style="color: #6b7280; font-size: 13px; line-height: 1.6;">
-                        <span id="selectedAddress">123 ซอยสุขสวัสดิ์</span><br />
-                        <span id="selectedDistrict">ขลุง</span>, <span id="selectedProvince">ฉะเชิงเทรา</span> <span id="selectedPostal">24000</span><br />
-                        <span style="margin-top: 4px; display: inline-block;">โทร: <span id="selectedPhone">098-765-4321</span></span>
+                        <span id="selectedAddress">@((ViewBag.SelectedUserAddress as KeyboardWebsiteProject.Models.UserAddress)?.AddressLine1 ?? "-")</span><br />
+                        <span id="selectedDistrict">@((ViewBag.SelectedUserAddress as KeyboardWebsiteProject.Models.UserAddress)?.District ?? "-")</span>, <span id="selectedProvince">@((ViewBag.SelectedUserAddress as KeyboardWebsiteProject.Models.UserAddress)?.Province ?? "-")</span> <span id="selectedPostal">@((ViewBag.SelectedUserAddress as KeyboardWebsiteProject.Models.UserAddress)?.PostalCode ?? "-")</span><br />
+                        <span style="margin-top: 4px; display: inline-block;">Phone: <span id="selectedPhone">@((ViewBag.SelectedUserAddress as KeyboardWebsiteProject.Models.UserAddress)?.PhoneNumber ?? "-")</span></span>
                     </div>
                 </div>
+                <div id="addressError" class="address-error">Please add a shipping address before checkout.</div>
             </div>
 
             <!-- ── Order Summary ── -->
@@ -122,12 +123,15 @@
             }
             else
             {
-                <div class="sum-row"><span class="sum-lbl">Subtotal</span><span class="sum-val">฿@subtotal.ToString("0.00")</span></div>
+                <div class="selected-summary-box">
+                    <div class="selected-summary-text">
+                        📦 Selected: <span id="selectedCount">0</span> / @Model.Count item(s)
+                    </div>
+                </div>
+                <div class="sum-row"><span class="sum-lbl">Subtotal</span><span class="sum-val" id="selectedSubtotal">฿0.00</span></div>
                 <div class="sum-row"><span class="sum-lbl">Shipping</span><span class="sum-val free">Free</span></div>
-                <div class="total-row"><span class="total-lbl">Total</span><span class="total-val">฿@subtotal.ToString("0.00")</span></div>
-                <form method="post" asp-action="Checkout" asp-controller="Home">
-                    <button class="checkout-btn" type="submit">Proceed to Checkout</button>
-                </form>
+                <div class="total-row"><span class="total-lbl">Total</span><span class="total-val" id="selectedTotal">฿0.00</span></div>
+                <button class="checkout-btn" type="button" onclick="proceedToCheckout()">Proceed to Checkout</button>
             }
 
             <div class="trust">
@@ -139,79 +143,170 @@
     </div>
 </div>
 
+<!-- ── Confirm Clear Cart Modal ── -->
+<div id="confirmClearModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center;">
+    <div style="background: white; padding: 28px; border-radius: 12px; max-width: 400px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); text-align: center;">
+        <div style="margin-bottom: 20px;">
+            <div style="font-size: 48px; margin-bottom: 12px;">⚠️</div>
+            <h2 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 700; color: #1f2937;">Confirm Clear Cart</h2>
+            <p style="margin: 0; color: #6b7280; font-size: 14px;">Are you sure you want to clear your cart? This action cannot be undone.</p>
+        </div>
+        <div style="display: flex; gap: 12px; justify-content: center;">
+            <button type="button" onclick="closeClearModal()" style="padding: 10px 24px; border: 1px solid #d1d5db; background: white; border-radius: 6px; font-weight: 600; cursor: pointer; color: #374151; transition: all 0.2s;">Cancel</button>
+            <button type="button" onclick="submitClearCart()" style="padding: 10px 24px; border: none; background: #ef4444; border-radius: 6px; font-weight: 600; cursor: pointer; color: white; transition: all 0.2s;">Confirm Clear All</button>
+        </div>
+    </div>
+</div>
+
 <!-- ── Address Selection Modal ── -->
-<div id="addressModal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center;">
-    <div style="background: white; padding: 28px; border-radius: 12px; max-width: 450px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); width: 90%; max-height: 90vh; overflow-y: auto;">
+<div id="addressModal" class="address-modal">
+    <div class="address-modal-content">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
             <h2 style="margin: 0; font-size: 18px; font-weight: 700;">Select Delivery Address</h2>
-            <button type="button" onclick="closeAddressModal()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #6b7280;">✕</button>
+            <button type="button" onclick="closeAddressModal()" class="modal-close-btn">✕</button>
         </div>
 
-        <div id="addressList" style="display: flex; flex-direction: column; gap: 12px;">
+        <div id="addressList" class="address-list">
             <!-- Address items will be generated by JavaScript -->
         </div>
     </div>
 </div>
 
 <script>
-    // Mock address data
-    const mockAddresses = [
-        {
-            id: 1,
-            name: "นาย สมชาย ใจดี",
-            phone: "098-765-4321",
-            address: "123 ซอยสุขสวัสดิ์",
-            district: "ขลุง",
-            province: "ฉะเชิงเทรา",
-            postal: "24000",
-            isDefault: true
-        },
-        {
-            id: 2,
-            name: "นางสาว มณฑา บุญมี",
-            phone: "089-123-4567",
-            address: "456 ถนนรัชดาภิเษก",
-            district: "ลาดกระบัง",
-            province: "กรุงเทพฯ",
-            postal: "10520",
-            isDefault: false
-        },
-        {
-            id: 3,
-            name: "นาย ปรัชญา เจริงรัตน์",
-            phone: "087-654-3210",
-            address: "789 ซอยเทพลีลา",
-            district: "ดอนเมือง",
-            province: "กรุงเทพฯ",
-            postal: "10210",
-            isDefault: false
+    // Cart items data from Razor model
+    const cartItemsData = [
+        @{
+            if (Model != null && Model.Any())
+            {
+                var itemList = Model.Select(x => $"{{cartId: {x.CartId}, price: {x.Price}, quantity: {x.Quantity}, total: {x.Total}}}").ToList();
+                @Html.Raw(string.Join(",", itemList))
+            }
         }
     ];
+
+    // Initialize checkboxes
+    function initializeCheckboxes() {
+        const checkboxes = document.querySelectorAll('.item-checkbox');
+        checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const cartId = parseInt(this.getAttribute('data-cart-id'));
+                    const isSelected = this.checked;
+                    updateCartSelection(cartId, isSelected);
+                    updateOrderSummary();
+                });
+            });
+            updateOrderSummary();
+        }
+
+        function updateOrderSummary() {
+            const selectedCheckboxes = document.querySelectorAll('.item-checkbox:checked');
+            const selectedCount = selectedCheckboxes.length;
+            
+            let selectedSubtotal = 0;
+            selectedCheckboxes.forEach(checkbox => {
+                const cartId = parseInt(checkbox.getAttribute('data-cart-id'));
+                const item = cartItemsData.find(x => x.cartId === cartId);
+                if (item) {
+                    selectedSubtotal += item.total;
+                }
+            });
+
+            // Update display
+            document.getElementById('selectedCount').textContent = selectedCount;
+            document.getElementById('selectedSubtotal').textContent = '฿' + selectedSubtotal.toFixed(2);
+            document.getElementById('selectedTotal').textContent = '฿' + selectedSubtotal.toFixed(2);
+        }
+
+        async function updateCartSelection(cartId, isSelected) {
+            try {
+                const response = await fetch('/Home/UpdateCartSelection', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ cartId, isSelected })
+                });
+                const result = await response.json();
+                if (!result.success) {
+                    console.error('Failed to update selection:', result.message);
+                }
+            } catch (error) {
+                console.error('Failed to update selection:', error);
+            }
+        }
+
+        function proceedToCheckout() {
+            const selectedCheckboxes = document.querySelectorAll('.item-checkbox:checked');
+            const addressDisplay = document.getElementById('addressDisplay');
+            const addressError = document.getElementById('addressError');
+            const selectedName = document.getElementById('selectedName').textContent.trim();
+            const selectedAddress = document.getElementById('selectedAddress').textContent.trim();
+
+            const noAddress = selectedName === 'No address selected' || selectedAddress === '-' || selectedAddress.length === 0;
+
+            if (noAddress) {
+                addressError.style.display = 'block';
+                addressDisplay.classList.add('error');
+                addressDisplay.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
+
+            addressError.style.display = 'none';
+            addressDisplay.classList.remove('error');
+
+            if (selectedCheckboxes.length === 0) {
+                alert('กรุณาเลือกอย่างน้อย 1 รายการสินค้าก่อนชำระเงิน');
+                return;
+            }
+
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/Home/Checkout';
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', initializeCheckboxes);
+
+    const userAddresses = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+        ViewBag.UserAddresses ?? new List<KeyboardWebsiteProject.Models.UserAddress>(),
+        new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }
+    ));
 
     function openAddressModal() {
         const modal = document.getElementById('addressModal');
         const addressList = document.getElementById('addressList');
         
-        // Generate address items
-        addressList.innerHTML = mockAddresses.map(addr => `
-            <div onclick="selectAddress(${addr.id})" style="padding: 12px; border: 2px solid #e5e7eb; border-radius: 8px; cursor: pointer; transition: all 0.2s;" 
-                 onmouseover="this.style.borderColor='#3b82f6'; this.style.background='#f0f9ff';"
-                 onmouseout="this.style.borderColor='#e5e7eb'; this.style.background='white';">
-                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
-                    <div>
-                        <div style="font-weight: 600; font-size: 14px; color: #1f2937;">${addr.name}</div>
-                        <div style="font-size: 12px; color: #6b7280; margin-top: 2px;">โทร: ${addr.phone}</div>
-                    </div>
-                    ${addr.isDefault ? '<span style="background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">Default</span>' : ''}
+        if (!userAddresses || userAddresses.length === 0) {
+            addressList.innerHTML = `
+                <div class="address-modal-message">
+                    No saved addresses found.
                 </div>
-                <div style="font-size: 13px; color: #374151; line-height: 1.5;">
-                    ${addr.address}<br />
-                    ${addr.district}, ${addr.province} ${addr.postal}
+                <div class="address-modal-actions">
+                    <a href="/Account/Profile" class="profile-link">Add Address in Profile</a>
+                </div>
+            `;
+            modal.style.display = 'flex';
+            return;
+        }
+
+        addressList.innerHTML = userAddresses.map(addr => `
+            <div onclick="selectAddress(${addr.addressId})" class="address-card">
+                <div class="address-card-header">
+                    <div>
+                        <div class="address-card-name">${addr.receiverName ?? 'Unnamed'}</div>
+                        <div class="address-card-phone">Phone: ${addr.phoneNumber ?? '-'}</div>
+                    </div>
+                    ${addr.isDefault ? '<span class="address-default-badge">Default</span>' : ''}
+                </div>
+                <div class="address-card-body">
+                    ${addr.addressLine1 ?? '-'}<br />
+                    ${addr.district ?? '-'}, ${addr.province ?? '-'} ${addr.postalCode ?? '-'}
                 </div>
             </div>
         `).join('');
         
-        // Display as flex to center
         modal.style.display = 'flex';
     }
 
@@ -219,18 +314,21 @@
         document.getElementById('addressModal').style.display = 'none';
     }
 
+    let selectedAddressId = @((ViewBag.SelectedUserAddress as KeyboardWebsiteProject.Models.UserAddress)?.AddressId ?? 0);
+
     function selectAddress(addressId) {
-        const address = mockAddresses.find(a => a.id === addressId);
+        const address = userAddresses.find(a => a.addressId === addressId);
         if (address) {
-            // Update display
-            document.getElementById('selectedName').textContent = address.name;
-            document.getElementById('selectedPhone').textContent = address.phone;
-            document.getElementById('selectedAddress').textContent = address.address;
-            document.getElementById('selectedDistrict').textContent = address.district;
-            document.getElementById('selectedProvince').textContent = address.province;
-            document.getElementById('selectedPostal').textContent = address.postal;
-            
-            // Close modal
+            selectedAddressId = address.addressId;
+            document.getElementById('selectedName').textContent = address.receiverName || 'Unnamed';
+            document.getElementById('selectedPhone').textContent = address.phoneNumber || '-';
+            document.getElementById('selectedAddress').textContent = address.addressLine1 || '-';
+            document.getElementById('selectedDistrict').textContent = address.district || '-';
+            document.getElementById('selectedProvince').textContent = address.province || '-';
+            document.getElementById('selectedPostal').textContent = address.postalCode || '-';
+            document.getElementById('addressError').style.display = 'none';
+            document.getElementById('addressDisplay').style.borderColor = '#e5e7eb';
+            document.getElementById('addressDisplay').style.background = '#f9fafb';
             closeAddressModal();
         }
     }
@@ -241,6 +339,27 @@
             closeAddressModal();
         }
     });
+
+    // Clear cart confirmation
+    function confirmClearCart() {
+        document.getElementById('confirmClearModal').style.display = 'flex';
+    }
+
+    function closeClearModal() {
+        document.getElementById('confirmClearModal').style.display = 'none';
+    }
+
+    function submitClearCart() {
+        document.getElementById('clearCartForm').submit();
+    }
+
+    // Close clear modal when clicking outside
+    document.getElementById('confirmClearModal')?.addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeClearModal();
+        }
+    });
 </script>
+
 </body>
 </html>

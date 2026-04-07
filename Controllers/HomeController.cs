@@ -311,7 +311,8 @@ public class HomeController : Controller
             if (_connection.State == System.Data.ConnectionState.Closed)
                 _connection.Open();
 
-            string query = @"SELECT c.cart_id, c.product_id, c.quantity, p.name, p.price, p.stock_quantity,
+            string query = @"SELECT c.cart_id, c.product_id, c.quantity, c.is_selected,
+                                   p.name, p.price, p.stock_quantity,
                                    COALESCE(pi.image_url, '~/image/default.png') AS image_url,
                                    COALESCE(cat.category_name, 'Uncategorized') AS category_name,
                                    COALESCE(b.brand_name, '') AS brand_name
@@ -335,6 +336,7 @@ public class HomeController : Controller
                             CartId = reader.GetInt32("cart_id"),
                             ProductId = reader.GetInt32("product_id"),
                             Quantity = reader.GetInt32("quantity"),
+                            IsSelected = reader.GetBoolean("is_selected"),
                             Name = reader.GetString("name"),
                             Price = reader.GetDecimal("price"),
                             StockQuantity = reader.GetInt32("stock_quantity"),
@@ -346,6 +348,45 @@ public class HomeController : Controller
                 }
             }
 
+            var userAddresses = new List<UserAddress>();
+            UserAddress? selectedAddress = null;
+            string addressQuery = @"SELECT address_id, user_id, receiver_name, phone_number, address_line1,
+                                           sub_district, district, province, postal_code, is_default
+                                    FROM User_Addresses
+                                    WHERE user_id = @userId
+                                    ORDER BY is_default DESC, created_at DESC";
+            using (var addressCmd = new MySqlCommand(addressQuery, _connection))
+            {
+                addressCmd.Parameters.AddWithValue("@userId", userId.Value);
+                using (var reader = addressCmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        var address = new UserAddress
+                        {
+                            AddressId = reader.GetInt32("address_id"),
+                            UserId = reader.GetInt32("user_id"),
+                            ReceiverName = reader.IsDBNull(reader.GetOrdinal("receiver_name")) ? null : reader.GetString("receiver_name"),
+                            PhoneNumber = reader.IsDBNull(reader.GetOrdinal("phone_number")) ? null : reader.GetString("phone_number"),
+                            AddressLine1 = reader.IsDBNull(reader.GetOrdinal("address_line1")) ? null : reader.GetString("address_line1"),
+                            SubDistrict = reader.IsDBNull(reader.GetOrdinal("sub_district")) ? null : reader.GetString("sub_district"),
+                            District = reader.IsDBNull(reader.GetOrdinal("district")) ? null : reader.GetString("district"),
+                            Province = reader.IsDBNull(reader.GetOrdinal("province")) ? null : reader.GetString("province"),
+                            PostalCode = reader.IsDBNull(reader.GetOrdinal("postal_code")) ? null : reader.GetString("postal_code"),
+                            IsDefault = reader.GetBoolean("is_default")
+                        };
+                        userAddresses.Add(address);
+                    }
+                }
+            }
+
+            if (userAddresses.Any())
+            {
+                selectedAddress = userAddresses.First();
+            }
+
+            ViewBag.UserAddresses = userAddresses;
+            ViewBag.SelectedUserAddress = selectedAddress;
             ViewBag.CartMessage = TempData["CartMessage"];
             return View(cartItems);
         }
@@ -364,7 +405,8 @@ public class HomeController : Controller
     private List<CartItem> GetCartItems(int userId)
     {
         var cartItems = new List<CartItem>();
-        string query = @"SELECT c.cart_id, c.product_id, c.quantity, p.name, p.price, p.stock_quantity,
+        string query = @"SELECT c.cart_id, c.product_id, c.quantity, c.is_selected,
+                                   p.name, p.price, p.stock_quantity,
                                    COALESCE(pi.image_url, '~/image/default.png') AS image_url,
                                    COALESCE(cat.category_name, 'Uncategorized') AS category_name,
                                    COALESCE(b.brand_name, '') AS brand_name
@@ -375,7 +417,6 @@ public class HomeController : Controller
                              LEFT JOIN Brands b ON p.brand_id = b.brand_id
                              WHERE c.user_id = @userId
                              ORDER BY c.added_at DESC";
-
         using (var cmd = new MySqlCommand(query, _connection))
         {
             cmd.Parameters.AddWithValue("@userId", userId);
@@ -388,6 +429,7 @@ public class HomeController : Controller
                         CartId = reader.GetInt32("cart_id"),
                         ProductId = reader.GetInt32("product_id"),
                         Quantity = reader.GetInt32("quantity"),
+                        IsSelected = reader.GetBoolean("is_selected"),
                         Name = reader.GetString("name"),
                         Price = reader.GetDecimal("price"),
                         StockQuantity = reader.GetInt32("stock_quantity"),
@@ -416,10 +458,10 @@ public class HomeController : Controller
             if (_connection.State == System.Data.ConnectionState.Closed)
                 _connection.Open();
 
-            var cartItems = GetCartItems(userId.Value);
+            var cartItems = GetCartItems(userId.Value).Where(item => item.IsSelected).ToList();
             if (!cartItems.Any())
             {
-                TempData["CartMessage"] = "ตะกร้าของคุณยังว่างอยู่";
+                TempData["CartMessage"] = "กรุณาเลือกสินค้าอย่างน้อย 1 รายการก่อนชำระเงิน";
                 return RedirectToAction("Cart");
             }
 
@@ -544,6 +586,40 @@ public class HomeController : Controller
                 _connection.Close();
         }
         return RedirectToAction("Cart");
+    }
+
+    [HttpPost]
+    public IActionResult UpdateCartSelection([FromBody] UpdateCartSelectionRequest request)
+    {
+        var userId = HttpContext.Session.GetInt32("UserId");
+        if (userId == null)
+        {
+            return Json(new { success = false, message = "กรุณาเข้าสู่ระบบ" });
+        }
+
+        try
+        {
+            if (_connection.State == System.Data.ConnectionState.Closed)
+                _connection.Open();
+
+            string updateSql = "UPDATE Cart SET is_selected = @isSelected WHERE cart_id = @cartId AND user_id = @userId";
+            using var cmd = new MySqlCommand(updateSql, _connection);
+            cmd.Parameters.AddWithValue("@isSelected", request.IsSelected ? 1 : 0);
+            cmd.Parameters.AddWithValue("@cartId", request.CartId);
+            cmd.Parameters.AddWithValue("@userId", userId.Value);
+            cmd.ExecuteNonQuery();
+
+            return Json(new { success = true });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { success = false, message = ex.Message });
+        }
+        finally
+        {
+            if (_connection.State == System.Data.ConnectionState.Open)
+                _connection.Close();
+        }
     }
 
     public IActionResult Productdetails(int id)

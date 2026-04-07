@@ -605,6 +605,128 @@ public class AccountController : Controller
     }
 
     [HttpPost]
+    public IActionResult UpdateAddress(int addressId, string receiver, string phone, string line1, string subdistrict, string district, string province, string postal, bool isDefault)
+    {
+        int? userId = HttpContext.Session.GetInt32("UserId");
+        if (userId == null)
+        {
+            return Json(new { success = false, message = "กรุณาเข้าสู่ระบบ" });
+        }
+
+        try
+        {
+            if (_connection.State == System.Data.ConnectionState.Closed)
+            {
+                _connection.Open();
+            }
+
+            if (isDefault)
+            {
+                string unsetQuery = "UPDATE User_Addresses SET is_default = 0 WHERE user_id = @userId";
+                using (MySqlCommand cmd = new MySqlCommand(unsetQuery, _connection))
+                {
+                    cmd.Parameters.AddWithValue("@userId", userId.Value);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+
+            string updateQuery = @"UPDATE User_Addresses
+                                   SET receiver_name = @receiver,
+                                       phone_number = @phone,
+                                       address_line1 = @line1,
+                                       sub_district = @subdistrict,
+                                       district = @district,
+                                       province = @province,
+                                       postal_code = @postal,
+                                       is_default = @isDefault
+                                   WHERE address_id = @addressId
+                                     AND user_id = @userId";
+
+            using (MySqlCommand cmd = new MySqlCommand(updateQuery, _connection))
+            {
+                cmd.Parameters.AddWithValue("@receiver", receiver ?? "");
+                cmd.Parameters.AddWithValue("@phone", phone ?? "");
+                cmd.Parameters.AddWithValue("@line1", line1 ?? "");
+                cmd.Parameters.AddWithValue("@subdistrict", subdistrict ?? "");
+                cmd.Parameters.AddWithValue("@district", district ?? "");
+                cmd.Parameters.AddWithValue("@province", province ?? "");
+                cmd.Parameters.AddWithValue("@postal", postal ?? "");
+                cmd.Parameters.AddWithValue("@isDefault", isDefault);
+                cmd.Parameters.AddWithValue("@addressId", addressId);
+                cmd.Parameters.AddWithValue("@userId", userId.Value);
+                int rows = cmd.ExecuteNonQuery();
+                if (rows == 0)
+                {
+                    return Json(new { success = false, message = "ไม่พบที่อยู่หรือไม่มีสิทธิ์แก้ไข" });
+                }
+            }
+
+            return Json(new { success = true, message = "แก้ไขที่อยู่เรียบร้อยแล้ว" });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { success = false, message = $"เกิดข้อผิดพลาด: {ex.Message}" });
+        }
+        finally
+        {
+            if (_connection.State == System.Data.ConnectionState.Open)
+            {
+                _connection.Close();
+            }
+        }
+    }
+
+    [HttpPost]
+    public IActionResult SetDefaultAddress(int addressId)
+    {
+        int? userId = HttpContext.Session.GetInt32("UserId");
+        if (userId == null)
+        {
+            return Json(new { success = false, message = "กรุณาเข้าสู่ระบบ" });
+        }
+
+        try
+        {
+            if (_connection.State == System.Data.ConnectionState.Closed)
+            {
+                _connection.Open();
+            }
+
+            string unsetQuery = "UPDATE User_Addresses SET is_default = 0 WHERE user_id = @userId";
+            using (MySqlCommand cmd = new MySqlCommand(unsetQuery, _connection))
+            {
+                cmd.Parameters.AddWithValue("@userId", userId.Value);
+                cmd.ExecuteNonQuery();
+            }
+
+            string setQuery = "UPDATE User_Addresses SET is_default = 1 WHERE address_id = @addressId AND user_id = @userId";
+            using (MySqlCommand cmd = new MySqlCommand(setQuery, _connection))
+            {
+                cmd.Parameters.AddWithValue("@addressId", addressId);
+                cmd.Parameters.AddWithValue("@userId", userId.Value);
+                int rows = cmd.ExecuteNonQuery();
+                if (rows == 0)
+                {
+                    return Json(new { success = false, message = "ไม่พบที่อยู่หรือไม่มีสิทธิ์ตั้งค่า" });
+                }
+            }
+
+            return Json(new { success = true, message = "ตั้งที่อยู่เริ่มต้นเรียบร้อยแล้ว" });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { success = false, message = $"เกิดข้อผิดพลาด: {ex.Message}" });
+        }
+        finally
+        {
+            if (_connection.State == System.Data.ConnectionState.Open)
+            {
+                _connection.Close();
+            }
+        }
+    }
+
+    [HttpPost]
     public async Task<IActionResult> UpdateAvatar(IFormFile avatar)
     {
         int? userId = HttpContext.Session.GetInt32("UserId");

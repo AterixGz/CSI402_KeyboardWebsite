@@ -29,10 +29,31 @@ public class CartItem
     public decimal Price { get; set; }
     public int Quantity { get; set; }
     public int StockQuantity { get; set; }
+    public bool IsSelected { get; set; }
     public string? ImageUrl { get; set; }
     public string? CategoryName { get; set; }
     public string? BrandName { get; set; }
     public decimal Total => Price * Quantity;
+}
+
+public class UserAddress
+{
+    public int AddressId { get; set; }
+    public int UserId { get; set; }
+    public string? ReceiverName { get; set; }
+    public string? PhoneNumber { get; set; }
+    public string? AddressLine1 { get; set; }
+    public string? SubDistrict { get; set; }
+    public string? District { get; set; }
+    public string? Province { get; set; }
+    public string? PostalCode { get; set; }
+    public bool IsDefault { get; set; }
+}
+
+public class UpdateCartSelectionRequest
+{
+    public int CartId { get; set; }
+    public bool IsSelected { get; set; }
 }
 
 // Models สำหรับ API request

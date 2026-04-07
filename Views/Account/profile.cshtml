@@ -364,15 +364,49 @@
                                 </div>
                                 <div class="address-phone">@addr.PhoneNumber</div>
                                 <div class="address-line">
-                                    @addr.AddressLine1, แขวง@addr.SubDistrict,
-                                    เขต@addr.District, @addr.Province @addr.PostalCode
+                                    @{ 
+                                        var addressParts = new List<string>();
+                                        var line1 = addr.AddressLine1 as string;
+                                        var subDistrict = addr.SubDistrict as string;
+                                        var district = addr.District as string;
+                                        var province = addr.Province as string;
+                                        var postal = addr.PostalCode as string;
+
+                                        if (!string.IsNullOrWhiteSpace(line1)) addressParts.Add(line1);
+                                        if (!string.IsNullOrWhiteSpace(subDistrict)) addressParts.Add(subDistrict);
+                                        if (!string.IsNullOrWhiteSpace(district)) addressParts.Add(district);
+
+                                        var provincePostal = string.Empty;
+                                        if (!string.IsNullOrWhiteSpace(province)) provincePostal = province;
+                                        if (!string.IsNullOrWhiteSpace(postal)) provincePostal = string.IsNullOrWhiteSpace(provincePostal)
+                                            ? postal
+                                            : $"{provincePostal} {postal}";
+
+                                        if (!string.IsNullOrWhiteSpace(provincePostal)) addressParts.Add(provincePostal);
+                                    }
+                                    @string.Join(", ", addressParts)
                                 </div>
                             </div>
                             <div class="address-actions">
-                                <button class="btn-text">แก้ไข</button>
+                                <button class="btn-text" type="button"
+                                    onclick="openEditAddressModal(this)"
+                                    data-addressid="@addr.AddressId"
+                                    data-receiver="@addr.ReceiverName"
+                                    data-phone="@addr.PhoneNumber"
+                                    data-line1="@addr.AddressLine1"
+                                    data-subdistrict="@addr.SubDistrict"
+                                    data-district="@addr.District"
+                                    data-province="@addr.Province"
+                                    data-postal="@addr.PostalCode"
+                                    data-default="@(addr.IsDefault.ToString().ToLower())">
+                                    แก้ไข
+                                </button>
                                 @if (!addr.IsDefault)
                                 {
-                                    <button class="btn-text btn-text--muted">ตั้งเป็นค่าเริ่มต้น</button>
+                                    <button class="btn-text btn-text--muted" type="button"
+                                        onclick="setDefaultAddress(@addr.AddressId, this)">
+                                        ตั้งเป็นค่าเริ่มต้น
+                                    </button>
                                 }
                             </div>
                         </div>
@@ -420,6 +454,60 @@
                     <div class="edit-actions">
                         <button class="btn-cancel-edit" onclick="toggleEdit('addr')">ยกเลิก</button>
                         <button class="btn-save" onclick="saveAddress()">บันทึกที่อยู่</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Edit address popup -->
+            <div id="addressEditModal" class="modal-overlay" style="display:none;">
+                <div class="modal-box">
+                    <div class="section-header" style="padding: 16px 20px; margin-bottom: 10px;">
+                        <span class="section-title">แก้ไขที่อยู่จัดส่ง</span>
+                        <button class="modal-close-btn" type="button" onclick="closeEditAddressModal()">✕</button>
+                    </div>
+                    <div class="edit-form open" style="padding: 0 20px 20px; border: none; box-shadow: none;">
+                        <input type="hidden" id="em-address-id" />
+                        <div class="edit-grid">
+                            <div class="field">
+                                <label>ชื่อผู้รับ <span class="req">*</span></label>
+                                <input id="em-receiver" type="text" placeholder="ชื่อ-นามสกุลผู้รับ" />
+                            </div>
+                            <div class="field">
+                                <label>เบอร์โทรผู้รับ <span class="req">*</span></label>
+                                <input id="em-phone" type="tel" placeholder="0xx-xxx-xxxx" />
+                            </div>
+                            <div class="field field--full">
+                                <label>บ้านเลขที่ / ถนน / ซอย <span class="req">*</span></label>
+                                <input id="em-line1" type="text" placeholder="เช่น 123/4 ถ.สุขุมวิท" />
+                            </div>
+                            <div class="field">
+                                <label>แขวง / ตำบล <span class="req">*</span></label>
+                                <input id="em-subdistrict" type="text" />
+                            </div>
+                            <div class="field">
+                                <label>เขต / อำเภอ <span class="req">*</span></label>
+                                <input id="em-district" type="text" />
+                            </div>
+                            <div class="field">
+                                <label>จังหวัด <span class="req">*</span></label>
+                                <input id="em-province" type="text" />
+                            </div>
+                            <div class="field">
+                                <label>รหัสไปรษณีย์ <span class="req">*</span></label>
+                                <input id="em-postal" type="text" maxlength="5" />
+                            </div>
+                            <div class="field field--full">
+                                <label class="checkbox-label">
+                                    <input id="em-default" type="checkbox" />
+                                    ตั้งเป็นที่อยู่ค่าเริ่มต้น
+                                </label>
+                            </div>
+                        </div>
+                        <div id="em-error" class="field-error" style="display:none; margin-top: 10px;"></div>
+                        <div class="edit-actions" style="margin-top: 16px;">
+                            <button class="btn-cancel-edit" type="button" onclick="closeEditAddressModal()">ยกเลิก</button>
+                            <button class="btn-save" type="button" onclick="saveEditedAddress()">บันทึกการเปลี่ยนแปลง</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -745,6 +833,105 @@ function saveInfo() {
     }).catch(error => {
         console.error('Error:', error);
         showToast('❌ เกิดข้อผิดพลาดในการบันทึกข้อมูล');
+    });
+}
+
+// ── Edit address popup helpers ──────────────────────────────────────
+function openEditAddressModal(button) {
+    const data = button.dataset;
+    document.getElementById('em-address-id').value = data.addressid || '';
+    document.getElementById('em-receiver').value = data.receiver || '';
+    document.getElementById('em-phone').value = data.phone || '';
+    document.getElementById('em-line1').value = data.line1 || '';
+    document.getElementById('em-subdistrict').value = data.subdistrict || '';
+    document.getElementById('em-district').value = data.district || '';
+    document.getElementById('em-province').value = data.province || '';
+    document.getElementById('em-postal').value = data.postal || '';
+    document.getElementById('em-default').checked = data.default === 'true';
+    document.getElementById('em-error').style.display = 'none';
+    document.getElementById('addressEditModal').style.display = 'flex';
+}
+
+function closeEditAddressModal() {
+    document.getElementById('addressEditModal').style.display = 'none';
+}
+
+function saveEditedAddress() {
+    const addressId = document.getElementById('em-address-id').value;
+    const receiver = document.getElementById('em-receiver').value.trim();
+    const phone = document.getElementById('em-phone').value.trim();
+    const line1 = document.getElementById('em-line1').value.trim();
+    const subdistrict = document.getElementById('em-subdistrict').value.trim();
+    const district = document.getElementById('em-district').value.trim();
+    const province = document.getElementById('em-province').value.trim();
+    const postal = document.getElementById('em-postal').value.trim();
+    const isDefault = document.getElementById('em-default').checked;
+    const errorEl = document.getElementById('em-error');
+
+    if (!receiver || !phone || !line1 || !subdistrict || !district || !province || !postal) {
+        errorEl.textContent = 'กรุณากรอกข้อมูลที่อยู่ให้ครบถ้วน';
+        errorEl.style.display = 'block';
+        return;
+    }
+
+    fetch('/Account/UpdateAddress', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: new URLSearchParams({
+            addressId,
+            receiver,
+            phone,
+            line1,
+            subdistrict,
+            district,
+            province,
+            postal,
+            isDefault
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            errorEl.textContent = data.message || 'เกิดข้อผิดพลาดในการบันทึกที่อยู่';
+            errorEl.style.display = 'block';
+        }
+    })
+    .catch(error => {
+        console.error(error);
+        errorEl.textContent = 'เกิดข้อผิดพลาดในการเชื่อมต่อ';
+        errorEl.style.display = 'block';
+    });
+}
+
+function setDefaultAddress(addressId, button) {
+    if (!addressId) return;
+    button.disabled = true;
+    fetch('/Account/SetDefaultAddress', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: new URLSearchParams({
+            addressId: addressId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            showToast('❌ ' + (data.message || 'ไม่สามารถตั้งเป็นค่าเริ่มต้นได้'));
+            button.disabled = false;
+        }
+    })
+    .catch(error => {
+        console.error(error);
+        showToast('❌ เกิดข้อผิดพลาดในการตั้งที่อยู่ค่าเริ่มต้น');
+        button.disabled = false;
     });
 }
 

@@ -133,7 +133,6 @@ D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\KeyboardWebsitePro
 D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\ref\KeyboardWebsiteProject.dll
 D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\d01r68krg5-{0}-y3bqq3brpz-y3bqq3brpz.gz
 D:\Coding\GithubRepo\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\o1zt5q8v56-{0}-kznkpfdlee-kznkpfdlee.gz
-C:\DATA\Coding\Github\CSI402_KeyboardWebsite\bin\Debug\net10.0\KeyboardWebsiteProject.exe
 C:\DATA\Coding\Github\CSI402_KeyboardWebsite\bin\Debug\net10.0\KeyboardWebsiteProject.dll
 C:\DATA\Coding\Github\CSI402_KeyboardWebsite\bin\Debug\net10.0\CloudinaryDotNet.dll
 C:\DATA\Coding\Github\CSI402_KeyboardWebsite\bin\Debug\net10.0\MySql.Data.dll
@@ -178,7 +177,6 @@ C:\DATA\Coding\Github\CSI402_KeyboardWebsite\obj\Debug\net10.0\scopedcss\Views\S
 C:\DATA\Coding\Github\CSI402_KeyboardWebsite\obj\Debug\net10.0\scopedcss\bundle\KeyboardWebsiteProject.styles.css
 C:\DATA\Coding\Github\CSI402_KeyboardWebsite\obj\Debug\net10.0\scopedcss\projectbundle\KeyboardWebsiteProject.bundle.scp.css
 C:\DATA\Coding\Github\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\wjjz0euiuh-{0}-vcbw3f1srx-vcbw3f1srx.gz
-C:\DATA\Coding\Github\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\o1zt5q8v56-{0}-msfbnu18w9-msfbnu18w9.gz
 C:\DATA\Coding\Github\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\ua5m1f35h1-{0}-wgqysn345o-wgqysn345o.gz
 C:\DATA\Coding\Github\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\v058n5zrcy-{0}-eyzkruvob9-eyzkruvob9.gz
 C:\DATA\Coding\Github\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\d01r68krg5-{0}-y3bqq3brpz-y3bqq3brpz.gz
@@ -189,7 +187,6 @@ C:\DATA\Coding\Github\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\kppr6c
 C:\DATA\Coding\Github\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\19x810m7fm-{0}-zot466ypvm-zot466ypvm.gz
 C:\DATA\Coding\Github\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\v76oufgymt-{0}-hft9be0lyi-hft9be0lyi.gz
 C:\DATA\Coding\Github\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\3u7w7q6oot-{0}-3uizlnit7v-3uizlnit7v.gz
-C:\DATA\Coding\Github\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\7m77f3po1e-{0}-7hf2122bxu-7hf2122bxu.gz
 C:\DATA\Coding\Github\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\ub7ai92iiv-{0}-av6lhs82a3-av6lhs82a3.gz
 C:\DATA\Coding\Github\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\nx2l9ou6eo-{0}-vv678w4fqt-vv678w4fqt.gz
 C:\DATA\Coding\Github\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\2l0gn8o86o-{0}-t51aohhjzj-t51aohhjzj.gz
@@ -269,3 +266,6 @@ C:\DATA\Coding\Github\CSI402_KeyboardWebsite\obj\Debug\net10.0\KeyboardWebsitePr
 C:\DATA\Coding\Github\CSI402_KeyboardWebsite\obj\Debug\net10.0\KeyboardWebsiteProject.genruntimeconfig.cache
 C:\DATA\Coding\Github\CSI402_KeyboardWebsite\obj\Debug\net10.0\ref\KeyboardWebsiteProject.dll
 C:\DATA\Coding\Github\CSI402_KeyboardWebsite\bin\Debug\net10.0\Stripe.net.dll
+C:\DATA\Coding\Github\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\7m77f3po1e-{0}-9lnk38n4s5-9lnk38n4s5.gz
+C:\DATA\Coding\Github\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\o1zt5q8v56-{0}-zxzbfons9v-zxzbfons9v.gz
+C:\DATA\Coding\Github\CSI402_KeyboardWebsite\bin\Debug\net10.0\KeyboardWebsiteProject.exe
