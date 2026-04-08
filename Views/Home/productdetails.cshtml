@@ -204,12 +204,19 @@
 
             <div class="cta-row">
                 <button type="button" class="btn-primary" onclick="addToCartAjax()">Add to Cart</button>
-                <form method="post" asp-action="AddToCart" asp-controller="Home" class="d-inline" id="buyNowForm">
-                    <input type="hidden" name="productId" value="@Model?.ProductId" />
-                    <input type="hidden" name="quantity" id="qty-hidden-buy" value="1" />
-                    <input type="hidden" name="isBuyNow" value="true" />
-                    <button type="submit" class="btn-outline">Buy Now</button>
-                </form>
+                @if (ViewBag.IsAuthenticated == true)
+                {
+                    <form method="post" asp-action="AddToCart" asp-controller="Home" class="d-inline" id="buyNowForm">
+                        <input type="hidden" name="productId" value="@Model?.ProductId" />
+                        <input type="hidden" name="quantity" id="qty-hidden-buy" value="1" />
+                        <input type="hidden" name="isBuyNow" value="true" />
+                        <button type="submit" class="btn-outline">Buy Now</button>
+                    </form>
+                }
+                else
+                {
+                    <a href='@Url.Action("Login", "Account")' class="btn-outline">Buy Now</a>
+                }
             </div>
         </div>
     </section>
@@ -650,34 +657,42 @@
     // ── Add to Cart (AJAX - ไม่เปลี่ยนหน้า) ──
     async function addToCartAjax() {
         const productId = '@Model?.ProductId';
-        const formData = new FormData();
-        formData.append('productId', productId);
-        formData.append('quantity', qty);
 
         try {
             const response = await fetch('@Url.Action("AddToCart", "Home")', {
                 method: 'POST',
-                body: formData,
                 headers: {
+                    'Content-Type': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest'
-                }
+                },
+                body: JSON.stringify({
+                    productId: Number(productId),
+                    quantity: qty,
+                    isBuyNow: false
+                })
             });
 
-            if (response.ok) {
-                const result = await response.json();
-                if (result.success) {
-                    // แสดง toast notification
-                    const toast = document.getElementById('toast');
-                    const productName = '@Model?.Name';
-                    toast.textContent = `✓ Added ${qty}x ${productName} to cart!`;
-                    toast.style.display = 'block';
-                    clearTimeout(toast._t);
-                    toast._t = setTimeout(() => toast.style.display = 'none', 3000);
-                } else {
-                    alert(result.message || 'เกิดข้อผิดพลาด');
+            if (!response.ok) {
+                if (response.status === 401) {
+                    const data = await response.json().catch(() => null);
+                    window.location.href = data?.redirectUrl || '/Account/Login';
+                    return;
                 }
+                throw new Error('ไม่สามารถเพิ่มสินค้าลงตะกร้าได้');
+            }
+
+            const result = await response.json();
+            if (result.success) {
+                const toast = document.getElementById('toast');
+                const productName = '@Model?.Name';
+                toast.textContent = `✓ Added ${qty}x ${productName} to cart!`;
+                toast.style.display = 'block';
+                clearTimeout(toast._t);
+                toast._t = setTimeout(() => toast.style.display = 'none', 3000);
+            } else if (result.redirectUrl) {
+                window.location.href = result.redirectUrl;
             } else {
-                alert('ไม่สามารถเพิ่มสินค้าลงตะกร้าได้');
+                alert(result.message || 'เกิดข้อผิดพลาด');
             }
         } catch (error) {
             console.error('Error:', error);

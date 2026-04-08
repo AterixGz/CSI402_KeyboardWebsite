@@ -2,6 +2,7 @@
 
 @{
     ViewData["Title"] = "Premium Keyboards";
+    var firstCarouselProduct = Model?.FirstOrDefault(p => !string.IsNullOrWhiteSpace(p.ImageUrl));
 }
 
 <link rel="stylesheet" href="~/css/Home/index.css" />
@@ -15,8 +16,8 @@
                 <h1 class="hero-title fw-bold">Craft Your <span class="text-gradient-purple">Perfect</span><br>Typing Experience</h1>
                 <p class="hero-desc">Discover purely aesthetic mechanical keyboards, artisan keycaps, and ultra-smooth switches designed for the dedicated enthusiast.</p>
                 <div class="d-flex gap-3 mb-5">
-                    <a asp-controller="Home" asp-action="Shop" class="btn btn-primary">Shop Keyboards</a>
-                    <a asp-controller="Home" asp-action="Shop" class="btn btn-outline-light">View Accessories</a>
+                    <a asp-controller="Home" asp-action="Shop" asp-route-category="Mechanical Keyboard" class="btn btn-primary">Shop Keyboards</a>
+                    <a asp-controller="Home" asp-action="Shop" asp-route-category="Keycaps" class="btn btn-outline-light">View Accessories</a>
                 </div>
                 
                 <div class="d-flex gap-5 text-secondary">
@@ -31,14 +32,16 @@
                 </div>
             </div>
             <div class="col-lg-6 mt-5 mt-lg-0">
-                <!-- Keyboard Image -->
-                <div class="keyboard-visual-img">
-                    <img src="~/image/Screenshot%202026-02-23%20142530.png" alt="Keyboard Visual" class="w-100" style="border-radius: 16px;" />
-                    <div class="float-badge">
-                        <div class="status-dot"></div>
-                        <div>
-                            <h6 class="mb-0" style="font-size: 0.9rem;">Restocked</h6>
-                            <small class="text-secondary" style="font-size: 0.75rem;">GB - Zoom75</small>
+                <!-- Keyboard Carousel -->
+                <div class="keyboard-visual-img carousel-wrapper">
+                    <a id="heroCarouselLink" href="@(firstCarouselProduct != null ? Url.Action("ProductDetails", "Home", new { id = firstCarouselProduct.ProductId }) : "#")" class="carousel-link">
+                        <img id="heroCarouselImage" src="~/image/Screenshot%202026-02-23%20142530.png" alt="Keyboard Visual" class="w-100 carousel-image" />
+                    </a>
+                    <div class="carousel-info">
+                        <span id="heroCarouselBadge" class="carousel-badge">Restocked</span>
+                        <div class="carousel-text">
+                            <h5 id="heroCarouselTitle">Zoom75 Mechanical Keyboard</h5>
+                            <p id="heroCarouselCategory" class="text-secondary mb-0">Premium build for typing and gaming</p>
                         </div>
                     </div>
                 </div>
@@ -57,7 +60,7 @@
                 </div>
                 <h3 class="cat-title">Keyboards</h3>
                 <p class="cat-meta">Custom & Pre-built</p>
-                <a asp-controller="Home" asp-action="Shop" class="cat-link">Browse Collection <i class="bi bi-arrow-right"></i></a>
+                <a asp-controller="Home" asp-action="Shop" asp-route-category="Mechanical Keyboard" class="cat-link">Browse Collection <i class="bi bi-arrow-right"></i></a>
             </div>
         </div>
         <div class="col-md-4">
@@ -67,7 +70,7 @@
                 </div>
                 <h3 class="cat-title">Keycaps</h3>
                 <p class="cat-meta">GMK, PBT, Artisan</p>
-                <a asp-controller="Home" asp-action="Shop" class="cat-link">Browse Sets <i class="bi bi-arrow-right"></i></a>
+                <a asp-controller="Home" asp-action="Shop" asp-route-category="Keycaps" class="cat-link">Browse Sets <i class="bi bi-arrow-right"></i></a>
             </div>
         </div>
         <div class="col-md-4">
@@ -77,7 +80,7 @@
                 </div>
                 <h3 class="cat-title">Switches</h3>
                 <p class="cat-meta">Linear, Tactile, Clicky</p>
-                <a asp-controller="Home" asp-action="Shop" class="cat-link">Find Your Sound <i class="bi bi-arrow-right"></i></a>
+                <a asp-controller="Home" asp-action="Shop" asp-route-category="Switches" class="cat-link">Find Your Sound <i class="bi bi-arrow-right"></i></a>
             </div>
         </div>
     </div>
@@ -96,7 +99,7 @@
             @foreach (var product in Model)
             {
                 <div class="col-lg-3 col-md-6">
-                    <div class="product-card">
+                    <div class="product-card" data-product-url="@Url.Action("ProductDetails", "Home", new { id = product.ProductId })" onclick="window.location.href=this.dataset.productUrl">
                         <div class="product-image">
                             @if (!string.IsNullOrEmpty(product.ImageUrl))
                             {
@@ -163,6 +166,19 @@
     </div>
 </div>
 
+@{
+    var carouselItems = (Model ?? new List<KeyboardWebsiteProject.Models.Product>())
+        .Where(p => !string.IsNullOrWhiteSpace(p.ImageUrl))
+        .Select(p => new {
+            ImageUrl = Url.Content(p.ImageUrl),
+            Title = p.Name ?? string.Empty,
+            Category = p.CategoryName ?? string.Empty,
+            Badge = p.StockQuantity > 0 ? "In Stock" : "Sold Out",
+            ProductUrl = Url.Action("ProductDetails", "Home", new { id = p.ProductId })
+        })
+        .Take(5)
+        .ToList();
+}
 <script>
     // Scroll-based fade-in animation
     document.addEventListener('DOMContentLoaded', function() {
@@ -185,5 +201,39 @@
         sections.forEach(section => {
             observer.observe(section);
         });
+
+        const carouselData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(carouselItems));
+        const carouselImage = document.getElementById('heroCarouselImage');
+        const carouselLink = document.getElementById('heroCarouselLink');
+        const carouselTitle = document.getElementById('heroCarouselTitle');
+        const carouselCategory = document.getElementById('heroCarouselCategory');
+        const carouselBadge = document.getElementById('heroCarouselBadge');
+        let carouselIndex = 0;
+
+        if (carouselData && carouselData.length > 0) {
+            function showCarouselItem(index) {
+                const item = carouselData[index];
+                if (!item) return;
+
+                carouselImage.style.opacity = '0';
+                setTimeout(() => {
+                    carouselImage.src = item.ImageUrl;
+                    carouselImage.alt = item.Title || 'Keyboard Product';
+                    carouselTitle.textContent = item.Title || 'Featured Keyboard';
+                    carouselCategory.textContent = item.Category || 'Mechanical Keyboard';
+                    carouselBadge.textContent = item.Badge || 'Featured';
+                    if (carouselLink && item.ProductUrl) {
+                        carouselLink.href = item.ProductUrl;
+                    }
+                    carouselImage.style.opacity = '1';
+                }, 300);
+            }
+
+            showCarouselItem(carouselIndex);
+            setInterval(() => {
+                carouselIndex = (carouselIndex + 1) % carouselData.length;
+                showCarouselItem(carouselIndex);
+            }, 4000);
+        }
     });
 </script>

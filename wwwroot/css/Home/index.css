@@ -80,6 +80,59 @@
     margin: 0 auto;
 }
 
+.carousel-wrapper {
+    position: relative;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.carousel-image {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 16px;
+    transition: transform 0.8s ease, opacity 0.5s ease;
+}
+
+.carousel-info {
+    position: absolute;
+    bottom: 18px;
+    left: 18px;
+    right: 18px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 18px;
+    background: rgba(15, 23, 42, 0.7);
+    border-radius: 16px;
+    backdrop-filter: blur(10px);
+}
+
+.carousel-badge {
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    padding: 0.55rem 0.95rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    white-space: nowrap;
+    transition: opacity 0.3s ease;
+}
+
+.carousel-text h5 {
+    margin: 0;
+    font-size: 1.05rem;
+    color: #ffffff;
+    transition: opacity 0.3s ease;
+}
+
+.carousel-text p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #d1d5db;
+    transition: opacity 0.3s ease;
+}
+
 .key-grid {
     display: grid;
     grid-template-columns: repeat(14, 1fr);
@@ -190,6 +243,7 @@
     height: 100%;
     display: flex;
     flex-direction: column;
+    cursor: pointer;
 }
 
 .product-card:hover {

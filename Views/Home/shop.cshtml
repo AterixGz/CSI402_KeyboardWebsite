@@ -1,6 +1,14 @@
+@using System.Text.Json
 @{
     ViewData["Title"] = "Shop All Products";
     var products = ViewBag.Products as List<KeyboardWebsiteProject.Models.Product> ?? new List<KeyboardWebsiteProject.Models.Product>();
+    var categories = products.Where(p => !string.IsNullOrWhiteSpace(p.CategoryName)).Select(p => p.CategoryName!).Distinct().ToList();
+    var brands = products.Where(p => !string.IsNullOrWhiteSpace(p.BrandName)).Select(p => p.BrandName!).Distinct().ToList();
+    var keycapProfiles = products.SelectMany(p => p.Attributes.Where(a => a.AttributeType != null && a.AttributeType.Contains("keycap", System.StringComparison.OrdinalIgnoreCase)).Select(a => a.AttributeValue)).Where(v => !string.IsNullOrWhiteSpace(v)).Distinct().ToList();
+    var switchTypes = products.SelectMany(p => p.Attributes.Where(a => a.AttributeType != null && a.AttributeType.Contains("switch", System.StringComparison.OrdinalIgnoreCase)).Select(a => a.AttributeValue)).Where(v => !string.IsNullOrWhiteSpace(v)).Distinct().ToList();
+    var keyboardSizes = products.SelectMany(p => p.Attributes.Where(a => a.AttributeType != null && (a.AttributeType.Contains("layout", System.StringComparison.OrdinalIgnoreCase) || a.AttributeType.Contains("size", System.StringComparison.OrdinalIgnoreCase))).Select(a => a.AttributeValue)).Where(v => !string.IsNullOrWhiteSpace(v)).Distinct().ToList();
+    var maxPrice = products.Any() ? products.Max(p => p.Price) : 20000m;
+    var selectedCategoryJson = JsonSerializer.Serialize(ViewBag.SelectedCategory ?? "");
 }
 
 <!DOCTYPE html>
@@ -11,6 +19,28 @@
     <title>Shop All Products</title>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="~/css/Home/Shop.css" />
+    <style>
+        @@keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        @@keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+    </style>
 </head>
 <body>
 
@@ -37,78 +67,105 @@
         <div class="filter-section">
             <h3>Category</h3>
             <div class="tag-group">
-                <span class="tag" onclick="toggleTag(this)">Keyboards</span>
-                <span class="tag" onclick="toggleTag(this)">Keycaps</span>
-                <span class="tag" onclick="toggleTag(this)">Switches</span>
-                <span class="tag" onclick="toggleTag(this)">Accessories</span>
+                @if (categories.Any())
+                {
+                    foreach (var category in categories)
+                    {
+                        <span class="tag" data-value="@category" onclick="toggleCategory(this)">@category</span>
+                    }
+                }
+                else
+                {
+                    <span class="tag disabled">No categories</span>
+                }
             </div>
         </div>
 
         <div class="filter-section">
             <h3>Price Range</h3>
             <div class="price-range-wrap">
-                <input type="range" min="0" max="19800" value="19800" id="priceRange" oninput="document.getElementById('priceMax').textContent='฿'+this.value" />
+                <input type="range" min="0" max="@maxPrice" value="@maxPrice" id="priceRange" oninput="updatePriceLabel(this.value)" />
                 <div class="price-labels">
                     <span>฿0</span>
                     <span>to</span>
-                    <span id="priceMax">฿19,800</span>
+                    <span id="priceMax">฿@maxPrice</span>
                 </div>
-            </div>
-        </div>
-
-        <div class="filter-section">
-            <h3>Switch Type</h3>
-            <div class="tag-group">
-                <span class="tag" onclick="toggleTag(this)">Linear</span>
-                <span class="tag" onclick="toggleTag(this)">Tactile</span>
-                <span class="tag" onclick="toggleTag(this)">Clicky</span>
-            </div>
-        </div>
-
-        <div class="filter-section">
-            <h3>Keycap Profile</h3>
-            <div class="tag-group">
-                <span class="tag" onclick="toggleTag(this)">Cherry</span>
-                <span class="tag" onclick="toggleTag(this)">MT3</span>
-                <span class="tag" onclick="toggleTag(this)">KAT</span>
-                <span class="tag" onclick="toggleTag(this)">SA</span>
-                <span class="tag" onclick="toggleTag(this)">DSA</span>
-            </div>
-        </div>
-
-        <div class="filter-section">
-            <h3>Keyboard Layout</h3>
-            <div class="tag-group">
-                <span class="tag" onclick="toggleTag(this)">60%</span>
-                <span class="tag" onclick="toggleTag(this)">65%</span>
-                <span class="tag" onclick="toggleTag(this)">75%</span>
-                <span class="tag" onclick="toggleTag(this)">TKL</span>
-                <span class="tag" onclick="toggleTag(this)">Full-size</span>
             </div>
         </div>
 
         <div class="filter-section">
             <h3>Brand</h3>
-            <div class="checkbox-list-fade">
-                <div class="checkbox-list" id="brandList">
-                    <label><input type="checkbox" /> Angry Miao</label>
-                    <label><input type="checkbox" /> CableMod</label>
-                    <label><input type="checkbox" /> CannonKeys</label>
-                    <label><input type="checkbox" /> Drop</label>
-                    <label><input type="checkbox" /> GMK</label>
-                    <label><input type="checkbox" /> Gateron</label>
-                    <label><input type="checkbox" /> Gazzew</label>
-                    <label><input type="checkbox" /> Mode</label>
-                    <label><input type="checkbox" /> Zoom</label>
-                </div>
+            <div class="checkbox-list brand-filter">
+                @if (brands.Any())
+                {
+                    foreach (var brand in brands)
+                    {
+                        <label><input type="checkbox" value="@brand" onchange="applyFilters()" /> @brand</label>
+                    }
+                }
+                else
+                {
+                    <span class="text-muted">No brands available</span>
+                }
+            </div>
+        </div>
+
+        <div class="filter-section">
+            <h3>Keycap Profile</h3>
+            <div class="checkbox-list keycap-filter">
+                @if (keycapProfiles.Any())
+                {
+                    foreach (var profile in keycapProfiles)
+                    {
+                        <label><input type="checkbox" value="@profile" onchange="applyFilters()" /> @profile</label>
+                    }
+                }
+                else
+                {
+                    <span class="text-muted">No keycap profiles</span>
+                }
+            </div>
+        </div>
+
+        <div class="filter-section">
+            <h3>Switch Type</h3>
+            <div class="checkbox-list switch-filter">
+                @if (switchTypes.Any())
+                {
+                    foreach (var switchType in switchTypes)
+                    {
+                        <label><input type="checkbox" value="@switchType" onchange="applyFilters()" /> @switchType</label>
+                    }
+                }
+                else
+                {
+                    <span class="text-muted">No switch types</span>
+                }
+            </div>
+        </div>
+
+        <div class="filter-section">
+            <h3>Keyboard Size</h3>
+            <div class="checkbox-list size-filter">
+                @if (keyboardSizes.Any())
+                {
+                    foreach (var size in keyboardSizes)
+                    {
+                        <label><input type="checkbox" value="@size" onchange="applyFilters()" /> @size</label>
+                    }
+                }
+                else
+                {
+                    <span class="text-muted">No keyboard sizes</span>
+                }
             </div>
         </div>
 
         <div class="filter-section">
             <h3>Availability</h3>
             <div class="checkbox-list">
-                <label><input type="checkbox" /> In Stock Only</label>
-                <label><input type="checkbox" /> New Arrivals</label>
+                <label><input type="checkbox" id="inStockOnly" onchange="applyFilters()" /> In Stock Only</label>
+                <label><input type="checkbox" id="lowStockOnly" onchange="applyFilters()" /> Low Stock Only</label>
             </div>
         </div>
     </aside>
@@ -140,7 +197,7 @@
             {
                 @foreach (var product in products)
                 {
-                    <a class="product-card" href="@Url.Action("Productdetails", "Home", new { id = product.ProductId })">
+                    <a class="product-card" href="@Url.Action("Productdetails", "Home", new { id = product.ProductId })" data-product-id="@product.ProductId" data-category="@product.CategoryName" data-brand="@product.BrandName" data-price="@product.Price" data-stock="@product.StockQuantity" data-alt-image="@Url.Content(product.ImageUrls.Skip(1).FirstOrDefault() ?? "")" data-keycap-profiles="@string.Join(",", product.Attributes.Where(a => a.AttributeType != null && a.AttributeType.Contains("keycap", System.StringComparison.OrdinalIgnoreCase)).Select(a => a.AttributeValue ?? String.Empty).Where(v => !string.IsNullOrWhiteSpace(v)))" data-switch-types="@string.Join(",", product.Attributes.Where(a => a.AttributeType != null && a.AttributeType.Contains("switch", System.StringComparison.OrdinalIgnoreCase)).Select(a => a.AttributeValue ?? String.Empty).Where(v => !string.IsNullOrWhiteSpace(v)))" data-keyboard-sizes="@string.Join(",", product.Attributes.Where(a => a.AttributeType != null && (a.AttributeType.Contains("layout", System.StringComparison.OrdinalIgnoreCase) || a.AttributeType.Contains("size", System.StringComparison.OrdinalIgnoreCase))).Select(a => a.AttributeValue ?? String.Empty).Where(v => !string.IsNullOrWhiteSpace(v)))">
                         <div class="card-image">
                             @if (product.StockQuantity == 0)
                             {
@@ -170,11 +227,57 @@
                             }
                         </div>
                         <div class="card-body">
-                            <div class="card-name">@product.Name</div>
-                            <div class="card-desc">@product.CategoryName - @product.BrandName</div>
+                            <div>
+                                <div class="card-name">@product.Name</div>
+                                <div class="card-meta">
+                                    <span class="meta-brand">@product.BrandName</span>
+                                    <span class="meta-category">@product.CategoryName</span>
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(product.Description))
+                                {
+                                    <div class="card-full-desc">@product.Description</div>
+                                }
+                                @if (product.ReviewCount > 0)
+                                {
+                                    <div class="card-rating">
+                                        <div class="stars">
+                                            @for (int i = 0; i < 5; i++)
+                                            {
+                                                <span class="star @(i < (int)Math.Round(product.AverageRating) ? "filled" : "")">★</span>
+                                            }
+                                        </div>
+                                        <span class="review-count">(@product.ReviewCount reviews)</span>
+                                    </div>
+                                }
+                                @if (product.StockQuantity > 0)
+                                {
+                                    <div class="stock-info">
+                                        @if (product.StockQuantity <= 5)
+                                        {
+                                            <span class="stock-low">@product.StockQuantity items left</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="stock-available">In Stock (@product.StockQuantity available)</span>
+                                        }
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="stock-info">
+                                        <span class="stock-out">Out of Stock</span>
+                                    </div>
+                                }
+                            </div>
                             <div class="card-footer">
                                 <span class="card-price">฿@product.Price.ToString("0.00")</span>
-                                <button type="button" class="add-btn" title="Add to cart">+</button>
+                                <div class="card-actions">
+                                    <button type="button" class="add-btn" data-product-id="@product.ProductId" onclick="addToCart(event, @product.ProductId)" title="เพิ่มสินค้าลงตะกร้า">
+                                        Add to
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+                                        
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </a>
@@ -188,22 +291,273 @@
             }
 
         </div><!-- /product-grid -->
+        <div id="noResults" style="grid-column: 1/-1; padding: 40px; text-align: center; color: #6b7280; display:none;">
+            <p>No products match your filters.</p>
+        </div>
     </main>
 </div><!-- /shop-layout -->
 
 <script>
-    function toggleTag(el) {
+    const productGrid = document.getElementById('productGrid');
+    const productCards = Array.from(document.querySelectorAll('.product-card'));
+    const initialOrder = productCards.slice();
+    const categoryTags = Array.from(document.querySelectorAll('.tag-group .tag[data-value]'));
+    const preselectedCategory = @Html.Raw(selectedCategoryJson);
+
+    function setupHoverImageSwap() {
+        productCards.forEach(card => {
+            const altImage = card.dataset.altImage;
+            const img = card.querySelector('.card-image img');
+            if (!altImage || !img) return;
+
+            const originalSrc = img.src;
+            card.addEventListener('mouseenter', () => {
+                img.src = altImage;
+            });
+            card.addEventListener('mouseleave', () => {
+                img.src = originalSrc;
+            });
+        });
+    }
+    const brandCheckboxes = Array.from(document.querySelectorAll('.brand-filter input[type="checkbox"]'));
+    const priceRange = document.getElementById('priceRange');
+    const priceMaxLabel = document.getElementById('priceMax');
+    const searchInput = document.getElementById('searchInput');
+    const inStockOnly = document.getElementById('inStockOnly');
+    const lowStockOnly = document.getElementById('lowStockOnly');
+    const sortSelect = document.querySelector('.sort-select');
+    const viewButtons = Array.from(document.querySelectorAll('.view-btn'));
+    const keycapCheckboxes = Array.from(document.querySelectorAll('.keycap-filter input[type="checkbox"]'));
+    const switchCheckboxes = Array.from(document.querySelectorAll('.switch-filter input[type="checkbox"]'));
+    const sizeCheckboxes = Array.from(document.querySelectorAll('.size-filter input[type="checkbox"]'));
+
+    function toggleCategory(el) {
         el.classList.toggle('active');
+        applyFilters();
     }
 
-    // Simple client-side search
-    document.getElementById('searchInput').addEventListener('input', function () {
-        const q = this.value.toLowerCase();
-        document.querySelectorAll('.product-card').forEach(card => {
-            const name = card.querySelector('.card-name').textContent.toLowerCase();
-            card.style.display = name.includes(q) ? '' : 'none';
+    function updatePriceLabel(value) {
+        priceMaxLabel.textContent = '฿' + Number(value).toLocaleString('en-US', { maximumFractionDigits: 0 });
+        applyFilters();
+    }
+
+    function normalizeCategoryValue(value) {
+        return (value || '').toLowerCase().trim().replace(/s$/, '');
+    }
+
+    function getSelectedCategories() {
+        return categoryTags.filter(tag => tag.classList.contains('active')).map(tag => normalizeCategoryValue(tag.dataset.value));
+    }
+
+    function getSelectedBrands() {
+        return brandCheckboxes.filter(cb => cb.checked).map(cb => cb.value.toLowerCase());
+    }
+
+    function getSelectedAttributes(checkboxes) {
+        return checkboxes.filter(cb => cb.checked).map(cb => cb.value.toLowerCase());
+    }
+
+    function hasAttributeMatch(cardValues, selectedValues) {
+        if (selectedValues.length === 0) return true;
+        return cardValues.some(value => selectedValues.includes(value));
+    }
+
+    function sortCards() {
+        const criteria = sortSelect?.value || 'Featured';
+        let sortedCards = productCards.slice();
+
+        if (criteria === 'Price: Low to High') {
+            sortedCards.sort((a, b) => Number(a.dataset.price || 0) - Number(b.dataset.price || 0));
+        } else if (criteria === 'Price: High to Low') {
+            sortedCards.sort((a, b) => Number(b.dataset.price || 0) - Number(a.dataset.price || 0));
+        } else if (criteria === 'Newest') {
+            sortedCards.sort((a, b) => Number(b.dataset.productId || 0) - Number(a.dataset.productId || 0));
+        } else {
+            sortedCards = initialOrder.slice();
+        }
+
+        sortedCards.forEach(card => productGrid.appendChild(card));
+    }
+
+    function setListView(enabled) {
+        if (enabled) {
+            productGrid.classList.add('list-view');
+        } else {
+            productGrid.classList.remove('list-view');
+        }
+    }
+
+    function applyFilters() {
+        sortCards();
+
+        const query = searchInput.value.trim().toLowerCase();
+        const selectedCategories = getSelectedCategories();
+        const selectedBrands = getSelectedBrands();
+        const maxPrice = Number(priceRange.value);
+        const onlyInStock = inStockOnly?.checked;
+        const onlyLowStock = lowStockOnly?.checked;
+        const selectedKeycaps = getSelectedAttributes(keycapCheckboxes);
+        const selectedSwitches = getSelectedAttributes(switchCheckboxes);
+        const selectedSizes = getSelectedAttributes(sizeCheckboxes);
+
+        let visibleCount = 0;
+
+        productCards.forEach(card => {
+            const name = card.querySelector('.card-name')?.textContent.toLowerCase() ?? '';
+            const category = card.dataset.category?.toLowerCase() ?? '';
+            const brand = card.dataset.brand?.toLowerCase() ?? '';
+            const price = Number(card.dataset.price || 0);
+            const stock = Number(card.dataset.stock || 0);
+            const cardKeycaps = (card.dataset.keycapProfiles || '').split(',').map(v => v.trim().toLowerCase()).filter(Boolean);
+            const cardSwitches = (card.dataset.switchTypes || '').split(',').map(v => v.trim().toLowerCase()).filter(Boolean);
+            const cardSizes = (card.dataset.keyboardSizes || '').split(',').map(v => v.trim().toLowerCase()).filter(Boolean);
+
+            const matchSearch = query === '' || name.includes(query) || category.includes(query) || brand.includes(query);
+            const matchCategory = selectedCategories.length === 0 || selectedCategories.some(selected => selected === normalizeCategoryValue(category));
+            const matchBrand = selectedBrands.length === 0 || selectedBrands.includes(brand);
+            const matchPrice = price <= maxPrice;
+            const matchStock = (!onlyInStock || stock > 0) && (!onlyLowStock || (stock > 0 && stock <= 5));
+            const matchKeycap = hasAttributeMatch(cardKeycaps, selectedKeycaps);
+            const matchSwitch = hasAttributeMatch(cardSwitches, selectedSwitches);
+            const matchSize = hasAttributeMatch(cardSizes, selectedSizes);
+
+            const visible = matchSearch && matchCategory && matchBrand && matchPrice && matchStock && matchKeycap && matchSwitch && matchSize;
+            card.style.display = visible ? '' : 'none';
+            if (visible) visibleCount++;
+        });
+
+        document.getElementById('noResults').style.display = visibleCount === 0 ? 'block' : 'none';
+    }
+
+    sortSelect?.addEventListener('change', applyFilters);
+    searchInput.addEventListener('input', applyFilters);
+    inStockOnly?.addEventListener('change', applyFilters);
+    lowStockOnly?.addEventListener('change', applyFilters);
+
+    viewButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            viewButtons.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            setListView(button.title === 'List view');
         });
     });
+
+    if (preselectedCategory) {
+        const normalizedCategory = preselectedCategory.trim().toLowerCase();
+        let targetTag = categoryTags.find(tag => (tag.dataset.value?.toLowerCase() ?? '') === normalizedCategory);
+
+        if (!targetTag) {
+            targetTag = categoryTags.find(tag => {
+                const tagValue = (tag.dataset.value ?? '').toLowerCase();
+                return tagValue.includes(normalizedCategory)
+                    || tagValue.replace(/s$/, '') === normalizedCategory.replace(/s$/, '');
+            });
+        }
+
+        if (targetTag) {
+            targetTag.classList.add('active');
+        }
+    }
+
+    applyFilters();
+    setupHoverImageSwap();
+
+    // Add to Cart functionality
+    function addToCart(event, productId) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        console.log('Adding to cart - Product ID:', productId);
+
+        const button = event.target.closest('.add-btn');
+        const originalText = button.innerHTML;
+        
+        // Disable button and show loading state
+        button.disabled = true;
+        button.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6m0 0v6"/><path d="M6 12h6m0 0h6"/></svg> Adding...';
+
+        fetch(`/Home/AddToCart`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                productId: parseInt(productId),
+                quantity: 1,
+                isBuyNow: false
+            })
+        })
+        .then(async response => {
+            if (!response.ok) {
+                if (response.status === 401) {
+                    const data = await response.json().catch(() => null);
+                    window.location.href = data?.redirectUrl || '/Account/Login';
+                    return;
+                }
+                throw new Error('ไม่สามารถเพิ่มสินค้าลงตะกร้าได้');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (!data) return;
+            console.log('AddToCart response:', data);
+            if (data.success) {
+                // Show success message
+                button.innerHTML = '✓ Added!';
+                button.style.background = '#059669';
+                
+                // Reset button after 2 seconds
+                setTimeout(() => {
+                    button.disabled = false;
+                    button.innerHTML = originalText;
+                    button.style.background = '';
+                }, 2000);
+
+                // Show alert notification
+                showNotification('สินค้าถูกเพิ่มลงตะกร้าเรียบร้อย', 'success');
+            } else if (data.redirectUrl) {
+                window.location.href = data.redirectUrl;
+            } else {
+                button.disabled = false;
+                button.innerHTML = originalText;
+                showNotification(data.message || 'เกิดข้อผิดพลาด', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            button.disabled = false;
+            button.innerHTML = originalText;
+            showNotification('เกิดข้อผิดพลาด: ไม่สามารถเพิ่มสินค้าได้', 'error');
+        });
+    }
+
+    // Notification helper function
+    function showNotification(message, type) {
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 24px;
+            background: ${type === 'success' ? '#10b981' : '#ef4444'};
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 9999;
+            animation: slideIn 0.3s ease-out;
+            font-size: 14px;
+            font-weight: 500;
+        `;
+        notification.textContent = message;
+        document.body.appendChild(notification);
+
+        // Auto remove after 3 seconds
+        setTimeout(() => {
+            notification.style.animation = 'slideOut 0.3s ease-out';
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+    }
 </script>
 </body>
 </html>

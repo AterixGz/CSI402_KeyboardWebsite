@@ -13,6 +13,7 @@ public class Product
     public string? Description { get; set; } // รายละเอียดสินค้า
     public List<Specification> Specifications { get; set; } = new List<Specification>(); // ข้อมูล specs
     public List<Review> Reviews { get; set; } = new List<Review>();
+    public List<ProductAttribute> Attributes { get; set; } = new List<ProductAttribute>();
     public Review? UserReview { get; set; }
     public int ReviewCount { get; set; }
     public decimal AverageRating { get; set; }
@@ -31,6 +32,13 @@ public class Specification
     public string? SpecValue { get; set; }
 }
 
+public class ProductAttribute
+{
+    public int ProductId { get; set; }
+    public string? AttributeType { get; set; }
+    public string? AttributeValue { get; set; }
+}
+
 public class CartItem
 {
     public int CartId { get; set; }
@@ -44,6 +52,13 @@ public class CartItem
     public string? CategoryName { get; set; }
     public string? BrandName { get; set; }
     public decimal Total => Price * Quantity;
+}
+
+public class AddToCartRequest
+{
+    public int ProductId { get; set; }
+    public int Quantity { get; set; } = 1;
+    public bool IsBuyNow { get; set; }
 }
 
 public class UserAddress

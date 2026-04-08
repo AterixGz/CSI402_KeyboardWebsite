@@ -90,7 +90,7 @@ public class HomeController : Controller
         return View(products);
     }
 
-    public IActionResult Shop()
+    public IActionResult Shop(string category = null)
     {
         var products = new List<Product>();
 
@@ -135,8 +135,14 @@ public class HomeController : Controller
                 }
             }
 
-            // โหลด specifications สำหรับแต่ละ product
+            // โหลด specifications และ attributes สำหรับแต่ละ product
             string specQuery = "SELECT spec_id, product_id, spec_key, spec_value FROM Product_Specifications WHERE product_id = @productId";
+            string attrQuery = @"SELECT pav.product_id, at.at_name AS attribute_type, av.av_value AS attribute_value
+                                 FROM Product_Attribute_Mapping pav
+                                 JOIN Attribute_Values av ON pav.av_id = av.av_id
+                                 JOIN Attribute_Types at ON av.at_id = at.at_id
+                                 WHERE pav.product_id = @productId";
+
             foreach (var product in products)
             {
                 using (MySqlCommand specCmd = new MySqlCommand(specQuery, _connection))
@@ -156,6 +162,36 @@ public class HomeController : Controller
                         }
                     }
                 }
+
+                using (MySqlCommand attrCmd = new MySqlCommand(attrQuery, _connection))
+                {
+                    attrCmd.Parameters.AddWithValue("@productId", product.ProductId);
+                    using (MySqlDataReader reader = attrCmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            product.Attributes.Add(new ProductAttribute
+                            {
+                                ProductId = reader.GetInt32("product_id"),
+                                AttributeType = reader.IsDBNull(reader.GetOrdinal("attribute_type")) ? null : reader.GetString("attribute_type"),
+                                AttributeValue = reader.IsDBNull(reader.GetOrdinal("attribute_value")) ? null : reader.GetString("attribute_value")
+                            });
+                        }
+                    }
+                }
+
+                const string imageQuery = "SELECT image_url FROM Product_Images WHERE product_id = @productId AND image_url IS NOT NULL AND image_url <> '' ORDER BY is_main DESC, image_id ASC";
+                using (MySqlCommand imageCmd = new MySqlCommand(imageQuery, _connection))
+                {
+                    imageCmd.Parameters.AddWithValue("@productId", product.ProductId);
+                    using (MySqlDataReader reader = imageCmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            product.ImageUrls.Add(reader.GetString("image_url"));
+                        }
+                    }
+                }
             }
         }
         catch (Exception ex)
@@ -170,19 +206,37 @@ public class HomeController : Controller
             }
         }
 
+        ViewBag.SelectedCategory = string.IsNullOrWhiteSpace(category) ? null : category.Trim();
         ViewBag.Products = products;
         return View();
     }
 
     [HttpPost]
-    public IActionResult AddToCart(int productId, int quantity = 1, bool isBuyNow = false)
+    public IActionResult AddToCart([FromBody] AddToCartRequest request)
     {
+        if (request == null || request.ProductId <= 0)
+        {
+            if (Request.Headers.ContainsKey("X-Requested-With"))
+            {
+                return Json(new { success = false, message = "สินค้าไม่ถูกต้อง" });
+            }
+            return BadRequest("Invalid product");
+        }
+
+        int productId = request.ProductId;
+        int quantity = request.Quantity;
+        bool isBuyNow = request.IsBuyNow;
+
         var userId = HttpContext.Session.GetInt32("UserId");
         if (userId == null)
         {
             if (Request.Headers.ContainsKey("X-Requested-With"))
             {
-                return Json(new { success = false, message = "กรุณาเข้าสู่ระบบก่อนเพิ่มสินค้าลงในตะกร้า" });
+                var loginUrl = Url.Action("Login", "Account");
+                return new JsonResult(new { success = false, message = "กรุณาเข้าสู่ระบบก่อนเพิ่มสินค้าลงในตะกร้า", redirectUrl = loginUrl })
+                {
+                    StatusCode = 401
+                };
             }
             TempData["CartMessage"] = "กรุณาเข้าสู่ระบบก่อนเพิ่มสินค้าลงในตะกร้า";
             return RedirectToAction("Login", "Account");
@@ -200,12 +254,14 @@ public class HomeController : Controller
             using (var cmd = new MySqlCommand(checkProductQuery, _connection))
             {
                 cmd.Parameters.AddWithValue("@productId", productId);
+                _logger.LogInformation($"Checking product {productId} in database");
                 var result = cmd.ExecuteScalar();
                 if (result == null)
                 {
+                    _logger.LogWarning($"Product {productId} not found in database");
                     if (Request.Headers.ContainsKey("X-Requested-With"))
                     {
-                        return Json(new { success = false, message = "สินค้าไม่ถูกต้อง" });
+                        return Json(new { success = false, message = $"ไม่พบสินค้า ID {productId} ในระบบ กรุณาลองใหม่อีกครั้ง" });
                     }
                     TempData["CartMessage"] = "สินค้าไม่ถูกต้อง";
                     return RedirectToAction("Productdetails", new { id = productId });
@@ -232,6 +288,16 @@ public class HomeController : Controller
             const string selectCartItemQuery = "SELECT cart_id, quantity FROM Cart WHERE user_id = @userId AND product_id = @productId LIMIT 1";
             int existingCartId = 0;
             int existingQuantity = 0;
+
+            // Close and reopen connection to ensure fresh state
+            if (_connection.State == System.Data.ConnectionState.Open)
+            {
+                _connection.Close();
+            }
+            if (_connection.State == System.Data.ConnectionState.Closed)
+            {
+                _connection.Open();
+            }
 
             using (var cmd = new MySqlCommand(selectCartItemQuery, _connection))
             {
@@ -403,6 +469,47 @@ public class HomeController : Controller
         {
             ViewBag.ErrorMessage = $"เกิดข้อผิดพลาดขณะโหลดตะกร้า: {ex.Message}";
             return View(cartItems);
+        }
+        finally
+        {
+            if (_connection.State == System.Data.ConnectionState.Open)
+                _connection.Close();
+        }
+    }
+
+    [HttpGet]
+    public IActionResult DebugProducts()
+    {
+        try
+        {
+            if (_connection.State == System.Data.ConnectionState.Closed)
+                _connection.Open();
+
+            var products = new List<object>();
+            string query = "SELECT product_id, name, stock_quantity FROM Products ORDER BY product_id DESC LIMIT 10";
+            
+            using (var cmd = new MySqlCommand(query, _connection))
+            {
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        products.Add(new
+                        {
+                            product_id = reader.GetInt32("product_id"),
+                            name = reader.GetString("name"),
+                            stock_quantity = reader.GetInt32("stock_quantity")
+                        });
+                    }
+                }
+            }
+
+            return Json(new { success = true, products = products });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Database error: {ex.Message}");
+            return Json(new { success = false, message = ex.Message });
         }
         finally
         {
@@ -1133,6 +1240,7 @@ public class HomeController : Controller
 
             // Load wishlist state for the current user
             var currentUserId = HttpContext.Session.GetInt32("UserId");
+            ViewBag.IsAuthenticated = currentUserId != null;
             if (currentUserId != null && product != null)
             {
                 string wishlistQuery = "SELECT COUNT(*) FROM Wishlist WHERE user_id = @userId AND product_id = @productId";
