@@ -29,7 +29,7 @@
                 @if (!string.IsNullOrEmpty(Model?.ImageUrl))
                 {
                     <!-- Product Image -->
-                    <img src="@Model.ImageUrl" alt="@Model?.Name" />
+                    <img id="mainProductImage" src="@Url.Content(Model.ImageUrl)" alt="@Model?.Name" />
                 }
                 else
                 {
@@ -119,10 +119,22 @@
                 }
             </div>
             <div class="thumbs">
-                <div class="thumb active" onclick="selThumb(this)">⌨️</div>
-                <div class="thumb" onclick="selThumb(this)">🎨</div>
-                <div class="thumb" onclick="selThumb(this)">🔲</div>
-                <div class="thumb" onclick="selThumb(this)">📐</div>
+                @{ 
+                    var thumbs = Model?.ImageUrls ?? new List<string>();
+                    if (thumbs.Count == 0 && !string.IsNullOrEmpty(Model?.ImageUrl))
+                    {
+                        thumbs.Add(Model.ImageUrl);
+                    }
+                    int thumbIndex = 0;
+                }
+                @foreach (var imageUrl in thumbs)
+                {
+                    var activeClass = thumbIndex == 0 ? "active" : "";
+                    <div class="thumb @activeClass" onclick="selThumb(this)" data-image-url="@Url.Content(imageUrl)">
+                        <img src="@Url.Content(imageUrl)" alt="@Model?.Name thumbnail @thumbIndex" />
+                    </div>
+                    thumbIndex++;
+                }
             </div>
         </div>
 
@@ -131,15 +143,28 @@
             <span class="brand-label">@Model?.BrandName</span>
             <h1 class="product-name">@Model?.Name</h1>
 
+            @{ 
+                var reviewCount = Model?.Reviews?.Count ?? 0;
+                var averageRating = reviewCount > 0 ? Model.Reviews.Average(r => r.Rating) : 0.0;
+                var roundedRating = Math.Round(averageRating, 1);
+            }
             <div class="rating-row">
                 <div class="stars">
-                    <span class="star">★</span>
-                    <span class="star">★</span>
-                    <span class="star">★</span>
-                    <span class="star">★</span>
-                    <span class="star empty">★</span>
+                    @for (int i = 1; i <= 5; i++)
+                    {
+                        <span class="star @(i <= Math.Round(averageRating) ? "" : "empty")">★</span>
+                    }
                 </div>
-                <span class="rating-meta">4.8 (128 reviews)</span>
+                <span class="rating-meta">
+                    @if (reviewCount > 0)
+                    {
+                        @($"{roundedRating} ({reviewCount} reviews)")
+                    }
+                    else
+                    {
+                        <span>No reviews yet</span>
+                    }
+                </span>
             </div>
 
             <div class="price-row">
@@ -256,6 +281,131 @@
     .btn-favorite.active:hover {
         background: #fecaca;
     }
+
+    .review-alert {
+        background: #f8fafc;
+        border: 1px solid #cbd5e1;
+        border-radius: 14px;
+        padding: 16px;
+        color: #0f172a;
+        margin-bottom: 20px;
+    }
+
+    .review-list {
+        display: grid;
+        gap: 18px;
+        margin-top: 26px;
+    }
+
+    .review-card {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 20px;
+    }
+
+    .review-input-card.user-review-card {
+        border-color: #fbbf24;
+        background: #fff7ed;
+    }
+
+    .review-breakdown {
+        display: grid;
+        gap: 12px;
+        margin: 18px 0 28px;
+    }
+
+    .review-breakdown-row {
+        display: grid;
+        grid-template-columns: 48px 1fr 40px;
+        gap: 10px;
+        align-items: center;
+        font-size: 0.95rem;
+        color: #374151;
+    }
+
+    .breakdown-bar {
+        background: #e2e8f0;
+        border-radius: 999px;
+        height: 10px;
+        width: 100%;
+        overflow: hidden;
+    }
+
+    .breakdown-fill {
+        height: 100%;
+        background: #f59e0b;
+        border-radius: 999px;
+    }
+
+    .breakdown-count {
+        text-align: right;
+    }
+
+    .review-card {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 20px;
+    }
+
+    .review-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 12px;
+        color: #475569;
+        font-size: 0.95rem;
+    }
+
+    .review-card-stars {
+        display: inline-flex;
+        gap: 4px;
+        margin-bottom: 10px;
+    }
+
+    .review-star {
+        font-size: 1rem;
+        color: #d1d5db;
+    }
+
+    .review-star.filled {
+        color: #f59e0b;
+    }
+
+    .review-card-content {
+        margin-top: 14px;
+    }
+
+    .review-card-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-top: 18px;
+        font-size: 0.9rem;
+        color: #475569;
+    }
+
+    .btn-delete-review {
+        background: none;
+        border: 1px solid #dc2626;
+        color: #dc2626;
+        padding: 8px 14px;
+        border-radius: 8px;
+        cursor: pointer;
+    }
+
+    .btn-delete-review:hover {
+        background: rgba(220, 38, 38, 0.08);
+    }
+
+    .review-card-comment {
+        margin: 0;
+        color: #111827;
+        line-height: 1.7;
+    }
 </style>
         @if (Model?.Specifications != null && Model.Specifications.Count > 0)
         {
@@ -280,9 +430,112 @@
     <!-- ── REVIEWS ── -->
     <section>
         <h2 class="section-title">Customer Reviews</h2>
-        <div style="background: var(--surface2); border: 1px solid var(--border); border-radius: var(--r); padding: 40px; text-align: center; color: #7a7c85;">
-            <p>Reviews for this product will be available soon.</p>
+
+        @if (TempData["ReviewMessage"] != null)
+        {
+            <div class="review-alert">@TempData["ReviewMessage"]</div>
+        }
+
+        <div class="review-breakdown">
+            @{ var totalReviews = Model?.ReviewCount ?? 0; }
+            @foreach (var starEntry in new[] {
+                new { Stars = 5, Count = Model?.Star5Count ?? 0 },
+                new { Stars = 4, Count = Model?.Star4Count ?? 0 },
+                new { Stars = 3, Count = Model?.Star3Count ?? 0 },
+                new { Stars = 2, Count = Model?.Star2Count ?? 0 },
+                new { Stars = 1, Count = Model?.Star1Count ?? 0 }
+            })
+            {
+                var ratio = totalReviews > 0 ? (int)Math.Round((double)starEntry.Count / totalReviews * 100) : 0;
+                <div class="review-breakdown-row">
+                    <span>@starEntry.Stars star</span>
+                    <div class="breakdown-bar">
+                        <div class="breakdown-fill" style="width:@ratio%"></div>
+                    </div>
+                    <span class="breakdown-count">@starEntry.Count</span>
+                </div>
+            }
         </div>
+
+        @if (Model?.UserReview != null)
+        {
+            <div class="review-input-card user-review-card">
+                <div class="review-input-header">
+                    <div>
+                        <div class="review-input-title">Your review</div>
+                        <div class="review-input-subtitle">You can delete this review and submit a new one.</div>
+                    </div>
+                    <div class="review-card-stars">
+                        @for (var i = 1; i <= 5; i++)
+                        {
+                            <span class="review-star @(i <= Model.UserReview.Rating ? "filled" : "empty")">★</span>
+                        }
+                    </div>
+                </div>
+                <div class="review-card-content">
+                    <p class="review-card-comment">@Model.UserReview.Comment</p>
+                    <div class="review-card-footer">
+                        <span class="review-card-date">@Model.UserReview.ReviewDate.ToString("yyyy-MM-dd")</span>
+                        <form method="post" asp-action="DeleteReview" asp-controller="Home" class="d-inline">
+                            <input type="hidden" name="productId" value="@Model?.ProductId" />
+                            <button type="submit" class="btn-outline btn-delete-review">Delete review</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <form id="reviewForm" method="post" asp-action="AddReview" asp-controller="Home" class="review-input-card" onsubmit="return validateReviewForm()">
+                <div class="review-input-header">
+                    <div>
+                        <div class="review-input-title">Write a review</div>
+                        <div class="review-input-subtitle">Share your thoughts on this product.</div>
+                    </div>
+                    <div id="reviewStars" class="review-stars">
+                        <button type="button" class="star-btn active" onclick="setReviewRating(1)">★</button>
+                        <button type="button" class="star-btn active" onclick="setReviewRating(2)">★</button>
+                        <button type="button" class="star-btn active" onclick="setReviewRating(3)">★</button>
+                        <button type="button" class="star-btn active" onclick="setReviewRating(4)">★</button>
+                        <button type="button" class="star-btn active" onclick="setReviewRating(5)">★</button>
+                    </div>
+                </div>
+                <input type="hidden" name="productId" value="@Model?.ProductId" />
+                <input type="hidden" name="rating" id="reviewRatingInput" value="5" />
+                <textarea id="reviewComment" name="comment" placeholder="What did you like? What can be improved?"></textarea>
+                <div class="review-input-footer">
+                    <button type="submit" class="btn-primary btn-submit-review">Submit Review</button>
+                </div>
+            </form>
+        }
+
+        @if (Model?.Reviews != null && Model.Reviews.Count > 0)
+        {
+            <div class="review-list">
+                @foreach (var review in Model.Reviews)
+                {
+                    <div class="review-card">
+                        <div class="review-card-header">
+                            <span class="review-card-name">@review.ReviewerName</span>
+                            <span class="review-card-date">@review.ReviewDate.ToString("yyyy-MM-dd")</span>
+                        </div>
+                        <div class="review-card-stars">
+                            @for (var i = 1; i <= 5; i++)
+                            {
+                                <span class="review-star @(i <= review.Rating ? "filled" : "empty")">★</span>
+                            }
+                        </div>
+                        <p class="review-card-comment">@review.Comment</p>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div style="background: var(--surface2); border: 1px solid var(--border); border-radius: var(--r); padding: 40px; text-align: center; color: #7a7c85;">
+                <p>Reviews for this product will be available soon.</p>
+            </div>
+        }
     </section>
 
 </div><!-- /page -->
@@ -309,9 +562,89 @@
     }
 
     // ── Gallery thumbnails ──
+    let currentImageIndex = 0;
+
+    function setActiveThumb(index) {
+        const thumbs = Array.from(document.querySelectorAll('.thumb'));
+        if (!thumbs.length) return;
+        index = (index + thumbs.length) % thumbs.length;
+        currentImageIndex = index;
+        const newSrc = thumbs[index].dataset.imageUrl;
+        const mainImage = document.getElementById('mainProductImage');
+        thumbs.forEach((t, i) => t.classList.toggle('active', i === index));
+
+        if (newSrc && mainImage) {
+            const normalizedSrc = new URL(newSrc, window.location.href).href;
+            if (mainImage.src !== normalizedSrc) {
+                mainImage.style.opacity = '0';
+                const onLoad = () => {
+                    mainImage.style.opacity = '1';
+                    mainImage.removeEventListener('load', onLoad);
+                };
+                mainImage.addEventListener('load', onLoad);
+                setTimeout(() => {
+                    mainImage.src = newSrc;
+                }, 120);
+            }
+        }
+    }
+
     function selThumb(el) {
-        document.querySelectorAll('.thumb').forEach(t => t.classList.remove('active'));
-        el.classList.add('active');
+        const thumbs = Array.from(document.querySelectorAll('.thumb'));
+        const index = thumbs.indexOf(el);
+        if (index >= 0) {
+            setActiveThumb(index);
+        }
+    }
+
+    function updateGalleryCursor(e) {
+        const galleryMain = document.querySelector('.gallery-main');
+        if (!galleryMain) return;
+        const rect = galleryMain.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const leftThreshold = rect.width * 0.25;
+        const rightThreshold = rect.width * 0.75;
+
+        galleryMain.classList.remove('cursor-left', 'cursor-right', 'cursor-center');
+        if (x < leftThreshold) {
+            galleryMain.classList.add('cursor-left');
+        } else if (x > rightThreshold) {
+            galleryMain.classList.add('cursor-right');
+        } else {
+            galleryMain.classList.add('cursor-center');
+        }
+    }
+
+    function galleryMainClick(e) {
+        const galleryMain = document.querySelector('.gallery-main');
+        if (!galleryMain) return;
+        const thumbs = Array.from(document.querySelectorAll('.thumb'));
+        if (thumbs.length <= 1) return;
+        const rect = galleryMain.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const leftThreshold = rect.width * 0.25;
+        const rightThreshold = rect.width * 0.75;
+
+        if (x < leftThreshold) {
+            setActiveThumb(currentImageIndex - 1);
+        } else if (x > rightThreshold) {
+            setActiveThumb(currentImageIndex + 1);
+        }
+    }
+
+    const galleryMain = document.querySelector('.gallery-main');
+    if (galleryMain) {
+        const thumbs = Array.from(document.querySelectorAll('.thumb'));
+        const activeThumb = thumbs.findIndex(t => t.classList.contains('active'));
+        if (activeThumb >= 0) {
+            currentImageIndex = activeThumb;
+        }
+        galleryMain.addEventListener('mousemove', updateGalleryCursor);
+        galleryMain.addEventListener('mouseleave', () => {
+            galleryMain.classList.remove('cursor-left', 'cursor-right');
+            galleryMain.classList.add('cursor-center');
+        });
+        galleryMain.addEventListener('click', galleryMainClick);
     }
 
     // ── Add to Cart (AJAX - ไม่เปลี่ยนหน้า) ──
@@ -397,6 +730,24 @@
             btn.classList.toggle('active');
             alert('เกิดข้อผิดพลาดขณะบันทึกรายการโปรด');
         });
+    }
+
+    let reviewRating = 5;
+    function setReviewRating(value) {
+        reviewRating = value;
+        document.getElementById('reviewRatingInput').value = value;
+        document.querySelectorAll('#reviewStars .star-btn').forEach((btn, idx) => {
+            btn.classList.toggle('active', idx < value);
+        });
+    }
+
+    function validateReviewForm() {
+        const comment = document.getElementById('reviewComment').value.trim();
+        if (!comment) {
+            alert('Please write a review before submitting.');
+            return false;
+        }
+        return true;
     }
 </script>
 

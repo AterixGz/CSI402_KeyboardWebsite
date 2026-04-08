@@ -8,9 +8,19 @@ public class Product
     public int StockQuantity { get; set; }
     public string? BrandName { get; set; } // ดึงมาจากตาราง Brands
     public string? ImageUrl { get; set; }
+    public List<string> ImageUrls { get; set; } = new List<string>();
     public string? CategoryName { get; set; } // ดึงมาจากตาราง Categories
     public string? Description { get; set; } // รายละเอียดสินค้า
     public List<Specification> Specifications { get; set; } = new List<Specification>(); // ข้อมูล specs
+    public List<Review> Reviews { get; set; } = new List<Review>();
+    public Review? UserReview { get; set; }
+    public int ReviewCount { get; set; }
+    public decimal AverageRating { get; set; }
+    public int Star5Count { get; set; }
+    public int Star4Count { get; set; }
+    public int Star3Count { get; set; }
+    public int Star2Count { get; set; }
+    public int Star1Count { get; set; }
 }
 
 public class Specification
@@ -86,4 +96,15 @@ public class UpdateProductRequest
     public string? ImageUrl { get; set; }
     public string? Description { get; set; }
     public List<SpecificationRequest>? Specifications { get; set; }
+}
+
+public class Review
+{
+    public int ReviewId { get; set; }
+    public int ProductId { get; set; }
+    public int UserId { get; set; }
+    public int Rating { get; set; }
+    public string? Comment { get; set; }
+    public string? ReviewerName { get; set; }
+    public DateTime ReviewDate { get; set; }
 }

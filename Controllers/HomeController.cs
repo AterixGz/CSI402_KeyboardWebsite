@@ -37,11 +37,18 @@ public class HomeController : Controller
                                    COALESCE(pi.image_url, '~/image/default.png') AS image_url,
                                    p.description,
                                    COALESCE(c.category_name, 'Uncategorized') as category_name,
-                                   COALESCE(b.brand_name, '') as brand_name
+                                   COALESCE(b.brand_name, '') as brand_name,
+                                   COALESCE(r.review_count, 0) AS review_count,
+                                   COALESCE(r.avg_rating, 0) AS average_rating
                             FROM Products p 
                             LEFT JOIN Product_Images pi ON p.product_id = pi.product_id AND pi.is_main = 1
                             LEFT JOIN Categories c ON p.category_id = c.category_id 
                             LEFT JOIN Brands b ON p.brand_id = b.brand_id
+                            LEFT JOIN (
+                                SELECT product_id, COUNT(*) AS review_count, AVG(rating) AS avg_rating
+                                FROM Reviews
+                                GROUP BY product_id
+                            ) r ON p.product_id = r.product_id
                             ORDER BY p.product_id DESC
                             LIMIT 4";
             
@@ -60,7 +67,9 @@ public class HomeController : Controller
                             ImageUrl = reader.GetString("image_url") ?? "~/image/default.png",
                             CategoryName = reader.GetString("category_name"),
                             BrandName = reader.GetString("brand_name"),
-                            Description = reader.IsDBNull(reader.GetOrdinal("description")) ? "" : reader.GetString("description")
+                            Description = reader.IsDBNull(reader.GetOrdinal("description")) ? "" : reader.GetString("description"),
+                            ReviewCount = reader.IsDBNull(reader.GetOrdinal("review_count")) ? 0 : reader.GetInt32("review_count"),
+                            AverageRating = reader.IsDBNull(reader.GetOrdinal("average_rating")) ? 0m : Convert.ToDecimal(reader["average_rating"])
                         });
                     }
                 }
@@ -1043,6 +1052,27 @@ public class HomeController : Controller
                 }
             }
 
+            if (product != null)
+            {
+                string imageQuery = @"SELECT image_url FROM Product_Images WHERE product_id = @productId ORDER BY is_main DESC, image_id ASC";
+                using (MySqlCommand imageCmd = new MySqlCommand(imageQuery, _connection))
+                {
+                    imageCmd.Parameters.AddWithValue("@productId", product.ProductId);
+                    using (MySqlDataReader reader = imageCmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            product.ImageUrls.Add(reader.IsDBNull(reader.GetOrdinal("image_url")) ? "~/image/default.png" : reader.GetString("image_url"));
+                        }
+                    }
+                }
+
+                if (product.ImageUrls.Count == 0 && !string.IsNullOrEmpty(product.ImageUrl))
+                {
+                    product.ImageUrls.Add(product.ImageUrl);
+                }
+            }
+
             // Load specifications
             if (product != null)
             {
@@ -1064,6 +1094,41 @@ public class HomeController : Controller
                         }
                     }
                 }
+
+                string reviewQuery = @"SELECT r.review_id, r.product_id, r.user_id, r.rating, r.comment, r.review_date,
+                                               COALESCE(u.username, 'Customer') AS reviewer_name
+                                        FROM Reviews r
+                                        LEFT JOIN Users u ON r.user_id = u.user_id
+                                        WHERE r.product_id = @productId
+                                        ORDER BY r.review_date DESC";
+                using (MySqlCommand reviewCmd = new MySqlCommand(reviewQuery, _connection))
+                {
+                    reviewCmd.Parameters.AddWithValue("@productId", product.ProductId);
+                    using (MySqlDataReader reader = reviewCmd.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            product.Reviews.Add(new Review
+                            {
+                                ReviewId = reader.GetInt32("review_id"),
+                                ProductId = reader.GetInt32("product_id"),
+                                UserId = reader.GetInt32("user_id"),
+                                Rating = reader.GetInt32("rating"),
+                                Comment = reader.IsDBNull(reader.GetOrdinal("comment")) ? string.Empty : reader.GetString("comment"),
+                                ReviewerName = reader.GetString("reviewer_name"),
+                                ReviewDate = reader.GetDateTime("review_date")
+                            });
+                        }
+                    }
+                }
+
+                product.ReviewCount = product.Reviews.Count;
+                product.AverageRating = product.ReviewCount > 0 ? product.Reviews.Average(r => (decimal)r.Rating) : 0m;
+                product.Star5Count = product.Reviews.Count(r => r.Rating == 5);
+                product.Star4Count = product.Reviews.Count(r => r.Rating == 4);
+                product.Star3Count = product.Reviews.Count(r => r.Rating == 3);
+                product.Star2Count = product.Reviews.Count(r => r.Rating == 2);
+                product.Star1Count = product.Reviews.Count(r => r.Rating == 1);
             }
 
             // Load wishlist state for the current user
@@ -1078,6 +1143,8 @@ public class HomeController : Controller
                     var count = Convert.ToInt32(wishlistCmd.ExecuteScalar());
                     ViewBag.IsFavorite = count > 0;
                 }
+
+                product.UserReview = product.Reviews.FirstOrDefault(r => r.UserId == currentUserId.Value);
             }
             else
             {
@@ -1097,6 +1164,103 @@ public class HomeController : Controller
         }
 
         return View(product);
+    }
+
+    [HttpPost]
+    public IActionResult AddReview(int productId, int rating, string comment)
+    {
+        var userId = HttpContext.Session.GetInt32("UserId");
+        if (userId == null)
+        {
+            TempData["ReviewMessage"] = "Please log in to submit a review.";
+            return RedirectToAction("Login", "Account");
+        }
+
+        if (rating < 1 || rating > 5 || string.IsNullOrWhiteSpace(comment))
+        {
+            TempData["ReviewMessage"] = "Please select a rating and write a review before submitting.";
+            return RedirectToAction("Productdetails", new { id = productId });
+        }
+
+        try
+        {
+            if (_connection.State == System.Data.ConnectionState.Closed)
+                _connection.Open();
+
+            const string checkExistingQuery = "SELECT review_id FROM Reviews WHERE product_id = @productId AND user_id = @userId LIMIT 1";
+            using (var checkCmd = new MySqlCommand(checkExistingQuery, _connection))
+            {
+                checkCmd.Parameters.AddWithValue("@productId", productId);
+                checkCmd.Parameters.AddWithValue("@userId", userId.Value);
+                var existingReview = checkCmd.ExecuteScalar();
+                if (existingReview != null)
+                {
+                    TempData["ReviewMessage"] = "You have already reviewed this product. Delete your existing review to submit a new one.";
+                    return RedirectToAction("Productdetails", new { id = productId });
+                }
+            }
+
+            const string insertQuery = "INSERT INTO Reviews (product_id, user_id, rating, comment, review_date) VALUES (@productId, @userId, @rating, @comment, NOW())";
+            using (var insertCmd = new MySqlCommand(insertQuery, _connection))
+            {
+                insertCmd.Parameters.AddWithValue("@productId", productId);
+                insertCmd.Parameters.AddWithValue("@userId", userId.Value);
+                insertCmd.Parameters.AddWithValue("@rating", rating);
+                insertCmd.Parameters.AddWithValue("@comment", comment.Trim());
+                insertCmd.ExecuteNonQuery();
+            }
+
+            TempData["ReviewMessage"] = "Review submitted successfully.";
+        }
+        catch (Exception ex)
+        {
+            TempData["ReviewMessage"] = $"Unable to save review: {ex.Message}";
+        }
+        finally
+        {
+            if (_connection.State == System.Data.ConnectionState.Open)
+                _connection.Close();
+        }
+
+        return RedirectToAction("Productdetails", new { id = productId });
+    }
+
+    [HttpPost]
+    public IActionResult DeleteReview(int productId)
+    {
+        var userId = HttpContext.Session.GetInt32("UserId");
+        if (userId == null)
+        {
+            TempData["ReviewMessage"] = "Please log in to delete your review.";
+            return RedirectToAction("Login", "Account");
+        }
+
+        try
+        {
+            if (_connection.State == System.Data.ConnectionState.Closed)
+                _connection.Open();
+
+            const string deleteQuery = "DELETE FROM Reviews WHERE product_id = @productId AND user_id = @userId LIMIT 1";
+            using (var deleteCmd = new MySqlCommand(deleteQuery, _connection))
+            {
+                deleteCmd.Parameters.AddWithValue("@productId", productId);
+                deleteCmd.Parameters.AddWithValue("@userId", userId.Value);
+                deleteCmd.ExecuteNonQuery();
+            }
+
+            TempData["ReviewMessage"] = "Your review has been deleted.";
+        }
+        catch (Exception ex)
+        {
+            TempData["ReviewMessage"] = $"Unable to delete review: {ex.Message}";
+        }
+        finally
+        {
+            if (_connection.State == System.Data.ConnectionState.Open)
+                _connection.Close();
+        }
+
+        return RedirectToAction("Productdetails", new { id = productId });
     }
 
     [HttpPost]
