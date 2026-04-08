@@ -1,0 +1,286 @@
+@{
+    ViewData["Title"] = "Checkout";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Checkout</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/Home/Checkout.css" />
+</head>
+<body>
+<div class="checkout-page">
+    <div class="checkout-container">
+        <!-- ── Left Column: Order Summary ── -->
+        <div class="order-summary">
+            <h2>Order Summary</h2>
+
+            @{
+                var selectedAddress = ViewBag.SelectedAddress as KeyboardWebsiteProject.Models.UserAddress;
+            }
+            <div class="shipping-card">
+                <div class="shipping-card-title">Shipping Address</div>
+                @if (selectedAddress != null)
+                {
+                    <div class="shipping-card-body">
+                        <div class="shipping-recipient">@selectedAddress.ReceiverName</div>
+                        <div class="shipping-phone">@selectedAddress.PhoneNumber</div>
+                        <div class="shipping-line">@selectedAddress.AddressLine1</div>
+                        <div class="shipping-line">@selectedAddress.SubDistrict, @selectedAddress.District, @selectedAddress.Province @selectedAddress.PostalCode</div>
+                    </div>
+                }
+                else
+                {
+                    <div class="shipping-card-body empty">No shipping address selected.</div>
+                }
+            </div>
+
+            <div class="summary-section">
+                <h3>Cart Items</h3>
+                <div id="cartItemsList" class="cart-items-list">
+                    <!-- Items will be loaded here -->
+                </div>
+            </div>
+
+            <div class="summary-divider"></div>
+
+            <div class="summary-totals">
+                <div class="total-row">
+                    <span>Subtotal:</span>
+                    <span id="subtotalDisplay">฿0.00</span>
+                </div>
+                <div class="total-row" id="discountRowSummary" style="display: none;">
+                    <span>Discount:</span>
+                    <span id="discountDisplay">-฿0.00</span>
+                </div>
+                <div class="total-row shipping">
+                    <span>Shipping:</span>
+                    <span>Free</span>
+                </div>
+                <div class="total-row final">
+                    <span>Total:</span>
+                    <span id="totalDisplay">฿0.00</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Right Column: Payment Form ── -->
+        <div class="payment-form-container">
+            <h2>Payment Details</h2>
+
+            <form id="paymentForm">
+                <!-- ── Cardholder Name ── -->
+                <div class="form-group">
+                    <label for="cardholderName">Cardholder Name</label>
+                    <input type="text" id="cardholderName" placeholder="John Doe" required />
+                </div>
+
+                <!-- ── Email ── -->
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" placeholder="john@example.com" required />
+                </div>
+
+                <!-- ── Stripe Card Element ── -->
+                <div class="form-group">
+                    <label for="card-element">Card Details</label>
+                    <div id="card-element" class="stripe-element"></div>
+                    <div id="card-errors" class="stripe-error"></div>
+                </div>
+
+                <!-- ── Loading & Submit ── -->
+                <div class="form-actions">
+                    <button type="submit" id="submitBtn" class="submit-btn">
+                        <span id="submitBtnText">Pay ฿<span id="submitAmount">0.00</span></span>
+                        <span id="submitBtnLoader" style="display: none;">Processing...</span>
+                    </button>
+                    <a href="/Home/Cart" class="cancel-link">Cancel</a>
+                </div>
+
+                <div id="paymentMessage" class="payment-message"></div>
+            </form>
+
+            <div class="security-info">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+                <span>Your payment information is encrypted and secure</span>
+            </div>
+            <div class="payment-provider-note">
+                Payments are powered by Stripe.
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Stripe.js Library ── -->
+<script src="https://js.stripe.com/v3/"></script>
+
+<script>
+    const publishableKey = '@ViewBag.StripePublishableKey';
+    const stripe = Stripe(publishableKey);
+    const elements = stripe.elements();
+    const cardElement = elements.create('card', {
+        style: {
+            base: {
+                fontSize: '14px',
+                color: '#32325d',
+                fontFamily: '"DM Sans", sans-serif',
+                '::placeholder': { color: '#aab7c4' }
+            },
+            invalid: { color: '#ef4444' }
+        }
+    });
+    cardElement.mount('#card-element');
+
+    // Handle card errors
+    cardElement.addEventListener('change', (event) => {
+        const displayError = document.getElementById('card-errors');
+        displayError.textContent = event.error ? event.error.message : '';
+    });
+
+    // Initialize page with cart data
+    document.addEventListener('DOMContentLoaded', () => {
+        initializeCheckout();
+    });
+
+    function initializeCheckout() {
+        const subtotal = parseFloat('@ViewBag.SubTotal');
+        const discount = parseFloat('@ViewBag.Discount');
+        const totalAmount = parseFloat('@ViewBag.TotalAmount');
+        const couponCode = '@ViewBag.CouponCode';
+
+        // Update totals display
+        document.getElementById('subtotalDisplay').textContent = '฿' + subtotal.toFixed(2);
+        document.getElementById('totalDisplay').textContent = '฿' + totalAmount.toFixed(2);
+        document.getElementById('submitAmount').textContent = totalAmount.toFixed(2);
+
+        if (discount > 0) {
+            document.getElementById('discountRowSummary').style.display = 'flex';
+            document.getElementById('discountDisplay').textContent = '-฿' + discount.toFixed(2);
+        }
+
+        // Load cart items
+        loadCartItems();
+    }
+
+    function loadCartItems() {
+        const items = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
+            (ViewBag.CartItems as List<KeyboardWebsiteProject.Models.CartItem> ?? new List<KeyboardWebsiteProject.Models.CartItem>())
+                .Select(item => new {
+                    name = item.Name,
+                    categoryName = item.CategoryName,
+                    brandName = item.BrandName,
+                    quantity = item.Quantity,
+                    price = item.Price,
+                    imageUrl = Url.Content(item.ImageUrl ?? "~/image/default.png")
+                }),
+            new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }
+        ));
+        const container = document.getElementById('cartItemsList');
+        
+        if (!items || items.length === 0) {
+            container.innerHTML = '<p class="no-items">No items in cart</p>';
+            return;
+        }
+
+        container.innerHTML = items.map(item => `
+            <div class="cart-item-summary">
+                <img class="item-thumb" src="${item.imageUrl}" alt="${item.name}" />
+                <div class="item-details">
+                    <div class="item-name">${item.name}</div>
+                    <div class="item-category">${item.categoryName} • ${item.brandName}</div>
+                </div>
+                <div class="item-qty">x${item.quantity}</div>
+                <div class="item-price">฿${(item.price * item.quantity).toFixed(2)}</div>
+            </div>
+        `).join('');
+    }
+
+    // Payment form submission
+    document.getElementById('paymentForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const submitBtn = document.getElementById('submitBtn');
+        const submitBtnText = document.getElementById('submitBtnText');
+        const submitBtnLoader = document.getElementById('submitBtnLoader');
+        const paymentMessage = document.getElementById('paymentMessage');
+        const cardholderName = document.getElementById('cardholderName').value;
+        const email = document.getElementById('email').value;
+
+        // Disable button
+        submitBtn.disabled = true;
+        submitBtnText.style.display = 'none';
+        submitBtnLoader.style.display = 'inline';
+
+        try {
+            // Step 1: Create PaymentIntent
+            const paymentIntentResponse = await fetch('/Home/CreatePaymentIntent', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ amount: 0 })
+            });
+
+            const paymentIntentData = await paymentIntentResponse.json();
+            if (!paymentIntentData.success) {
+                throw new Error(paymentIntentData.message);
+            }
+
+            const clientSecret = paymentIntentData.clientSecret;
+
+            // Step 2: Confirm payment with Stripe
+            const confirmResult = await stripe.confirmCardPayment(clientSecret, {
+                payment_method: {
+                    card: cardElement,
+                    billing_details: {
+                        name: cardholderName,
+                        email: email
+                    }
+                }
+            });
+
+            if (confirmResult.error) {
+                throw new Error(confirmResult.error.message);
+            }
+
+            if (confirmResult.paymentIntent.status === 'succeeded') {
+                // Step 3: Confirm payment on server
+                const confirmResponse = await fetch('/Home/ConfirmPayment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ paymentIntentId: confirmResult.paymentIntent.id })
+                });
+
+                const confirmData = await confirmResponse.json();
+                if (!confirmData.success) {
+                    throw new Error(confirmData.message);
+                }
+
+                // Payment successful
+                paymentMessage.textContent = confirmData.message;
+                paymentMessage.style.color = '#10b981';
+                paymentMessage.style.display = 'block';
+
+                setTimeout(() => {
+                    window.location.href = '/Home/ThankYou';
+                }, 1500);
+            } else {
+                throw new Error('Payment was not successful');
+            }
+        } catch (error) {
+            paymentMessage.textContent = error.message;
+            paymentMessage.style.color = '#ef4444';
+            paymentMessage.style.display = 'block';
+
+            submitBtn.disabled = false;
+            submitBtnText.style.display = 'inline';
+            submitBtnLoader.style.display = 'none';
+        }
+    });
+</script>
+
+</body>
+</html>

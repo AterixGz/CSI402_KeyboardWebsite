@@ -289,10 +289,6 @@
                 return;
             }
 
-            if (appliedCoupons.length > 0) {
-                const totalDiscount = Math.min(subtotal, appliedCoupons.reduce((sum, coupon) => sum + getCouponAmount(coupon, subtotal), 0));
-                alert(`คูปองที่ใช้: ${appliedCoupons.map(c => c.code).join(', ')}\nรวมส่วนลด -฿${totalDiscount.toFixed(2)}`);
-            }
 
             const form = document.createElement('form');
             form.method = 'POST';

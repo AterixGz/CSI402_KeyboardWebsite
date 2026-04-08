@@ -1,0 +1,52 @@
+@{
+    ViewData["Title"] = "Thank You";
+}
+
+<div class="thank-you-page" style="max-width: 760px; margin: 60px auto; padding: 36px; background: #ffffff; border: 1px solid #e4e4e7; border-radius: 20px; text-align: center; box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08); position: relative; z-index: 1;">
+    <h1 style="font-size: 2.4rem; margin-bottom: 16px; color: #111827;">Thank You for Your Payment</h1>
+    <p style="font-size: 1rem; color: #4b5563; line-height: 1.8; margin-bottom: 24px;">
+        Your payment has been successfully processed. We are preparing your order and will notify you shortly.
+    </p>
+    <a href="/Home/Shop" style="display: inline-block; padding: 14px 28px; background: #10b981; color: #ffffff; border-radius: 12px; text-decoration: none; font-weight: 600; transition: background 0.2s;">
+        Continue Shopping
+    </a>
+</div>
+<canvas id="confettiCanvas" class="confetti-canvas" aria-hidden="true"></canvas>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+<script>
+    function launchConfetti() {
+        const confettiCanvas = document.getElementById('confettiCanvas');
+        const myConfetti = confetti.create(confettiCanvas, { resize: true, useWorker: true });
+
+        myConfetti({
+            particleCount: 120,
+            spread: 60,
+            origin: { x: 0.5, y: 0.6 }
+        });
+        myConfetti({
+            particleCount: 80,
+            spread: 110,
+            origin: { x: 0.2, y: 0.4 }
+        });
+        myConfetti({
+            particleCount: 80,
+            spread: 110,
+            origin: { x: 0.8, y: 0.4 }
+        });
+    }
+
+    window.addEventListener('load', () => {
+        launchConfetti();
+    });
+</script>
+<style>
+    .confetti-canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 9999;
+    }
+</style>

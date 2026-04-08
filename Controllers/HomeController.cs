@@ -889,47 +889,47 @@ public class HomeController : Controller
                 return RedirectToAction("Cart");
             }
 
-            Stripe.StripeConfiguration.ApiKey = _configuration["Stripe:SecretKey"] ?? string.Empty;
-
-            var lineItems = new List<SessionLineItemOptions>
+            UserAddress? selectedAddress = null;
+            const string selectedAddressQuery = @"SELECT address_id, user_id, receiver_name, phone_number, address_line1,
+                                           sub_district, district, province, postal_code, is_default
+                                    FROM User_Addresses
+                                    WHERE address_id = @addressId AND user_id = @userId
+                                    LIMIT 1";
+            using (var addressCmd = new MySqlCommand(selectedAddressQuery, _connection))
             {
-                new SessionLineItemOptions
+                addressCmd.Parameters.AddWithValue("@addressId", addressId.Value);
+                addressCmd.Parameters.AddWithValue("@userId", userId.Value);
+                using (var reader = addressCmd.ExecuteReader())
                 {
-                    PriceData = new SessionLineItemPriceDataOptions
+                    if (reader.Read())
                     {
-                        Currency = "thb",
-                        UnitAmount = (long)(totalAmount * 100m),
-                        ProductData = new SessionLineItemPriceDataProductDataOptions
+                        selectedAddress = new UserAddress
                         {
-                            Name = "Order Total",
-                            Description = couponId.HasValue ? $"รวมส่วนลดคูปอง {couponCodeStored}" : "Order total"
-                        }
-                    },
-                    Quantity = 1
+                            AddressId = reader.GetInt32("address_id"),
+                            UserId = reader.GetInt32("user_id"),
+                            ReceiverName = reader.IsDBNull(reader.GetOrdinal("receiver_name")) ? null : reader.GetString("receiver_name"),
+                            PhoneNumber = reader.IsDBNull(reader.GetOrdinal("phone_number")) ? null : reader.GetString("phone_number"),
+                            AddressLine1 = reader.IsDBNull(reader.GetOrdinal("address_line1")) ? null : reader.GetString("address_line1"),
+                            SubDistrict = reader.IsDBNull(reader.GetOrdinal("sub_district")) ? null : reader.GetString("sub_district"),
+                            District = reader.IsDBNull(reader.GetOrdinal("district")) ? null : reader.GetString("district"),
+                            Province = reader.IsDBNull(reader.GetOrdinal("province")) ? null : reader.GetString("province"),
+                            PostalCode = reader.IsDBNull(reader.GetOrdinal("postal_code")) ? null : reader.GetString("postal_code"),
+                            IsDefault = reader.GetBoolean("is_default")
+                        };
+                    }
                 }
-            };
-
-            var successUrl = $"{Request.Scheme}://{Request.Host}{Url.Action("CheckoutSuccess", "Home")}?session_id={{CHECKOUT_SESSION_ID}}";
-            var cancelUrl = $"{Request.Scheme}://{Request.Host}{Url.Action("Cart", "Home")}";
-
-            var options = new SessionCreateOptions
-            {
-                PaymentMethodTypes = new List<string> { "card" },
-                LineItems = lineItems,
-                Mode = "payment",
-                SuccessUrl = successUrl,
-                CancelUrl = cancelUrl
-            };
-
-            var service = new SessionService();
-            var session = service.Create(options);
-            if (string.IsNullOrEmpty(session.Url))
-            {
-                TempData["CartMessage"] = "ไม่สามารถสร้างเซสชันการชำระเงินได้";
-                return RedirectToAction("Cart");
             }
 
-            return Redirect(session.Url);
+            // Return checkout view instead of redirecting to Stripe
+            ViewBag.StripePublishableKey = _configuration["Stripe:PublishableKey"] ?? string.Empty;
+            ViewBag.SubTotal = subtotal;
+            ViewBag.Discount = couponDiscount;
+            ViewBag.TotalAmount = totalAmount;
+            ViewBag.CartItems = cartItems;
+            ViewBag.CouponCode = couponCodeStored;
+            ViewBag.SelectedAddress = selectedAddress;
+
+            return View("Checkout");
         }
         catch (Exception ex)
         {
@@ -1507,6 +1507,182 @@ public class HomeController : Controller
         }
 
         return RedirectToAction("Cart");
+    }
+
+    [HttpPost]
+    public IActionResult CreatePaymentIntent([FromBody] CreatePaymentIntentRequest request)
+    {
+        var userId = HttpContext.Session.GetInt32("UserId");
+        if (userId == null)
+        {
+            return Json(new { success = false, message = "กรุณาเข้าสู่ระบบก่อน" });
+        }
+
+        try
+        {
+            if (_connection.State == System.Data.ConnectionState.Closed)
+                _connection.Open();
+
+            var addressId = HttpContext.Session.GetInt32("CheckoutAddressId");
+            if (addressId == null || addressId <= 0)
+            {
+                return Json(new { success = false, message = "ที่อยู่จัดส่งไม่ถูกต้อง" });
+            }
+
+            var cartItems = GetSelectedCartItems(userId.Value);
+            if (!cartItems.Any())
+            {
+                return Json(new { success = false, message = "ไม่พบสินค้าที่เลือก" });
+            }
+
+            int? couponId = null;
+            string couponCodeStored = HttpContext.Session.GetString("CheckoutCouponCode") ?? string.Empty;
+            if (HttpContext.Session.GetInt32("CheckoutCouponId") is int savedCouponId)
+            {
+                couponId = savedCouponId;
+            }
+
+            var subtotal = cartItems.Sum(item => item.Price * item.Quantity);
+            decimal couponDiscount = 0m;
+            if (couponId.HasValue)
+            {
+                if (!TryGetCouponByCode(couponCodeStored, userId.Value, out _, out decimal discountValue, out string discountType, out _))
+                {
+                    couponId = null;
+                }
+                else
+                {
+                    couponDiscount = CalculateCouponAmount(subtotal, discountType, discountValue);
+                }
+            }
+
+            var totalAmount = Math.Max(0, subtotal - couponDiscount);
+
+            Stripe.StripeConfiguration.ApiKey = _configuration["Stripe:SecretKey"] ?? string.Empty;
+
+            var options = new Stripe.PaymentIntentCreateOptions
+            {
+                Amount = (long)(totalAmount * 100m),
+                Currency = "thb",
+                PaymentMethodTypes = new List<string> { "card" },
+                Metadata = new Dictionary<string, string>
+                {
+                    { "userId", userId.Value.ToString() },
+                    { "addressId", addressId.Value.ToString() },
+                    { "couponId", couponId?.ToString() ?? "" }
+                }
+            };
+
+            var service = new Stripe.PaymentIntentService();
+            var paymentIntent = service.Create(options);
+
+            return Json(new
+            {
+                success = true,
+                clientSecret = paymentIntent.ClientSecret,
+                totalAmount = totalAmount,
+                subtotal = subtotal,
+                discount = couponDiscount
+            });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { success = false, message = $"เกิดข้อผิดพลาด: {ex.Message}" });
+        }
+        finally
+        {
+            if (_connection.State == System.Data.ConnectionState.Open)
+                _connection.Close();
+        }
+    }
+
+    [HttpPost]
+    public IActionResult ConfirmPayment([FromBody] ConfirmPaymentRequest request)
+    {
+        var userId = HttpContext.Session.GetInt32("UserId");
+        if (userId == null)
+        {
+            return Json(new { success = false, message = "กรุณาเข้าสู่ระบบก่อน" });
+        }
+
+        try
+        {
+            Stripe.StripeConfiguration.ApiKey = _configuration["Stripe:SecretKey"] ?? string.Empty;
+            var service = new Stripe.PaymentIntentService();
+            var paymentIntent = service.Get(request.PaymentIntentId);
+
+            if (paymentIntent.Status != "succeeded")
+            {
+                return Json(new { success = false, message = "การชำระเงินไม่สำเร็จ" });
+            }
+
+            if (_connection.State == System.Data.ConnectionState.Closed)
+                _connection.Open();
+
+            var addressId = HttpContext.Session.GetInt32("CheckoutAddressId");
+            if (addressId == null || addressId <= 0)
+            {
+                return Json(new { success = false, message = "ที่อยู่จัดส่งไม่ถูกต้อง" });
+            }
+
+            var cartItems = GetSelectedCartItems(userId.Value);
+            if (!cartItems.Any())
+            {
+                return Json(new { success = false, message = "ไม่พบสินค้าที่เลือก" });
+            }
+
+            int? couponId = null;
+            string couponCodeStored = HttpContext.Session.GetString("CheckoutCouponCode") ?? string.Empty;
+            if (HttpContext.Session.GetInt32("CheckoutCouponId") is int savedCouponId)
+            {
+                couponId = savedCouponId;
+            }
+
+            var subtotal = cartItems.Sum(item => item.Price * item.Quantity);
+            decimal couponDiscount = 0m;
+            if (couponId.HasValue)
+            {
+                if (!TryGetCouponByCode(couponCodeStored, userId.Value, out _, out decimal discountValue, out string discountType, out _))
+                {
+                    couponId = null;
+                }
+                else
+                {
+                    couponDiscount = CalculateCouponAmount(subtotal, discountType, discountValue);
+                }
+            }
+
+            var totalAmount = Math.Max(0, subtotal - couponDiscount);
+            var orderId = InsertOrder(userId.Value, addressId.Value, couponId, subtotal, couponDiscount, totalAmount, "paid");
+            InsertOrderDetails(orderId, cartItems);
+
+            if (couponId.HasValue)
+            {
+                RecordCouponUsage(couponId.Value, userId.Value, orderId);
+                IncrementCouponUsedCount(couponId.Value);
+            }
+
+            DeleteSelectedCartItems(userId.Value);
+            HttpContext.Session.Remove("CheckoutAddressId");
+            HttpContext.Session.Remove("CheckoutCouponId");
+            HttpContext.Session.Remove("CheckoutCouponCode");
+
+            return Json(new { success = true, orderId = orderId, message = "ชำระเงินเรียบร้อยแล้ว" });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { success = false, message = $"เกิดข้อผิดพลาด: {ex.Message}" });
+        }
+        finally
+        {
+            if (_connection.State == System.Data.ConnectionState.Open)
+                _connection.Close();
+        }
+    }
+
+    public IActionResult ThankYou()
+    {
+        return View();
     }
 
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
