@@ -1,3 +1,4 @@
+using System;
 using System.Net;
 using CloudinaryDotNet;
 using CloudinaryDotNet.Actions;
@@ -5,7 +6,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using MySql.Data.MySqlClient;
 using KeyboardWebsiteProject.Models;
-using KeyboardWebsiteProject.Views.Admin;
 
 public class AdminController : Controller
 {
@@ -52,6 +52,18 @@ public class AdminController : Controller
         return string.Concat(parts[0][0], parts[^1][0]).ToUpper();
     }
 
+    private static string GetPercentChangeText(decimal current, decimal previous)
+    {
+        if (previous == 0)
+        {
+            return current == 0 ? "0% vs last month" : "+100% vs last month";
+        }
+
+        var change = Math.Round((current - previous) / previous * 100m, 1);
+        var sign = change >= 0 ? "+" : string.Empty;
+        return $"{sign}{change:0.#}% vs last month";
+    }
+
     // ตรวจสอบว่า user เป็น admin หรือไม่
     private bool IsAdmin()
     {
@@ -77,7 +89,7 @@ public class AdminController : Controller
         var accessCheck = CheckAdminAccess();
         if (accessCheck != null) return accessCheck;
 
-        var model = new DashboardModel();
+        var model = new AdminDashboardModel();
 
         try
         {
@@ -87,58 +99,71 @@ public class AdminController : Controller
             }
 
             // Stat cards
+            var monthStart = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+
             const string statsSql = @"
                 SELECT
                     (SELECT COUNT(*) FROM Users WHERE role_id = 4) AS customer_count,
+                    (SELECT COUNT(*) FROM Users WHERE role_id = 4 AND created_at < @monthStart) AS customer_count_last_month,
                     (SELECT COUNT(*) FROM Orders) AS order_count,
+                    (SELECT COUNT(*) FROM Orders WHERE order_date < @monthStart) AS order_count_last_month,
                     (SELECT COUNT(*) FROM Products) AS product_count,
-                    (SELECT COALESCE(SUM(total_amount), 0) FROM Orders) AS revenue";
+                    (SELECT COUNT(*) FROM Products WHERE created_at < @monthStart) AS product_count_last_month,
+                    (SELECT COALESCE(SUM(total_amount), 0) FROM Orders) AS revenue,
+                    (SELECT COALESCE(SUM(total_amount), 0) FROM Orders WHERE order_date < @monthStart) AS revenue_last_month";
 
             using (var statsCmd = new MySqlCommand(statsSql, _connection))
-            using (var statsReader = statsCmd.ExecuteReader())
             {
-                if (statsReader.Read())
+                statsCmd.Parameters.AddWithValue("@monthStart", monthStart);
+                using (var statsReader = statsCmd.ExecuteReader())
                 {
-                    var totalCustomers = statsReader.GetInt32("customer_count");
-                    var totalOrders = statsReader.GetInt32("order_count");
-                    var totalProducts = statsReader.GetInt32("product_count");
-                    var revenue = statsReader.GetDecimal("revenue");
-
-                    model.Stats = new List<StatCard>
+                    if (statsReader.Read())
                     {
-                        new StatCard
+                        var totalCustomers = statsReader.GetInt32("customer_count");
+                        var customersLastMonth = statsReader.GetInt32("customer_count_last_month");
+                        var totalOrders = statsReader.GetInt32("order_count");
+                        var ordersLastMonth = statsReader.GetInt32("order_count_last_month");
+                        var totalProducts = statsReader.GetInt32("product_count");
+                        var productsLastMonth = statsReader.GetInt32("product_count_last_month");
+                        var revenue = statsReader.GetDecimal("revenue");
+                        var revenueLastMonth = statsReader.GetDecimal("revenue_last_month");
+
+                        model.Stats = new List<StatCard>
                         {
-                            Label = "Total Customers",
-                            Value = totalCustomers.ToString("N0"),
-                            Change = "+1.8% vs last month",
-                            IsPositive = true,
-                            IconClass = "icon-green"
-                        },
-                        new StatCard
-                        {
-                            Label = "Total Orders",
-                            Value = totalOrders.ToString("N0"),
-                            Change = "+8.2% vs last month",
-                            IsPositive = true,
-                            IconClass = "icon-purple"
-                        },
-                        new StatCard
-                        {
-                            Label = "Products",
-                            Value = totalProducts.ToString("N0"),
-                            Change = "+3 vs last month",
-                            IsPositive = true,
-                            IconClass = "icon-blue"
-                        },
-                        new StatCard
-                        {
-                            Label = "Revenue",
-                            Value = $"฿{revenue:N0}",
-                            Change = "-2.4% vs last month",
-                            IsPositive = revenue >= 0,
-                            IconClass = "icon-orange"
-                        }
-                    };
+                            new StatCard
+                            {
+                                Label = "Total Customers",
+                                Value = totalCustomers.ToString("N0"),
+                                Change = GetPercentChangeText(totalCustomers, customersLastMonth),
+                                IsPositive = totalCustomers >= customersLastMonth,
+                                IconClass = "icon-green"
+                            },
+                            new StatCard
+                            {
+                                Label = "Total Orders",
+                                Value = totalOrders.ToString("N0"),
+                                Change = GetPercentChangeText(totalOrders, ordersLastMonth),
+                                IsPositive = totalOrders >= ordersLastMonth,
+                                IconClass = "icon-purple"
+                            },
+                            new StatCard
+                            {
+                                Label = "Products",
+                                Value = totalProducts.ToString("N0"),
+                                Change = GetPercentChangeText(totalProducts, productsLastMonth),
+                                IsPositive = totalProducts >= productsLastMonth,
+                                IconClass = "icon-blue"
+                            },
+                            new StatCard
+                            {
+                                Label = "Revenue",
+                                Value = $"฿{revenue:N0}",
+                                Change = GetPercentChangeText(revenue, revenueLastMonth),
+                                IsPositive = revenue >= revenueLastMonth,
+                                IconClass = "icon-orange"
+                            }
+                        };
+                    }
                 }
             }
 
@@ -228,14 +253,12 @@ public class AdminController : Controller
                     COALESCE(up.first_name, '') AS first_name,
                     COALESCE(up.last_name, '') AS last_name,
                     COUNT(o.order_id) AS order_count,
-                    COALESCE(SUM(o.total_amount), 0) AS total_amount
+                    COALESCE(SUM(o.total_amount), 0) AS total_spend
                 FROM Users u
+                JOIN Orders o ON o.user_id = u.user_id
                 LEFT JOIN User_Profiles up ON up.user_id = u.user_id
-                LEFT JOIN Orders o ON o.user_id = u.user_id
-                WHERE u.role_id = 4
                 GROUP BY u.user_id, u.username, u.email, up.first_name, up.last_name
-                HAVING order_count > 0
-                ORDER BY total_amount DESC
+                ORDER BY total_spend DESC
                 LIMIT 5";
 
             var topCustomers = new List<TopCustomer>();
@@ -257,7 +280,7 @@ public class AdminController : Controller
                         Rank = $"#{rank}",
                         Name = string.IsNullOrWhiteSpace(customerName) ? username : customerName,
                         Email = topReader.GetString("email"),
-                        Amount = $"฿{topReader.GetDecimal("total_amount"):N0}",
+                        Amount = $"฿{topReader.GetDecimal("total_spend"):N0}",
                         Orders = $"{topReader.GetInt32("order_count")} orders"
                     });
 
@@ -281,6 +304,130 @@ public class AdminController : Controller
         }
 
         return View(model);
+    }
+
+    public IActionResult Permissions()
+    {
+        // ตรวจสอบสิทธิ์
+        var accessCheck = CheckAdminAccess();
+        if (accessCheck != null) return accessCheck;
+
+        return View();
+    } 
+
+    public IActionResult Stock()
+    {
+        // ตรวจสอบสิทธิ์
+        var accessCheck = CheckAdminAccess();
+        if (accessCheck != null) return accessCheck;
+
+        var products = new List<Product>();
+
+        try
+        {
+            if (_connection.State == System.Data.ConnectionState.Closed)
+            {
+                _connection.Open();
+            }
+
+            const string sql = @"
+                SELECT
+                    p.product_id,
+                    p.name,
+                    p.price,
+                    p.stock_quantity,
+                    c.category_name,
+                    COALESCE(pi.image_url, '') AS image_url
+                FROM Products p
+                LEFT JOIN Categories c ON c.category_id = p.category_id
+                LEFT JOIN Product_Images pi ON pi.product_id = p.product_id AND pi.is_main = 1
+                ORDER BY p.name ASC";
+
+            using var cmd = new MySqlCommand(sql, _connection);
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                products.Add(new Product
+                {
+                    ProductId = reader.GetInt32("product_id"),
+                    Name = reader["name"] as string ?? string.Empty,
+                    Price = reader.GetDecimal("price"),
+                    StockQuantity = reader.GetInt32("stock_quantity"),
+                    CategoryName = reader["category_name"] as string ?? "",
+                    ImageUrl = reader["image_url"] as string ?? string.Empty
+                });
+            }
+        }
+        finally
+        {
+            if (_connection.State == System.Data.ConnectionState.Open)
+            {
+                _connection.Close();
+            }
+        }
+
+        return View(products);
+    }
+
+    [HttpPost]
+    public IActionResult UpdateStock([FromBody] StockUpdateRequest request)
+    {
+        var accessCheck = CheckAdminAccess();
+        if (accessCheck != null) return accessCheck;
+
+        if (request == null || request.ProductId <= 0)
+        {
+            return BadRequest(new { success = false, message = "Invalid product or quantity" });
+        }
+
+        try
+        {
+            if (_connection.State == System.Data.ConnectionState.Closed)
+            {
+                _connection.Open();
+            }
+
+            const string productSql = "SELECT stock_quantity FROM Products WHERE product_id = @productId";
+            int currentStock;
+            using (var cmd = new MySqlCommand(productSql, _connection))
+            {
+                cmd.Parameters.AddWithValue("@productId", request.ProductId);
+                var result = cmd.ExecuteScalar();
+                if (result == null)
+                {
+                    return NotFound(new { success = false, message = "Product not found" });
+                }
+
+                currentStock = Convert.ToInt32(result);
+            }
+
+            var updatedStock = currentStock + request.QuantityChange;
+            if (updatedStock < 0)
+            {
+                updatedStock = 0;
+            }
+
+            const string updateSql = "UPDATE Products SET stock_quantity = @stock WHERE product_id = @productId";
+            using (var cmd = new MySqlCommand(updateSql, _connection))
+            {
+                cmd.Parameters.AddWithValue("@stock", updatedStock);
+                cmd.Parameters.AddWithValue("@productId", request.ProductId);
+                cmd.ExecuteNonQuery();
+            }
+
+            return Ok(new { success = true, message = "Stock updated successfully", updatedStock });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { success = false, message = ex.Message });
+        }
+        finally
+        {
+            if (_connection.State == System.Data.ConnectionState.Open)
+            {
+                _connection.Close();
+            }
+        }
     }
 
     public IActionResult Settings()
@@ -309,25 +456,17 @@ public class AdminController : Controller
 
             const string statsSql = @"
                 SELECT
-                    COUNT(*) AS total_customers,
-                    SUM(CASE WHEN EXISTS(
-                        SELECT 1 FROM Orders o2
-                        WHERE o2.user_id = u.user_id
-                        AND MONTH(o2.order_date) = MONTH(CURRENT_DATE())
-                        AND YEAR(o2.order_date) = YEAR(CURRENT_DATE())
-                    ) THEN 1 ELSE 0 END) AS new_this_month,
-                    SUM(CASE WHEN EXISTS(
-                        SELECT 1 FROM Orders o2
-                        WHERE o2.user_id = u.user_id
-                        AND o2.order_date >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)
-                    ) THEN 1 ELSE 0 END) AS active_customers,
-                    SUM(CASE WHEN (
-                        SELECT COALESCE(SUM(o3.total_amount), 0)
-                        FROM Orders o3
-                        WHERE o3.user_id = u.user_id
-                    ) >= 2000 THEN 1 ELSE 0 END) AS vip_members
-                FROM Users u
-                WHERE u.role_id = 4";
+                    (SELECT COUNT(*) FROM Users WHERE role_id = 4) AS total_customers,
+                    (SELECT COUNT(*) FROM Users WHERE role_id = 4 
+                     AND MONTH(created_at) = MONTH(CURRENT_DATE()) 
+                     AND YEAR(created_at) = YEAR(CURRENT_DATE())) AS new_this_month,
+                    (SELECT COUNT(*) FROM Orders) AS total_orders,
+                    (SELECT COUNT(DISTINCT user_id) FROM (
+                        SELECT user_id, COUNT(*) AS order_count
+                        FROM Orders
+                        GROUP BY user_id
+                        HAVING order_count > 1
+                    ) AS repeat_calc) AS repeat_customers";
 
             using (var cmd = new MySqlCommand(statsSql, _connection))
             using (var reader = cmd.ExecuteReader())
@@ -336,8 +475,8 @@ public class AdminController : Controller
                 {
                     model.TotalCustomers = reader.GetInt32("total_customers");
                     model.NewThisMonth = reader.GetInt32("new_this_month");
-                    model.ActiveCustomers = reader.GetInt32("active_customers");
-                    model.VipMembers = reader.GetInt32("vip_members");
+                    model.TotalOrders = reader.GetInt32("total_orders");
+                    model.RepeatCustomers = reader.GetInt32("repeat_customers");
                 }
             }
 
@@ -419,7 +558,77 @@ public class AdminController : Controller
         var accessCheck = CheckAdminAccess();
         if (accessCheck != null) return accessCheck;
 
-        return View();
+        var model = new AdminOrdersViewModel();
+
+        try
+        {
+            if (_connection.State == System.Data.ConnectionState.Closed)
+            {
+                _connection.Open();
+            }
+
+            const string ordersSql = @"
+                SELECT
+                    o.order_id,
+                    o.order_date,
+                    o.total_amount,
+                    o.status,
+                    u.username,
+                    u.email,
+                    COALESCE(up.first_name, '') AS first_name,
+                    COALESCE(up.last_name, '') AS last_name,
+                    GROUP_CONCAT(CONCAT(p.name, ' x', od.quantity) SEPARATOR ', ') AS products,
+                    SUM(od.quantity) AS item_count
+                FROM Orders o
+                LEFT JOIN Users u ON u.user_id = o.user_id
+                LEFT JOIN User_Profiles up ON up.user_id = u.user_id
+                LEFT JOIN OrderDetails od ON od.order_id = o.order_id
+                LEFT JOIN Products p ON p.product_id = od.product_id
+                GROUP BY o.order_id, o.order_date, o.total_amount, o.status, u.username, u.email, up.first_name, up.last_name
+                ORDER BY o.order_date DESC";
+
+            using (var cmd = new MySqlCommand(ordersSql, _connection))
+            using (var reader = cmd.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    var firstName = reader.GetString("first_name");
+                    var lastName = reader.GetString("last_name");
+                    var username = reader.GetString("username");
+                    var email = reader.GetString("email");
+                    var status = NormalizeStatus(reader.GetString("status"));
+                    var orderDate = reader.GetDateTime("order_date");
+
+                    model.Orders.Add(new AdminOrderItem
+                    {
+                        Id = $"#ORD-{reader.GetInt32("order_id"):D3}",
+                        First = string.IsNullOrWhiteSpace(firstName) ? username : firstName,
+                        Last = lastName,
+                        Email = email,
+                        Products = reader.IsDBNull(reader.GetOrdinal("products")) ? "" : reader.GetString("products"),
+                        Items = reader.IsDBNull(reader.GetOrdinal("item_count")) ? 0 : reader.GetInt32("item_count"),
+                        Amount = reader.GetDecimal("total_amount"),
+                        Status = status,
+                        Date = orderDate.ToString("MMM d, yyyy"),
+                        Time = orderDate.ToString("h:mm tt"),
+                        Color = status == "Completed" ? "av-blue" : status == "Pending" ? "av-orange" : "av-purple"
+                    });
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            ViewBag.ErrorMessage = $"Failed to load orders: {ex.Message}";
+        }
+        finally
+        {
+            if (_connection.State == System.Data.ConnectionState.Open)
+            {
+                _connection.Close();
+            }
+        }
+
+        return View(model);
     }
 
     public IActionResult Products()
@@ -1162,5 +1371,12 @@ ORDER BY c.category_name";
                 _connection.Close();
             }
         }
+    }
+
+    public class StockUpdateRequest
+    {
+        public int ProductId { get; set; }
+        public int QuantityChange { get; set; }
+        public string? Note { get; set; }
     }
 }

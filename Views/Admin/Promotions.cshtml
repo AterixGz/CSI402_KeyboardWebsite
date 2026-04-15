@@ -155,7 +155,7 @@
             </div>
             <div>
                 <div class="stat-label">Total Promotions</div>
-                <div class="stat-value" id="statTotal">@totalAll</div>
+                <div class="stat-value" id="stat-total">@totalAll</div>
             </div>
         </div>
         <div class="stat-card">
@@ -168,7 +168,7 @@
             </div>
             <div>
                 <div class="stat-label">Active</div>
-                <div class="stat-value" id="statActive">@totalActive</div>
+                <div class="stat-value" id="stat-active">@totalActive</div>
             </div>
         </div>
         <div class="stat-card">
@@ -181,7 +181,7 @@
             </div>
             <div>
                 <div class="stat-label">Total Used</div>
-                <div class="stat-value" id="statUsed">@totalUsed</div>
+                <div class="stat-value" id="stat-used">@totalUsed</div>
             </div>
         </div>
         <div class="stat-card">
@@ -194,7 +194,7 @@
             </div>
             <div>
                 <div class="stat-label">Avg. Usage</div>
-                <div class="stat-value" id="statAvg">@avgDiscount%</div>
+                <div class="stat-value" id="stat-avg">@avgDiscount%</div>
             </div>
         </div>
     </div>
@@ -301,6 +301,9 @@
         </div>
     </div>
 </div>
+
+<!-- Toast notification -->
+<div class="toast" id="toast"></div>
 
 <script>
 // ── Data store ──

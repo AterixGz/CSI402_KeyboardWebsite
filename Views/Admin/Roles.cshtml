@@ -75,6 +75,7 @@
     <div class="tabs">
         <div class="tab active" onclick="switchTab('roles', this)">Roles</div>
         <div class="tab" onclick="switchTab('admins', this)">Admin Users</div>
+        <div class="tab" onclick="switchTab('permissions', this)">Permissions</div>
     </div>
 
     <!-- ── ROLES PANEL ── -->
@@ -119,8 +120,216 @@
                         <th>Actions</th>
                     </tr>
                 </thead>
-                <tbody id="adminsTable"></tbody>
             </table>
+        </div>
+    </div>
+
+    <!-- ── PERMISSIONS PANEL ── -->
+    <div class="tab-panel" id="panel-permissions">
+        <!-- ── Top bar ── -->
+        <div class="topbar">
+            <div>
+                <h1>Permissions</h1>
+                <p>Manage role-based access control and page visibility</p>
+            </div>
+            <button class="save-btn" onclick="savePermissions()">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
+                    <polyline points="17 21 17 13 7 13 7 21"/>
+                    <polyline points="7 3 7 8 15 8"/>
+                </svg>
+                Save Changes
+            </button>
+        </div>
+
+        <!-- ── Permissions Table ── -->
+        <div class="permissions-card">
+            <div class="card-header">Role Access Matrix</div>
+            <div class="permissions-table-wrapper">
+                <table class="permissions-table">
+                    <thead>
+                        <tr>
+                            <th>Page / Feature</th>
+                            <th class="role-header">
+                                <div class="role-name">Admin</div>
+                                <div class="role-id">role_id: 1</div>
+                            </th>
+                            <th class="role-header">
+                                <div class="role-name">Manager</div>
+                                <div class="role-id">role_id: 2</div>
+                            </th>
+                            <th class="role-header">
+                                <div class="role-name">Staff</div>
+                                <div class="role-id">role_id: 3</div>
+                            </th>
+                            <th class="role-header">
+                                <div class="role-name">Customer</div>
+                                <div class="role-id">role_id: 4</div>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Dashboard -->
+                        <tr>
+                            <td class="feature-name">
+                                <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path d="M3 4a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm8 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V4zM3 12a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H4a1 1 0 01-1-1v-4zm8 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/></svg>
+                                Dashboard
+                            </td>
+                            <td><input type="checkbox" class="permission-check" checked /></td>
+                            <td><input type="checkbox" class="permission-check" checked /></td>
+                            <td><input type="checkbox" class="permission-check" /></td>
+                            <td><input type="checkbox" class="permission-check" /></td>
+                        </tr>
+
+                        <!-- Customers -->
+                        <tr>
+                            <td class="feature-name">
+                                <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
+                                Customers
+                            </td>
+                            <td><input type="checkbox" class="permission-check" checked /></td>
+                            <td><input type="checkbox" class="permission-check" checked /></td>
+                            <td><input type="checkbox" class="permission-check" /></td>
+                            <td><input type="checkbox" class="permission-check" /></td>
+                        </tr>
+
+                        <!-- Orders -->
+                        <tr>
+                            <td class="feature-name">
+                                <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4zM18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z"/></svg>
+                                Orders
+                            </td>
+                            <td><input type="checkbox" class="permission-check" checked /></td>
+                            <td><input type="checkbox" class="permission-check" checked /></td>
+                            <td><input type="checkbox" class="permission-check" checked /></td>
+                            <td><input type="checkbox" class="permission-check" /></td>
+                        </tr>
+
+                        <!-- Products -->
+                        <tr>
+                            <td class="feature-name">
+                                <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4z" clip-rule="evenodd"/></svg>
+                                Products
+                            </td>
+                            <td><input type="checkbox" class="permission-check" checked /></td>
+                            <td><input type="checkbox" class="permission-check" checked /></td>
+                            <td><input type="checkbox" class="permission-check" /></td>
+                            <td><input type="checkbox" class="permission-check" /></td>
+                        </tr>
+
+                        <!-- Categories -->
+                        <tr>
+                            <td class="feature-name">
+                                <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path d="M4 3a1 1 0 00-1 1v3h14V4a1 1 0 00-1-1H4zm0 6v7a1 1 0 001 1h10a1 1 0 001-1V9H4zm2 2h2v3H6v-3zm4 0h2v3h-2v-3z"/></svg>
+                                Categories
+                            </td>
+                            <td><input type="checkbox" class="permission-check" checked /></td>
+                            <td><input type="checkbox" class="permission-check" checked /></td>
+                            <td><input type="checkbox" class="permission-check" /></td>
+                            <td><input type="checkbox" class="permission-check" /></td>
+                        </tr>
+
+                        <!-- Promotions -->
+                        <tr>
+                            <td class="feature-name">
+                                <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4z" clip-rule="evenodd"/></svg>
+                                Promotions
+                            </td>
+                            <td><input type="checkbox" class="permission-check" checked /></td>
+                            <td><input type="checkbox" class="permission-check" checked /></td>
+                            <td><input type="checkbox" class="permission-check" /></td>
+                            <td><input type="checkbox" class="permission-check" /></td>
+                        </tr>
+
+                        <!-- Roles -->
+                        <tr>
+                            <td class="feature-name">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="6.5"/><path d="M21 2l-9.6 9.6"/><path d="M15.5 7.5l3 3"/></svg>
+                                Roles
+                            </td>
+                            <td><input type="checkbox" class="permission-check" checked /></td>
+                            <td><input type="checkbox" class="permission-check" /></td>
+                            <td><input type="checkbox" class="permission-check" /></td>
+                            <td><input type="checkbox" class="permission-check" /></td>
+                        </tr>
+
+                        <!-- Permissions -->
+                        <tr>
+                            <td class="feature-name">
+                                <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"/></svg>
+                                Permissions
+                            </td>
+                            <td><input type="checkbox" class="permission-check" checked /></td>
+                            <td><input type="checkbox" class="permission-check" /></td>
+                            <td><input type="checkbox" class="permission-check" /></td>
+                            <td><input type="checkbox" class="permission-check" /></td>
+                        </tr>
+
+                        <!-- Settings -->
+                        <tr>
+                            <td class="feature-name">
+                                <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
+                                Settings
+                            </td>
+                            <td><input type="checkbox" class="permission-check" checked /></td>
+                            <td><input type="checkbox" class="permission-check" /></td>
+                            <td><input type="checkbox" class="permission-check" /></td>
+                            <td><input type="checkbox" class="permission-check" /></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ── Role Details ── -->
+        <div class="roles-grid">
+            <div class="role-detail-card">
+                <div class="role-badge admin">Admin</div>
+                <div class="card-header">Admin (role_id: 1)</div>
+                <p class="card-desc">Full system access. Can manage all features and user permissions.</p>
+                <ul class="permissions-list">
+                    <li>✓ View all pages</li>
+                    <li>✓ Create, edit, delete content</li>
+                    <li>✓ Manage users & roles</li>
+                    <li>✓ Configure system settings</li>
+                </ul>
+            </div>
+
+            <div class="role-detail-card">
+                <div class="role-badge manager">Manager</div>
+                <div class="card-header">Manager (role_id: 2)</div>
+                <p class="card-desc">Can manage content and orders but cannot access roles/permissions.</p>
+                <ul class="permissions-list">
+                    <li>✓ View dashboard & orders</li>
+                    <li>✓ Manage customers</li>
+                    <li>✓ Create & edit products</li>
+                    <li>✗ Cannot manage roles</li>
+                </ul>
+            </div>
+
+            <div class="role-detail-card">
+                <div class="role-badge staff">Staff</div>
+                <div class="card-header">Staff (role_id: 3)</div>
+                <p class="card-desc">Limited access. Can view orders and update order status.</p>
+                <ul class="permissions-list">
+                    <li>✓ View orders</li>
+                    <li>✓ View customers</li>
+                    <li>✓ Update order status</li>
+                    <li>✗ Cannot edit products</li>
+                </ul>
+            </div>
+
+            <div class="role-detail-card">
+                <div class="role-badge customer">Customer</div>
+                <div class="card-header">Customer (role_id: 4)</div>
+                <p class="card-desc">Regular users. Can only manage their own account and view own orders.</p>
+                <ul class="permissions-list">
+                    <li>✓ View own profile</li>
+                    <li>✓ View own orders</li>
+                    <li>✓ Browse products</li>
+                    <li>✗ No admin access</li>
+                </ul>
+            </div>
         </div>
     </div>
 </div>
@@ -173,7 +382,7 @@
 </div>
 
 <!-- Toast -->
-<div class="toast" id="toast">Role created successfully!</div>
+<div class="toast" id="toast">Action completed successfully!</div>
 
 <script>
     /* ── DATA ── */
@@ -379,6 +588,11 @@
         closeCreateModal();
         ['crName','crDesc','crUsers'].forEach(id => document.getElementById(id).value = id === 'crUsers' ? '0' : '');
         showToast('Role created successfully!');
+    }
+
+    function savePermissions() {
+        // TODO: Send permission changes to server
+        showToast('Permissions updated successfully!');
     }
 
     function showToast(msg) {

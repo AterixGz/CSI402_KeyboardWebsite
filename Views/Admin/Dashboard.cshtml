@@ -1,8 +1,14 @@
 
-@model KeyboardWebsiteProject.Views.Admin.DashboardModel
+@model KeyboardWebsiteProject.Models.AdminDashboardModel
 @{
     ViewData["Title"] = "Dashboard";
     Layout = "_AdminLayout";
+}
+@if (ViewBag.ErrorMessage != null)
+{
+    <div class="dashboard-error" style="padding: 16px; margin-bottom: 18px; background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; border-radius: 12px;">
+        @ViewBag.ErrorMessage
+    </div>
 }
     <div class="topbar">
         <div>
@@ -120,8 +126,11 @@
                             <div class="customer-email">@customer.Email</div>
                         </div>
                         <div class="customer-right">
-                            <div class="customer-amount">@customer.Amount</div>
-                            <div class="customer-orders">@customer.Orders</div>
+                            <div class="customer-amount">
+                                <div class="customer-amount-label">Spend</div>
+                                <div>@(!string.IsNullOrEmpty(customer.Amount) ? customer.Amount : "฿0")</div>
+                            </div>
+                            <div class="customer-orders">@(!string.IsNullOrEmpty(customer.Orders) ? customer.Orders : "0 orders")</div>
                         </div>
                     </div>
                 }

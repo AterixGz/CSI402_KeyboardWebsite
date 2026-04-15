@@ -289,6 +289,14 @@
     font-weight: 700;
 }
 
+.customer-amount-label {
+    font-size: 10px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    margin-bottom: 2px;
+}
+
 .customer-orders {
     font-size: 11px;
     color: var(--text-secondary);

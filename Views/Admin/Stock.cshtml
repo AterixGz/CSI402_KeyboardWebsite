@@ -1,0 +1,429 @@
+@model List<KeyboardWebsiteProject.Models.Product>
+@{
+    ViewData["Title"] = "Stock Management";
+    Layout = "_AdminLayout";
+
+    var stockItems = Model ?? new List<KeyboardWebsiteProject.Models.Product>();
+    int totalItems = stockItems.Count;
+    int lowStockCount = stockItems.Count(s => s.StockQuantity > 0 && s.StockQuantity < 10);
+    int outOfStockCount = stockItems.Count(s => s.StockQuantity == 0);
+    decimal totalValue = stockItems.Sum(s => s.StockQuantity * s.Price);
+    var categories = stockItems
+        .Select(s => s.CategoryName?.Trim())
+        .Where(c => !string.IsNullOrEmpty(c))
+        .Distinct()
+        .OrderBy(c => c)
+        .ToList();
+}
+
+<div class="page">
+    <!-- ── Top bar ── -->
+    <div class="topbar">
+        <div>
+            <h1>Stock Management</h1>
+            <p>Track and manage product inventory levels</p>
+        </div>
+        <button class="btn-action" onclick="openRestockModal()">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Add Stock
+        </button>
+    </div>
+
+    <!-- ── Stat cards ── -->
+    <div class="stat-grid">
+        <div class="stat-card">
+            <div class="stat-icon si-blue">
+                <svg width="22" height="22" fill="none" stroke="#2563eb" stroke-width="1.8" viewBox="0 0 24 24">
+                    <path d="M20 7l-1.5-1.5a2 2 0 00-2.8 0L6 15V20h5l8-8-1.2-1z"/>
+                    <path d="M15 5l4 4"/>
+                </svg>
+            </div>
+            <div>
+                <div class="stat-label">Total Items</div>
+                <div class="stat-value">@totalItems</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon si-yellow">
+                <svg width="22" height="22" fill="none" stroke="#f59e0b" stroke-width="1.8" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="9"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+            </div>
+            <div>
+                <div class="stat-label">Low Stock</div>
+                <div class="stat-value">@lowStockCount</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon si-red">
+                <svg width="22" height="22" fill="none" stroke="#dc2626" stroke-width="1.8" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="9"/>
+                    <line x1="8" y1="12" x2="16" y2="12"/>
+                </svg>
+            </div>
+            <div>
+                <div class="stat-label">Out of Stock</div>
+                <div class="stat-value">@outOfStockCount</div>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon si-green">
+                <svg width="22" height="22" fill="none" stroke="#16a34a" stroke-width="1.8" viewBox="0 0 24 24">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                </svg>
+            </div>
+            <div>
+                <div class="stat-label">Total Value</div>
+                <div class="stat-value">฿@totalValue.ToString("N0")</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Filters ── -->
+    <div class="filter-bar">
+        <div class="search-wrap">
+            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+            </svg>
+            <input type="text" id="search-input" placeholder="Search products..." oninput="filterTable()" />
+        </div>
+        <select class="filter-select" id="filter-status" onchange="filterTable()">
+            <option value="">All Status</option>
+            <option value="normal">Normal</option>
+            <option value="low">Low Stock</option>
+            <option value="outofstock">Out of Stock</option>
+        </select>
+        <select class="filter-select" id="filter-cat" onchange="filterTable()">
+            <option value="">All Categories</option>
+            @foreach (var cat in categories)
+            {
+                <option value="@cat">@cat</option>
+            }
+        </select>
+    </div>
+
+    <!-- ── Stock Table ── -->
+    <div class="card">
+        <table id="stock-table">
+            <thead>
+                <tr>
+                    <th>Product Name</th>
+                    <th>SKU</th>
+                    <th>Category</th>
+                    <th>Current Stock</th>
+                    <th>Min / Max</th>
+                    <th>Unit Price</th>
+                    <th>Total Value</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="stock-body">
+                @foreach (var item in stockItems)
+                {
+                    var statusClass = item.StockQuantity == 0 ? "status-out"
+                                   : item.StockQuantity < 10 ? "status-low"
+                                   : "status-normal";
+                    var statusKey = item.StockQuantity == 0 ? "outofstock"
+                                   : item.StockQuantity < 10 ? "low"
+                                   : "normal";
+                    var statusLabel = item.StockQuantity == 0 ? "✕ Out of Stock"
+                                   : item.StockQuantity < 10 ? "⚠ Low Stock"
+                                   : "✓ Normal";
+                    var statusIcon = item.StockQuantity == 0 ? "🔴"
+                                  : item.StockQuantity < 10 ? "🟡"
+                                  : "🟢";
+                    var sku = $"PRD-{item.ProductId:D5}";
+                    var currentStock = item.StockQuantity;
+                    var minStock = 10;
+                    var maxStock = 100;
+
+                    <tr data-name="@item.Name?.ToLower()" data-sku="@sku.ToLower()" data-status="@statusKey" data-category="@(item.CategoryName?.ToLower() ?? string.Empty)">
+                        <td class="product-name">@item.Name</td>
+                        <td class="sku-code">@sku</td>
+                        <td>@item.CategoryName</td>
+                        <td class="stock-cell">
+                            <span class="stock-value">@currentStock</span>
+                        </td>
+                        <td class="minmax-cell">
+                            <div class="minmax-display">
+                                <span class="minmax-min">@minStock</span>
+                                <span class="minmax-sep">/</span>
+                                <span class="minmax-max">@maxStock</span>
+                            </div>
+                        </td>
+                        <td class="price-cell">฿@((item.Price).ToString("N0"))</td>
+                        <td class="total-cell">฿@((currentStock * item.Price).ToString("N0"))</td>
+                        <td class="status-cell">
+                            <span class="status-badge @statusClass">@statusIcon @statusLabel</span>
+                        </td>
+                        <td class="action-cell">
+                            <button class="btn-action-sm" onclick='openUpdateModal(@item.ProductId, @System.Text.Json.JsonSerializer.Serialize(item.Name ?? string.Empty), @currentStock)'>📝 Update</button>
+                            <button class="btn-action-sm" onclick='openHistoryModal(@item.ProductId, @System.Text.Json.JsonSerializer.Serialize(item.Name ?? string.Empty))'>📊 History</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <!-- Empty state -->
+        <div class="empty" id="empty-state" style="display:none;">
+            <div class="empty-icon">📦</div>
+            <div>No products found</div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Update Stock Modal ── -->
+<div class="modal-overlay" id="updateModal" onclick="closeModalOutside(event, 'updateModal')">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="modal-title">Update Stock</span>
+            <button class="btn-close" onclick="closeModal('updateModal')">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="field">
+                <label>Product</label>
+                <input type="hidden" id="update-product-id" />
+                <input type="text" id="update-product" disabled />
+            </div>
+            <div class="field-row">
+                <div class="field">
+                    <label>Current Stock</label>
+                    <input type="text" id="update-current" disabled />
+                </div>
+                <div class="field">
+                    <label>Quantity</label>
+                    <input type="number" id="update-qty" placeholder="e.g., +10 or -5" />
+                </div>
+            </div>
+            <div class="field">
+                <label>Note</label>
+                <textarea id="update-note" placeholder="e.g., Restock from supplier..."></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-cancel" onclick="closeModal('updateModal')">Cancel</button>
+            <button class="btn-save" onclick="saveStockUpdate()">Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── Add Stock Modal ── -->
+<div class="modal-overlay" id="restockModal" onclick="closeModalOutside(event, 'restockModal')">
+    <div class="modal">
+        <div class="modal-header">
+            <span class="modal-title">Add to Stock</span>
+            <button class="btn-close" onclick="closeModal('restockModal')">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="field">
+                <label>Select Product</label>
+                <select id="restock-product">
+                    <option value="">Choose a product...</option>
+                    @foreach (var item in stockItems)
+                    {
+                        var sku = $"PRD-{item.ProductId:D5}";
+                        <option value="@item.ProductId">@item.Name (@sku)</option>
+                    }
+                </select>
+            </div>
+            <div class="field">
+                <label>Quantity to Add</label>
+                <input type="number" id="restock-qty" placeholder="e.g., 50" min="1" />
+            </div>
+            <div class="field">
+                <label>Source</label>
+                <select id="restock-source">
+                    <option value="supplier">Supplier</option>
+                    <option value="return">Customer Return</option>
+                    <option value="transfer">Internal Transfer</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-cancel" onclick="closeModal('restockModal')">Cancel</button>
+            <button class="btn-save" onclick="saveRestock()">Add Stock</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── History Modal ── -->
+<div class="modal-overlay" id="historyModal" onclick="closeModalOutside(event, 'historyModal')">
+    <div class="modal modal-large">
+        <div class="modal-header">
+            <span class="modal-title" id="history-title">Stock History</span>
+            <button class="btn-close" onclick="closeModal('historyModal')">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="history-list" id="history-content">
+                <!-- Populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Toast ── -->
+<div class="toast" id="toast"></div>
+
+<script>
+    const stockData = [
+        @foreach (var item in stockItems)
+        {
+            <text>{ id: @item.ProductId, name: "@item.Name", sku: "PRD-@item.ProductId", category: "@item.CategoryName", stock: @item.StockQuantity, minStock: 10, maxStock: 100, price: @item.Price },</text>
+        }
+    ];
+
+    function filterTable() {
+        const q = document.getElementById('search-input').value.toLowerCase();
+        const status = document.getElementById('filter-status').value;
+        const category = document.getElementById('filter-cat').value.toLowerCase();
+        const rows = document.querySelectorAll('#stock-body tr');
+        let visible = 0;
+
+        rows.forEach(row => {
+            const rowName = row.dataset.name || '';
+            const rowSku = row.dataset.sku || '';
+            const rowStatus = row.dataset.status || '';
+            const rowCategory = (row.dataset.category || '').toLowerCase();
+            const matchQ = !q || rowName.includes(q) || rowSku.includes(q);
+            const matchSt = !status || rowStatus === status;
+            const matchCat = !category || rowCategory === category;
+            const show = matchQ && matchSt && matchCat;
+            row.style.display = show ? '' : 'none';
+            if (show) visible++;
+        });
+
+        document.getElementById('empty-state').style.display = visible === 0 ? 'block' : 'none';
+    }
+
+    function openUpdateModal(id, name, stock) {
+        document.getElementById('update-product-id').value = id;
+        document.getElementById('update-product').value = name;
+        document.getElementById('update-current').value = stock;
+        document.getElementById('update-qty').value = '';
+        document.getElementById('update-note').value = '';
+        document.getElementById('updateModal').classList.add('open');
+    }
+
+    function openRestockModal() {
+        document.getElementById('restock-product').value = '';
+        document.getElementById('restock-qty').value = '';
+        document.getElementById('restock-source').value = 'supplier';
+        document.getElementById('restockModal').classList.add('open');
+    }
+
+    function openHistoryModal(id, name) {
+        document.getElementById('history-title').textContent = `Stock History - ${name}`;
+        const historyHtml = `
+            <div class="history-item">
+                <div class="history-date">Apr 15, 2026 14:30</div>
+                <div class="history-action">Restocked +50</div>
+                <div class="history-note">Supplier delivery</div>
+                <div class="history-user">by Admin</div>
+            </div>
+            <div class="history-item">
+                <div class="history-date">Apr 10, 2026 09:15</div>
+                <div class="history-action">Sold -5</div>
+                <div class="history-note">Order #1234</div>
+                <div class="history-user">System</div>
+            </div>
+            <div class="history-item">
+                <div class="history-date">Apr 05, 2026 16:45</div>
+                <div class="history-action">Restocked +100</div>
+                <div class="history-note">Initial stock</div>
+                <div class="history-user">by Admin</div>
+            </div>
+        `;
+        document.getElementById('history-content').innerHTML = historyHtml;
+        document.getElementById('historyModal').classList.add('open');
+    }
+
+    async function saveStockUpdate() {
+        const productId = parseInt(document.getElementById('update-product-id').value, 10);
+        const qty = parseInt(document.getElementById('update-qty').value, 10);
+        const note = document.getElementById('update-note').value.trim();
+        if (!productId || isNaN(qty) || qty === 0) {
+            alert('Please enter a valid quantity');
+            return;
+        }
+
+        try {
+            const response = await fetch('@Url.Action("UpdateStock", "Admin")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ productId, quantityChange: qty, note })
+            });
+
+            const data = await response.json();
+            if (!response.ok || !data.success) {
+                alert(data?.message || 'Failed to update stock');
+                return;
+            }
+
+            showToast(`✅ Stock updated successfully`);
+            closeModal('updateModal');
+            setTimeout(() => location.reload(), 600);
+        } catch (error) {
+            alert('Unable to update stock.');
+            console.error(error);
+        }
+    }
+
+    async function saveRestock() {
+        const productId = parseInt(document.getElementById('restock-product').value, 10);
+        const qty = parseInt(document.getElementById('restock-qty').value, 10);
+        if (!productId || isNaN(qty) || qty <= 0) {
+            alert('Please select product and quantity');
+            return;
+        }
+
+        try {
+            const response = await fetch('@Url.Action("UpdateStock", "Admin")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ productId, quantityChange: qty, note: document.getElementById('restock-source').value })
+            });
+
+            const data = await response.json();
+            if (!response.ok || !data.success) {
+                alert(data?.message || 'Failed to add stock');
+                return;
+            }
+
+            const productName = document.querySelector(`option[value="${productId}"]`).textContent;
+            showToast(`✅ Added ${qty} units to ${productName}`);
+            closeModal('restockModal');
+            setTimeout(() => location.reload(), 600);
+        } catch (error) {
+            alert('Unable to add stock.');
+            console.error(error);
+        }
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.remove('open');
+    }
+
+    function closeModalOutside(e, modalId) {
+        if (e.target === document.getElementById(modalId)) closeModal(modalId);
+    }
+
+    function showToast(msg) {
+        const toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+</script>

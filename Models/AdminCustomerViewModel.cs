@@ -7,8 +7,8 @@ namespace KeyboardWebsiteProject.Models
     {
         public int TotalCustomers { get; set; }
         public int NewThisMonth { get; set; }
-        public int ActiveCustomers { get; set; }
-        public int VipMembers { get; set; }
+        public int TotalOrders { get; set; }
+        public int RepeatCustomers { get; set; }
         public List<AdminCustomerItem> Customers { get; set; } = new();
     }
 
