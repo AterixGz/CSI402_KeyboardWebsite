@@ -1,4 +1,5 @@
 using System;
+using System.Data;
 using System.Net;
 using CloudinaryDotNet;
 using CloudinaryDotNet.Actions;
@@ -1046,7 +1047,121 @@ ORDER BY c.category_name, p.name";
         var accessCheck = CheckAdminAccess();
         if (accessCheck != null) return accessCheck;
 
-        return View();
+        var promotions = new List<PromotionViewModel>();
+
+        try
+        {
+            if (_connection.State == System.Data.ConnectionState.Closed)
+                _connection.Open();
+
+            const string couponSql = @"SELECT coupon_id, code, discount_value, discount_type, expiry_date, usage_limit, used_count
+                                       FROM Coupons";
+
+            using (var couponCmd = new MySqlCommand(couponSql, _connection))
+            using (var reader = couponCmd.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    var code = reader.GetString("code").Trim();
+                    var expiryDate = reader.IsDBNull(reader.GetOrdinal("expiry_date"))
+                        ? (DateTime?)null
+                        : reader.GetDateTime("expiry_date");
+                    var usageLimit = reader.IsDBNull(reader.GetOrdinal("usage_limit"))
+                        ? 0
+                        : reader.GetInt32("usage_limit");
+                    var usedCount = reader.IsDBNull(reader.GetOrdinal("used_count"))
+                        ? 0
+                        : reader.GetInt32("used_count");
+                    var discountValue = reader.GetDecimal("discount_value");
+                    var discountType = reader.GetString("discount_type")?.Trim().ToLower() ?? "percent";
+                    var status = "active";
+
+                    if (expiryDate.HasValue && DateTime.UtcNow.Date > expiryDate.Value.Date)
+                        status = "expired";
+                    else if (usageLimit > 0 && usedCount >= usageLimit)
+                        status = "expired";
+
+                    var discountText = discountType == "fixed"
+                        ? $"฿{discountValue:0.##}"
+                        : $"{discountValue:0.##}%";
+
+                    promotions.Add(new PromotionViewModel
+                    {
+                        Id = reader.GetInt32("coupon_id"),
+                        Type = "coupon",
+                        Name = code,
+                        Code = code,
+                        Discount = discountText,
+                        DiscountType = discountType,
+                        MinSpend = "฿0",
+                        IsFreeShipping = false,
+                        Category = "All Categories",
+                        DateStart = expiryDate?.ToString("yyyy-MM-dd") ?? string.Empty,
+                        DateEnd = expiryDate?.ToString("yyyy-MM-dd") ?? string.Empty,
+                        ExpiryDate = expiryDate?.ToString("yyyy-MM-dd") ?? string.Empty,
+                        Status = status,
+                        Used = usedCount,
+                        Limit = usageLimit
+                    });
+                }
+            }
+
+            const string promoSql = @"SELECT promo_id, promo_name, min_spend, discount_amount, is_free_shipping, start_date, end_date, is_active
+                                       FROM Promotions";
+
+            using (var promoCmd = new MySqlCommand(promoSql, _connection))
+            using (var reader = promoCmd.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    var name = reader.GetString("promo_name");
+                    var minSpend = reader["min_spend"]?.ToString() ?? "฿0";
+                    var discountAmount = reader.IsDBNull(reader.GetOrdinal("discount_amount"))
+                        ? 0m
+                        : reader.GetDecimal("discount_amount");
+                    var starts = reader.IsDBNull(reader.GetOrdinal("start_date"))
+                        ? (DateTime?)null
+                        : reader.GetDateTime("start_date");
+                    var ends = reader.IsDBNull(reader.GetOrdinal("end_date"))
+                        ? (DateTime?)null
+                        : reader.GetDateTime("end_date");
+                    var isFreeShipping = !reader.IsDBNull(reader.GetOrdinal("is_free_shipping")) && reader.GetBoolean("is_free_shipping");
+                    var isActive = !reader.IsDBNull(reader.GetOrdinal("is_active")) && reader.GetBoolean("is_active");
+                    var status = "active";
+
+                    if (starts.HasValue && DateTime.UtcNow.Date < starts.Value.Date)
+                        status = "scheduled";
+                    else if (!isActive || (ends.HasValue && DateTime.UtcNow.Date > ends.Value.Date))
+                        status = "expired";
+
+                    promotions.Add(new PromotionViewModel
+                    {
+                        Id = reader.GetInt32("promo_id"),
+                        Type = "system",
+                        Name = name,
+                        Code = "SYSTEM",
+                        Discount = $"{discountAmount:0.##}%",
+                        DiscountType = "percent",
+                        MinSpend = minSpend,
+                        IsFreeShipping = isFreeShipping,
+                        Category = "All Categories",
+                        DateStart = starts?.ToString("yyyy-MM-dd") ?? string.Empty,
+                        DateEnd = ends?.ToString("yyyy-MM-dd") ?? string.Empty,
+                        ExpiryDate = ends?.ToString("yyyy-MM-dd") ?? string.Empty,
+                        Status = status,
+                        Used = 0,
+                        Limit = 0
+                    });
+                }
+            }
+        }
+        finally
+        {
+            if (_connection.State == System.Data.ConnectionState.Open)
+                _connection.Close();
+        }
+
+        return View(promotions);
     }
 
     private string NormalizeImageUrl(string? imageUrl)

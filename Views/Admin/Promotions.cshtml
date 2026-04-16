@@ -1,67 +1,10 @@
+@model List<KeyboardWebsiteProject.Models.PromotionViewModel>
 @{
     ViewData["Title"] = "Manage Promotions";
     Layout = "_AdminLayout";
 
-    var promotions = new[]
-    {
-        new {
-            Name      = "Summer Sale Keyboards",
-            Code      = "SUMMER2024",
-            Discount  = "20%",
-            Category  = "Keyboard",
-            DateStart = "2026-03-01",
-            DateEnd   = "2026-03-31",
-            Status    = "active",
-            Used      = 156,
-            Limit     = 500
-        },
-        new {
-            Name      = "New Keycap Collection",
-            Code      = "NEWCAP15",
-            Discount  = "15%",
-            Category  = "Keycap",
-            DateStart = "2026-03-15",
-            DateEnd   = "2026-04-15",
-            Status    = "active",
-            Used      = 89,
-            Limit     = 300
-        },
-        new {
-            Name      = "Switch Bundle Deal",
-            Code      = "SWITCH50",
-            Discount  = "฿1,640",
-            Category  = "Switch",
-            DateStart = "2026-04-01",
-            DateEnd   = "2026-04-30",
-            Status    = "scheduled",
-            Used      = 0,
-            Limit     = 200
-        },
-        new {
-            Name      = "Flash Sale All Items",
-            Code      = "FLASH30",
-            Discount  = "30%",
-            Category  = "All Categories",
-            DateStart = "2026-02-01",
-            DateEnd   = "2026-02-28",
-            Status    = "expired",
-            Used      = 450,
-            Limit     = 500
-        },
-        new {
-            Name      = "Premium Keyboard Discount",
-            Code      = "PREMIUM100",
-            Discount  = "฿3,280",
-            Category  = "Keyboard",
-            DateStart = "2026-03-10",
-            DateEnd   = "2026-05-10",
-            Status    = "active",
-            Used      = 45,
-            Limit     = 100
-        },
-    };
-
-    int totalAll      = promotions.Length;
+    var promotions = Model ?? new List<KeyboardWebsiteProject.Models.PromotionViewModel>();
+    int totalAll      = promotions.Count;
     int totalActive   = promotions.Count(p => p.Status == "active");
     int totalUsed     = promotions.Sum(p => p.Used);
     int totalLimit    = promotions.Sum(p => p.Limit);
@@ -73,7 +16,7 @@
         <div class="topbar-title">Manage Promotions</div>
         <div class="topbar-sub">Create, edit, and manage promotional codes for your store</div>
     </div>
-    <button class="btn-add-topbar" onclick="openModal()">+ Add Promotion</button>
+    <button type="button" class="btn-add-topbar" onclick="openModal()">+ Add Promotion</button>
 </div>
 
 <div class="content">
@@ -86,35 +29,80 @@
             <button class="btn-close" onclick="closeModal()">✕</button>
         </div>
         <div class="modal-body">
+            <div class="field-row">
+                <div class="field">
+                    <label>Promotion Type</label>
+                    <select id="f-type" onchange="togglePromotionFields()">
+                        <option value="coupon">Coupon Promotion</option>
+                        <option value="system">System Promotion</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label>Status</label>
+                    <select id="f-status">
+                        <option value="active">Active</option>
+                        <option value="scheduled">Scheduled</option>
+                        <option value="expired">Expired</option>
+                    </select>
+                </div>
+            </div>
             <div class="field">
                 <label>Promotion Name</label>
                 <input id="f-name" type="text" placeholder="e.g., Summer Sale Keyboards" />
             </div>
-            <div class="field-row">
+            <div class="field-row" id="coupon-fields">
                 <div class="field">
                     <label>Promotion Code</label>
                     <input id="f-code" type="text" placeholder="e.g., SUMMER2024" style="text-transform:uppercase" />
                 </div>
                 <div class="field">
-                    <label>Discount</label>
-                    <input id="f-discount" type="text" placeholder="e.g., 20% or ฿1,640" />
+                    <label>Usage Limit</label>
+                    <input id="f-limit" type="number" placeholder="e.g., 500" min="0" />
                 </div>
             </div>
             <div class="field-row">
                 <div class="field">
-                    <label>Category</label>
-                    <select id="f-category">
-                        <option value="Keyboard">Keyboard</option>
-                        <option value="Keycap">Keycap</option>
-                        <option value="Switch">Switch</option>
-                        <option value="All Categories">All Categories</option>
+                    <label>Discount Type</label>
+                    <select id="f-discount-type">
+                        <option value="percent">Percent</option>
+                        <option value="fixed">Fixed Amount</option>
                     </select>
                 </div>
                 <div class="field">
-                    <label>Usage Limit</label>
-                    <input id="f-limit" type="number" placeholder="e.g., 500" min="1" />
+                    <label>Discount Amount</label>
+                    <input id="f-discount" type="text" placeholder="e.g., 20% or ฿500" />
                 </div>
             </div>
+            <div class="field-row">
+                <div class="field">
+                    <label>Minimum Spend</label>
+                    <input id="f-min-spend" type="text" placeholder="e.g., ฿1,000" />
+                </div>
+                <div class="field checkbox-field">
+                    <label class="checkbox-label"><input id="f-free-shipping" type="checkbox" /> Free Shipping</label>
+                </div>
+            </div>
+            <div class="field">
+                <label>Product/Category Selection</label>
+                <div class="unified-selection">
+                    <div class="selection-row">
+                        <select id="f-category" onchange="refreshProductSelect()">
+                            <option value="Keyboard">Keyboard</option>
+                            <option value="Keycap">Keycap</option>
+                            <option value="Switch">Switch</option>
+                            <option value="All Categories">All Categories</option>
+                        </select>
+                        <select id="f-product-select">
+                            <option value="" selected>Select product (optional)</option>
+                        </select>
+                        <input id="f-qty-min" type="number" placeholder="Min qty (optional)" min="0" />
+                        <input id="f-qty-max" type="number" placeholder="Max qty (optional)" min="0" />
+                        <button type="button" class="btn-add-item" onclick="addSelectedItem()">+ Add</button>
+                    </div>
+                    <div id="selected-items" class="selected-items"></div>
+                </div>
+            </div>
+
             <div class="field-row">
                 <div class="field">
                     <label>Start Date</label>
@@ -125,18 +113,14 @@
                     <input id="f-end" type="date" />
                 </div>
             </div>
-            <div class="field">
-                <label>Status</label>
-                <select id="f-status">
-                    <option value="active">Active</option>
-                    <option value="scheduled">Scheduled</option>
-                    <option value="expired">Expired</option>
-                </select>
+            <div class="field" id="coupon-expiry-field">
+                <label>Expiry Date</label>
+                <input id="f-expiry" type="date" />
             </div>
         </div>
         <div class="modal-footer">
-            <button class="btn-cancel" onclick="closeModal()">Cancel</button>
-            <button class="btn-save" onclick="savePromo()">Save</button>
+            <button type="button" class="btn-cancel" onclick="closeModal()">Cancel</button>
+            <button type="button" class="btn-save" onclick="savePromo()">Save</button>
         </div>
     </div>
 </div>
@@ -203,6 +187,10 @@
     <!-- ── MAIN CARD ── -->
     <div class="card">
         <!-- Filters -->
+        <div class="promo-tabs">
+            <button class="tab-item active" data-tab="coupon" onclick="switchPromoTab('coupon')">Coupon Promotion</button>
+            <button class="tab-item" data-tab="system" onclick="switchPromoTab('system')">System Promotion</button>
+        </div>
         <div class="filter-bar">
             <div class="search-wrap">
                 <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -233,6 +221,7 @@
                 <tr>
                     <th>Name</th>
                     <th>Code</th>
+                    <th>Type</th>
                     <th>Discount</th>
                     <th>Category</th>
                     <th>Duration</th>
@@ -257,9 +246,10 @@
                                       : p.Status == "scheduled" ? "📅 Scheduled"
                                       : "✕ Expired";
                     string icon = catIcons.ContainsKey(p.Category) ? catIcons[p.Category] : "📦";
-                    <tr data-name="@p.Name.ToLower()" data-code="@p.Code.ToLower()" data-status="@p.Status" data-cat="@p.Category">
+                    <tr data-name="@p.Name.ToLower()" data-code="@p.Code.ToLower()" data-status="@p.Status" data-cat="@p.Category" data-type="@p.Type" data-discount-type="@p.DiscountType" data-min-spend="@p.MinSpend" data-free-shipping="@p.IsFreeShipping" data-expiry="@p.ExpiryDate" data-limit="@p.Limit">
                         <td><span class="promo-name">@p.Name</span></td>
                         <td><span class="promo-code">@p.Code</span></td>
+                        <td><span class="promo-type">@(p.Type == "coupon" ? "Coupon" : "System")</span></td>
                         <td><span class="discount-val">@p.Discount</span></td>
                         <td>
                             <span class="cat-badge">@icon @p.Category</span>
@@ -328,6 +318,16 @@ function toggleDropdown(btn) {
 }
 
 // ── Filter ──
+let currentPromoTab = 'coupon';
+
+function switchPromoTab(tab) {
+    currentPromoTab = tab;
+    document.querySelectorAll('.promo-tabs .tab-item').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tab);
+    });
+    filterTable();
+}
+
 function filterTable() {
     const q      = document.getElementById('search-input').value.toLowerCase();
     const status = document.getElementById('filter-status').value;
@@ -336,10 +336,11 @@ function filterTable() {
     let visible  = 0;
 
     rows.forEach(row => {
+        const matchType = row.dataset.type === currentPromoTab;
         const matchQ   = !q      || row.dataset.name.includes(q) || row.dataset.code.includes(q);
         const matchSt  = !status || row.dataset.status === status;
         const matchCat = !cat    || row.dataset.cat === cat;
-        const show = matchQ && matchSt && matchCat;
+        const show = matchType && matchQ && matchSt && matchCat;
         row.style.display = show ? '' : 'none';
         if (show) visible++;
     });
@@ -351,16 +352,27 @@ function filterTable() {
 let editingRow = null;
 
 function openModal(data = null) {
-    editingRow = null;
-    document.getElementById('modal-title').textContent = 'Add Promotion';
-    document.getElementById('f-name').value     = data?.name      ?? '';
-    document.getElementById('f-code').value     = data?.code      ?? '';
-    document.getElementById('f-discount').value = data?.discount  ?? '';
-    document.getElementById('f-category').value = data?.category  ?? 'Keyboard';
-    document.getElementById('f-limit').value    = data?.limit     ?? '';
-    document.getElementById('f-start').value    = data?.dateStart ?? '';
-    document.getElementById('f-end').value      = data?.dateEnd   ?? '';
-    document.getElementById('f-status').value   = data?.status    ?? 'active';
+    const promo = data || {};
+    if (!data) editingRow = null;
+    document.getElementById('modal-title').textContent = data ? 'Edit Promotion' : 'Add Promotion';
+    document.getElementById('f-type').value      = promo.type      || 'coupon';
+    document.getElementById('f-name').value      = promo.name      || '';
+    document.getElementById('f-code').value      = promo.code      || '';
+    document.getElementById('f-discount').value  = promo.discount  || '';
+    document.getElementById('f-discount-type').value = promo.discountType || 'percent';
+    document.getElementById('f-discount-type').value = promo.discountType || 'percent';
+    document.getElementById('f-min-spend').value = promo.minSpend  || '';
+    document.getElementById('f-free-shipping').checked = promo.isFreeShipping === true || promo.isFreeShipping === 'true';
+    document.getElementById('f-category').value  = promo.category  || 'Keyboard';
+    document.getElementById('f-limit').value     = promo.limit     || '';
+    document.getElementById('f-start').value     = promo.dateStart || '';
+    document.getElementById('f-end').value       = promo.dateEnd   || '';
+    document.getElementById('f-expiry').value    = promo.expiry    || promo.dateEnd || '';
+    document.getElementById('f-status').value    = promo.status    || 'active';
+    selectedPromoItems = Array.isArray(promo.items) ? promo.items : [];
+    refreshProductSelect();
+    renderSelectedItems();
+    togglePromotionFields();
     document.getElementById('modal').classList.add('open');
 }
 
@@ -371,18 +383,144 @@ function editRow(btn) {
     const row = btn.closest('tr');
     editingRow = row;
     btn.closest('.dropdown').classList.remove('open');
-    document.getElementById('modal-title').textContent = 'Edit Promotion';
     const cells = row.querySelectorAll('td');
-    const dateText = cells[4].querySelector('.date-range span:last-child').textContent.split(' – ');
+    const dateText = cells[5].querySelector('.date-range span:last-child').textContent.split(' – ');
+    const items = row.dataset.items ? JSON.parse(row.dataset.items) : [];
     openModal({
+        type:      row.dataset.type || 'coupon',
         name:      cells[0].querySelector('.promo-name').textContent,
         code:      cells[1].querySelector('.promo-code').textContent,
-        discount:  cells[2].querySelector('.discount-val').textContent,
+        discount:  cells[3].querySelector('.discount-val').textContent,
+        discountType: row.dataset.discountType || 'percent',
+        minSpend:  row.dataset.minSpend || '',
+        isFreeShipping: row.dataset.freeShipping === 'true',
         category:  row.dataset.cat,
+        limit:     row.dataset.limit || '',
         dateStart: dateText[0]?.trim(),
         dateEnd:   dateText[1]?.trim(),
+        expiry:    row.dataset.expiry || dateText[1]?.trim(),
         status:    row.dataset.status,
-        limit:     parseInt(cells[6].querySelector('.usage-text').textContent.split('/')[1])
+        items: items
+    });
+}
+
+function togglePromotionFields() {
+    const promoType = document.getElementById('f-type').value;
+    const couponFields = document.getElementById('coupon-fields');
+    const expiryField = document.getElementById('coupon-expiry-field');
+    if (promoType === 'coupon') {
+        couponFields.style.display = 'flex';
+        expiryField.style.display = '';
+    } else {
+        couponFields.style.display = 'none';
+        expiryField.style.display = 'none';
+    }
+}
+
+const productCatalog = [
+    { id: 101, name: 'MecaKey Pro Keyboard', category: 'Keyboard' },
+    { id: 102, name: 'TKL RGB Keyboard', category: 'Keyboard' },
+    { id: 201, name: 'PBT Keycap Set', category: 'Keycap' },
+    { id: 202, name: 'Gradient Keycap Set', category: 'Keycap' },
+    { id: 301, name: 'Linear Switch Pack', category: 'Switch' },
+    { id: 302, name: 'Tactile Switch Bundle', category: 'Switch' }
+];
+let selectedPromoItems = [];
+
+function addSelectedItem() {
+    const categoryDropdown = document.getElementById('f-category');
+    const productDropdown = document.getElementById('f-product-select');
+    const minQty = parseInt(document.getElementById('f-qty-min').value) || 0;
+    const maxQty = parseInt(document.getElementById('f-qty-max').value) || 0;
+    
+    const category = categoryDropdown.value;
+    const productId = productDropdown.value ? parseInt(productDropdown.value, 10) : null;
+    
+    if (!category) {
+        showToast('Please select a category');
+        return;
+    }
+    
+    let product = null;
+    if (productId) {
+        product = productCatalog.find(p => p.id === productId);
+        if (!product) return;
+        // Check for duplicate product
+        if (selectedPromoItems.some(item => item.product && item.product.id === productId)) {
+            showToast('This product already added');
+            return;
+        }
+    } else {
+        // Check for duplicate category-only
+        if (selectedPromoItems.some(item => !item.product && item.category === category)) {
+            showToast('This category already added');
+            return;
+        }
+    }
+    
+    selectedPromoItems.push({
+        category: category,
+        product: product,
+        minQty: minQty,
+        maxQty: maxQty
+    });
+    
+    renderSelectedItems();
+    productDropdown.value = '';
+    document.getElementById('f-qty-min').value = '';
+    document.getElementById('f-qty-max').value = '';
+    showToast('✓ Item added');
+}
+
+function removeSelectedItem(index) {
+    selectedPromoItems.splice(index, 1);
+    renderSelectedItems();
+}
+
+function renderSelectedItems() {
+    const container = document.getElementById('selected-items');
+    container.innerHTML = '';
+    
+    selectedPromoItems.forEach((item, index) => {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'selected-item';
+        
+        let itemLabel = item.category;
+        if (item.product) {
+            itemLabel = `${item.category} - ${item.product.name}`;
+        }
+        
+        let qtyLabel = '';
+        if (item.minQty || item.maxQty) {
+            qtyLabel = ` (Min: ${item.minQty || 0}, Max: ${item.maxQty || 0})`;
+        }
+        
+        itemDiv.innerHTML = `
+            <div class="item-content">
+                <span class="item-label">${itemLabel}</span>
+                <span class="item-qty">${qtyLabel}</span>
+            </div>
+            <button type="button" class="remove-btn" onclick="removeSelectedItem(${index})" title="Remove">×</button>
+        `;
+        container.appendChild(itemDiv);
+    });
+    
+    container.style.display = selectedPromoItems.length ? 'flex' : 'none';
+}
+
+function refreshProductSelect() {
+    const category = document.getElementById('f-category').value;
+    const select = document.getElementById('f-product-select');
+    select.innerHTML = '<option value="" selected>Select product (optional)</option>';
+    const filtered = category === 'All Categories'
+        ? productCatalog
+        : productCatalog.filter(p => p.category === category);
+
+    filtered.forEach(product => {
+        const option = document.createElement('option');
+        option.value = product.id;
+        option.textContent = `${product.name}`;
+        select.appendChild(option);
     });
 }
 
@@ -409,33 +547,58 @@ function deleteRow(btn) {
 
 // ── Save (add/edit) ──
 function savePromo() {
-    const name     = document.getElementById('f-name').value.trim();
-    const code     = document.getElementById('f-code').value.trim().toUpperCase();
-    const discount = document.getElementById('f-discount').value.trim();
-    const cat      = document.getElementById('f-category').value;
-    const limit    = parseInt(document.getElementById('f-limit').value) || 100;
-    const start    = document.getElementById('f-start').value;
-    const end      = document.getElementById('f-end').value;
-    const status   = document.getElementById('f-status').value;
+    const type      = document.getElementById('f-type').value;
+    const name      = document.getElementById('f-name').value.trim();
+        const code      = document.getElementById('f-code').value.trim().toUpperCase();
+        const discount  = document.getElementById('f-discount').value.trim();
+        const discountType = document.getElementById('f-discount-type').value;
+        const minSpend  = document.getElementById('f-min-spend').value.trim();
+        const freeShipping = document.getElementById('f-free-shipping').checked;
+        const cat       = document.getElementById('f-category').value;
+        const limit     = parseInt(document.getElementById('f-limit').value) || 0;
+        const start     = document.getElementById('f-start').value;
+        const end       = document.getElementById('f-end').value;
+        const expiry    = document.getElementById('f-expiry').value;
+        const status    = document.getElementById('f-status').value;
+        const items     = selectedPromoItems;
 
-    if (!name || !code || !discount || !start || !end) {
-        alert('Please fill in all required fields'); return;
+    if (!name || !discount || !start || !end) {
+        alert('Please fill in all required fields');
+        return;
+    }
+    if (type === 'coupon' && !code) {
+        alert('Promotion code is required for coupon promotions');
+        return;
+    }
+    if (selectedPromoItems.length === 0) {
+        alert('Please add at least one product or category');
+        return;
     }
 
     const catIcons = { 'Keyboard':'💾', 'Keycap':'🎨', 'Switch':'⚡', 'All Categories':'📦' };
     const icon = catIcons[cat] ?? '📦';
     const statusMap = { active:'✓ Active', scheduled:'📅 Scheduled', expired:'✕ Expired' };
     const statusClass = { active:'status-active', scheduled:'status-scheduled', expired:'status-expired' };
+    const displayType = type === 'coupon' ? 'Coupon' : 'System';
 
     if (editingRow) {
         // Update existing row
         const cells = editingRow.querySelectorAll('td');
         cells[0].querySelector('.promo-name').textContent = name;
         cells[1].querySelector('.promo-code').textContent = code;
-        cells[2].querySelector('.discount-val').textContent = discount;
-        cells[3].innerHTML = `<span class="cat-badge">${icon} ${cat}</span>`;
-        cells[4].innerHTML = `<div class="date-range"><span>📅</span><span>${start} – ${end}</span></div>`;
-        const sb = cells[5].querySelector('.status-badge');
+        cells[2].querySelector('.promo-type').textContent = displayType;
+        cells[3].querySelector('.discount-val').textContent = discount;
+        const itemSummary = items.length ? `<div class="product-summary">${items.length} item(s)</div>` : '';
+        cells[4].innerHTML = `<span class="cat-badge">${icon} ${cat}</span>${itemSummary}`;
+        cells[5].innerHTML = `<div class="date-range"><span>📅</span><span>${start} – ${end}</span></div>`;
+        const sb = cells[6].querySelector('.status-badge');
+        editingRow.dataset.type = type;
+        editingRow.dataset.discountType = discountType;
+        editingRow.dataset.minSpend = minSpend;
+        editingRow.dataset.freeShipping = freeShipping;
+        editingRow.dataset.expiry = expiry;
+        editingRow.dataset.limit = limit;
+        editingRow.dataset.items = JSON.stringify(items);
         sb.className = `status-badge ${statusClass[status]}`;
         sb.textContent = statusMap[status];
         editingRow.dataset.name   = name.toLowerCase();
@@ -451,11 +614,20 @@ function savePromo() {
         tr.dataset.code   = code.toLowerCase();
         tr.dataset.status = status;
         tr.dataset.cat    = cat;
+        tr.dataset.type   = type;
+        tr.dataset.discountType = discountType;
+        tr.dataset.minSpend = minSpend;
+        tr.dataset.freeShipping = freeShipping;
+        tr.dataset.expiry = expiry;
+        tr.dataset.limit = limit;
+        tr.dataset.items = JSON.stringify(items);
+        const itemSummary = items.length ? `<div class="product-summary">${items.length} item(s)</div>` : '';
         tr.innerHTML = `
             <td><span class="promo-name">${name}</span></td>
             <td><span class="promo-code">${code}</span></td>
+            <td><span class="promo-type">${displayType}</span></td>
             <td><span class="discount-val">${discount}</span></td>
-            <td><span class="cat-badge">${icon} ${cat}</span></td>
+            <td><span class="cat-badge">${icon} ${cat}</span>${itemSummary}</td>
             <td><div class="date-range"><span>📅</span><span>${start} – ${end}</span></div></td>
             <td><span class="status-badge ${statusClass[status]}">${statusMap[status]}</span></td>
             <td>
@@ -488,7 +660,7 @@ function updateStats() {
     rows.forEach(r => {
         total++;
         if (r.dataset.status === 'active') active++;
-        const ut = r.querySelector('.usage-text')?.textContent ?? '0 / 0';
+        const ut = (r.querySelector('.usage-text') || { textContent: '0 / 0' }).textContent || '0 / 0';
         const [u, l] = ut.split('/').map(s => parseInt(s.trim()) || 0);
         used += u; limit += l;
     });
@@ -504,5 +676,15 @@ function showToast(message) {
     toast.textContent = message;
     toast.style.display = 'block';
     setTimeout(() => { toast.style.display = 'none'; }, 3000);
+}
+
+filterTable();
+
+function getSelectedProductCount() {
+    return selectedPromoProducts.length;
+}
+
+function getSelectedProductNames() {
+    return selectedPromoProducts.map(p => p.name);
 }
 </script>

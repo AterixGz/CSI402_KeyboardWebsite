@@ -91,18 +91,60 @@
     border: 1px solid var(--border);
     border-radius: var(--radius);
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.card .promo-tabs {
+    border-radius: var(--radius) var(--radius) 0 0;
 }
 
 /* ── FILTER BAR ── */
 .filter-bar {
     background: var(--white);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
+    border: none;
+    border-top: 1px solid var(--border);
+    border-radius: 0;
     padding: 20px 24px;
-    margin-bottom: 20px;
+    margin-bottom: 0;
     display: flex;
     align-items: center;
     gap: 12px;
+}
+
+.promo-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 0;
+    padding: 0 24px;
+    border-bottom: 2px solid var(--border);
+    position: relative;
+    background: var(--white);
+}
+
+.tab-item {
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: var(--text-muted);
+    padding: 14px 24px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all .3s ease;
+    position: relative;
+    margin-bottom: -2px;
+}
+
+.tab-item:hover {
+    color: var(--text-primary);
+}
+
+.tab-item.active {
+    background: transparent;
+    border-bottom-color: var(--blue);
+    color: var(--blue);
+    box-shadow: inset 0 -2px 0 var(--blue);
 }
 
 .search-wrap {
@@ -200,6 +242,7 @@
 table {
     width: 100%;
     border-collapse: collapse;
+    background: var(--white);
 }
 
 thead th {
@@ -245,6 +288,34 @@ tbody td {
     letter-spacing: .5px;
 }
 
+.promo-type {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: #eef2ff;
+    color: var(--blue);
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.checkbox-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    color: var(--text-primary);
+    font-size: 13px;
+}
+
+.checkbox-label input {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--blue);
+}
+
 .discount-val {
     font-weight: 700;
     color: var(--text-primary);
@@ -262,6 +333,148 @@ tbody td {
     font-weight: 500;
     background: #f9fafb;
     white-space: nowrap;
+}
+
+.product-summary {
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.unified-selection {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.selection-row {
+    display: flex;
+    gap: 6px;
+    align-items: stretch;
+    flex-wrap: wrap;
+}
+
+.selection-row select,
+.selection-row input {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 12px;
+    font-family: inherit;
+    color: var(--text-primary);
+    background: var(--white);
+    outline: none;
+    transition: border-color .2s, box-shadow .2s;
+    min-width: 0;
+}
+
+.selection-row select {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='11' fill='none' viewBox='0 0 24 24'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 32px;
+    cursor: pointer;
+    flex: 1 1 auto;
+}
+
+.selection-row select:first-child {
+    flex: 0.75 1 auto;
+    min-width: 90px;
+}
+
+.selection-row input {
+    flex: 0.55 1 auto;
+    cursor: text;
+    min-width: 70px;
+}
+
+.selection-row select:focus,
+.selection-row input:focus {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, .1);
+}
+
+.btn-add-item {
+    border: none;
+    border-radius: 8px;
+    background: var(--blue);
+    color: #fff;
+    padding: 8px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all .2s ease;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.2);
+    flex: 0.5 1 auto;
+    min-width: 70px;
+}
+
+.btn-add-item:hover {
+    background: #1d4ed8;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    transform: translateY(-1px);
+}
+
+.btn-add-item:active {
+    transform: translateY(0);
+}
+
+.selected-items {
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 0;
+}
+
+.selected-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border: 1px solid #e0e7ff;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #eff6ff 0%, #f0f9ff 100%);
+    font-size: 13px;
+    animation: slideIn .3s ease;
+}
+
+.item-content {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex-grow: 1;
+}
+
+.item-label {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.item-qty {
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.selected-item .remove-btn {
+    border: none;
+    background: transparent;
+    color: var(--blue);
+    cursor: pointer;
+    padding: 4px 8px;
+    font-size: 20px;
+    line-height: 1;
+    flex-shrink: 0;
+    transition: all .2s ease;
+    border-radius: 4px;
+    margin-left: 8px;
+}
+
+.selected-item .remove-btn:hover {
+    background: rgba(37, 99, 235, 0.1);
+    color: #1d4ed8;
 }
 
 /* Date */
@@ -336,6 +549,7 @@ tbody td {
 .action-cell {
     position: relative;
     text-align: right;
+    z-index: 100;
 }
 
 .btn-action {
@@ -359,14 +573,14 @@ tbody td {
     display: none;
     position: absolute;
     right: 0;
-    top: 100%;
+    bottom: 100%;
     background: var(--white);
     border: 1px solid var(--border);
     border-radius: 8px;
     box-shadow: 0 4px 16px rgba(0,0,0,.1);
     min-width: 140px;
     z-index: 50;
-    overflow: hidden;
+    margin-bottom: 4px;
 }
 
 .dropdown.open {
@@ -413,7 +627,7 @@ tbody td {
 .modal {
     background: var(--white);
     border-radius: var(--radius);
-    width: 520px;
+    width: 580px;
     max-width: 95vw;
     max-height: 90vh;
     overflow-y: auto;
@@ -572,13 +786,15 @@ tbody td {
 /* ── EMPTY STATE ── */
 .empty {
     text-align: center;
-    padding: 60px 24px;
+    padding: 80px 24px;
     color: var(--text-muted);
+    background: var(--white);
 }
 
 .empty-icon {
-    font-size: 48px;
-    margin-bottom: 12px;
+    font-size: 52px;
+    margin-bottom: 16px;
+    opacity: 0.7;
 }
 
 /* ── BUTTON ── */
@@ -614,6 +830,48 @@ tbody td {
     table {
         display: block;
         overflow-x: auto;
+    }
+    
+    .selection-row {
+        gap: 6px;
+    }
+    
+    .selection-row select,
+    .selection-row input {
+        font-size: 12px;
+        padding: 7px 10px;
+    }
+    
+    .btn-add-item {
+        padding: 7px 12px;
+        font-size: 11px;
+    }
+}
+
+@media (max-width: 640px) {
+    .selection-row {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+    
+    .selection-row select:first-child {
+        flex: 1 1 100%;
+        min-width: unset;
+    }
+    
+    .selection-row select:not(:first-child) {
+        flex: 1 1 48%;
+        min-width: 90px;
+    }
+    
+    .selection-row input {
+        flex: 1 1 23%;
+        min-width: 65px;
+    }
+    
+    .btn-add-item {
+        flex: 1 1 100%;
+        min-width: unset;
     }
 }
 
