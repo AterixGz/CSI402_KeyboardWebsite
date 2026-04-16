@@ -16,6 +16,7 @@ public class CategoryStat
 
 public class CategoryItem
 {
+    public int CategoryId { get; set; }
     public string Name { get; set; } = "";
     public bool IsFeatured { get; set; }
     public string Status { get; set; } = "Active";
@@ -24,4 +25,5 @@ public class CategoryItem
     public int? SubcategoryCount { get; set; }
     public bool IsExpanded { get; set; }
     public List<CategoryItem>? Children { get; set; } = new();
+    public List<Product> Products { get; set; } = new();
 }

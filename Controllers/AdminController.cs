@@ -755,30 +755,53 @@ public class AdminController : Controller
                 _connection.Open();
             }
 
-            string query = @"SELECT c.category_id, c.category_name, COUNT(p.product_id) AS product_count
+            string query = @"SELECT c.category_id, c.category_name, p.product_id, p.name AS product_name, p.price, p.stock_quantity
 FROM Categories c
 LEFT JOIN Products p ON p.category_id = c.category_id
-GROUP BY c.category_id, c.category_name
-ORDER BY c.category_name";
+ORDER BY c.category_name, p.name";
+            var categoryMap = new Dictionary<int, CategoryItem>();
+
             using (MySqlCommand cmd = new MySqlCommand(query, _connection))
             {
                 using (MySqlDataReader reader = cmd.ExecuteReader())
                 {
                     while (reader.Read())
                     {
-                        model.Categories.Add(new CategoryItem
+                        int categoryId = reader.GetInt32("category_id");
+                        if (!categoryMap.TryGetValue(categoryId, out var category))
                         {
-                            Name = reader.GetString("category_name"),
-                            Description = string.Empty,
-                            ProductCount = reader.GetInt32("product_count"),
-                            Status = "Active",
-                            IsFeatured = false,
-                            IsExpanded = false,
-                            SubcategoryCount = null
-                        });
+                            category = new CategoryItem
+                            {
+                                CategoryId = categoryId,
+                                Name = reader.GetString("category_name"),
+                                Description = string.Empty,
+                                ProductCount = 0,
+                                Status = "Active",
+                                IsFeatured = false,
+                                IsExpanded = false,
+                                SubcategoryCount = null,
+                            };
+                            categoryMap.Add(categoryId, category);
+                        }
+
+                        if (!reader.IsDBNull(reader.GetOrdinal("product_id")))
+                        {
+                            var product = new Product
+                            {
+                                ProductId = reader.GetInt32("product_id"),
+                                Name = reader.GetString("product_name"),
+                                Price = reader.IsDBNull(reader.GetOrdinal("price")) ? 0m : reader.GetDecimal("price"),
+                                StockQuantity = reader.IsDBNull(reader.GetOrdinal("stock_quantity")) ? 0 : reader.GetInt32("stock_quantity")
+                            };
+
+                            category.Products.Add(product);
+                            category.ProductCount = category.Products.Count;
+                        }
                     }
                 }
             }
+
+            model.Categories.AddRange(categoryMap.Values);
 
             int totalProducts = model.Categories.Sum(c => c.ProductCount);
             model.Stats.Add(new CategoryStat
@@ -823,6 +846,156 @@ ORDER BY c.category_name";
         }
 
         return View(model);
+    }
+
+    [HttpPost]
+    public IActionResult AddCategory([FromBody] CategoryRequest request)
+    {
+        var accessCheck = CheckAdminAccess();
+        if (accessCheck != null) return accessCheck;
+
+        if (request == null || string.IsNullOrWhiteSpace(request.Name))
+        {
+            return BadRequest(new { success = false, message = "Category name is required." });
+        }
+
+        try
+        {
+            if (_connection.State == System.Data.ConnectionState.Closed)
+            {
+                _connection.Open();
+            }
+
+            string checkQuery = "SELECT category_id FROM Categories WHERE category_name = @name";
+            using (var cmd = new MySqlCommand(checkQuery, _connection))
+            {
+                cmd.Parameters.AddWithValue("@name", request.Name.Trim());
+                if (cmd.ExecuteScalar() != null)
+                {
+                    return BadRequest(new { success = false, message = "A category with that name already exists." });
+                }
+            }
+
+            string insertQuery = "INSERT INTO Categories (category_name) VALUES (@name)";
+            using (var cmd = new MySqlCommand(insertQuery, _connection))
+            {
+                cmd.Parameters.AddWithValue("@name", request.Name.Trim());
+                cmd.ExecuteNonQuery();
+            }
+
+            return Ok(new { success = true, message = "Category added." });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { success = false, message = ex.Message });
+        }
+        finally
+        {
+            if (_connection.State == System.Data.ConnectionState.Open)
+            {
+                _connection.Close();
+            }
+        }
+    }
+
+    [HttpPost]
+    public IActionResult EditCategory([FromBody] CategoryRequest request)
+    {
+        var accessCheck = CheckAdminAccess();
+        if (accessCheck != null) return accessCheck;
+
+        if (request == null || request.CategoryId <= 0 || string.IsNullOrWhiteSpace(request.Name))
+        {
+            return BadRequest(new { success = false, message = "Invalid category data." });
+        }
+
+        try
+        {
+            if (_connection.State == System.Data.ConnectionState.Closed)
+            {
+                _connection.Open();
+            }
+
+            string checkQuery = "SELECT category_id FROM Categories WHERE category_name = @name AND category_id <> @id";
+            using (var cmd = new MySqlCommand(checkQuery, _connection))
+            {
+                cmd.Parameters.AddWithValue("@name", request.Name.Trim());
+                cmd.Parameters.AddWithValue("@id", request.CategoryId);
+                if (cmd.ExecuteScalar() != null)
+                {
+                    return BadRequest(new { success = false, message = "A category with that name already exists." });
+                }
+            }
+
+            string updateQuery = "UPDATE Categories SET category_name = @name WHERE category_id = @id";
+            using (var cmd = new MySqlCommand(updateQuery, _connection))
+            {
+                cmd.Parameters.AddWithValue("@name", request.Name.Trim());
+                cmd.Parameters.AddWithValue("@id", request.CategoryId);
+                int rows = cmd.ExecuteNonQuery();
+                if (rows == 0)
+                {
+                    return NotFound(new { success = false, message = "Category not found." });
+                }
+            }
+
+            return Ok(new { success = true, message = "Category updated." });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { success = false, message = ex.Message });
+        }
+        finally
+        {
+            if (_connection.State == System.Data.ConnectionState.Open)
+            {
+                _connection.Close();
+            }
+        }
+    }
+
+    [HttpPost]
+    public IActionResult DeleteCategory([FromBody] DeleteCategoryRequest request)
+    {
+        var accessCheck = CheckAdminAccess();
+        if (accessCheck != null) return accessCheck;
+
+        if (request == null || request.CategoryId <= 0)
+        {
+            return BadRequest(new { success = false, message = "Invalid category." });
+        }
+
+        try
+        {
+            if (_connection.State == System.Data.ConnectionState.Closed)
+            {
+                _connection.Open();
+            }
+
+            string deleteQuery = "DELETE FROM Categories WHERE category_id = @id";
+            using (var cmd = new MySqlCommand(deleteQuery, _connection))
+            {
+                cmd.Parameters.AddWithValue("@id", request.CategoryId);
+                int rows = cmd.ExecuteNonQuery();
+                if (rows == 0)
+                {
+                    return NotFound(new { success = false, message = "Category not found." });
+                }
+            }
+
+            return Ok(new { success = true, message = "Category deleted." });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { success = false, message = ex.Message });
+        }
+        finally
+        {
+            if (_connection.State == System.Data.ConnectionState.Open)
+            {
+                _connection.Close();
+            }
+        }
     }
 
     public IActionResult Roles()
@@ -1371,6 +1544,17 @@ ORDER BY c.category_name";
                 _connection.Close();
             }
         }
+    }
+
+    public class CategoryRequest
+    {
+        public int CategoryId { get; set; }
+        public string? Name { get; set; }
+    }
+
+    public class DeleteCategoryRequest
+    {
+        public int CategoryId { get; set; }
     }
 
     public class StockUpdateRequest

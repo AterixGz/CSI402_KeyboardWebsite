@@ -42,81 +42,121 @@
         <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
             <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"/>
         </svg>
-        <input class="search-input" type="text" placeholder="Search categories..." />
+        <input id="categorySearch" class="search-input" type="text" placeholder="Search categories..." />
     </div>
-    <select class="filter-select">
-        <option>All Status</option>
-        <option>Active</option>
-        <option>Inactive</option>
-        <option>Featured</option>
+    <select id="statusFilter" class="filter-select">
+        <option value="">All Status</option>
+        <option value="Active">Active</option>
+        <option value="Inactive">Inactive</option>
+        <option value="Featured">Featured</option>
     </select>
 </div>
 
 <!-- ── Category List ── -->
 <div class="list-panel">
     <div class="list-panel-header">All Categories</div>
+    <div id="categoryNoResults" class="no-results" style="display:none;">No categories match your filter.</div>
 
     @foreach (var cat in Model.Categories)
     {
-        <!-- Parent Row -->
-        <div class="cat-row parent">
-            <button class="toggle-btn @(cat.IsExpanded ? "" : "collapsed")">
-                <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
-                </svg>
-            </button>
-            <div class="cat-thumb"></div>
-            <div class="cat-info">
-                <div class="cat-name-row">
-                    <span class="cat-name">@cat.Name</span>
-                    @if (cat.IsFeatured)  { <span class="badge badge-featured">Featured</span> }
-                    @if (cat.Status == "Active")   { <span class="badge badge-active">Active</span> }
-                    @if (cat.Status == "Inactive") { <span class="badge badge-inactive">Inactive</span> }
+        <div class="category-group @(cat.IsExpanded ? "expanded" : "")" data-category-name="@cat.Name" data-category-status="@cat.Status" data-category-featured="@(cat.IsFeatured.ToString().ToLower())">
+            <!-- Parent Row -->
+            <div class="cat-row parent">
+                <button class="toggle-btn @(cat.IsExpanded ? "" : "collapsed")" type="button">
+                    <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                    </svg>
+                </button>
+                <div class="cat-info">
+                    <div class="cat-name-row">
+                        <span class="cat-name">@cat.Name</span>
+                        @if (cat.IsFeatured)  { <span class="badge badge-featured">Featured</span> }
+                        @if (cat.Status == "Active")   { <span class="badge badge-active">Active</span> }
+                        @if (cat.Status == "Inactive") { <span class="badge badge-inactive">Inactive</span> }
+                    </div>
+                    <div class="cat-desc">@cat.Description</div>
                 </div>
-                <div class="cat-desc">@cat.Description</div>
-            </div>
-            <div class="cat-stats">
-                <div class="cat-stat">
-                    <div class="val">@cat.ProductCount</div>
-                    <div class="lbl">Products</div>
-                </div>
-                @if (cat.SubcategoryCount.HasValue)
-                {
+                <div class="cat-stats">
                     <div class="cat-stat">
-                        <div class="val">@cat.SubcategoryCount</div>
-                        <div class="lbl">Subcategories</div>
+                        <div class="val">@cat.ProductCount</div>
+                        <div class="lbl">Products</div>
                     </div>
-                }
-            </div>
-            <button class="menu-btn">···</button>
-        </div>
-
-        <!-- Child Rows -->
-        @if (cat.IsExpanded && cat.Children != null)
-        {
-            @foreach (var child in cat.Children)
-            {
-                <div class="cat-row child">
-                    <div class="cat-thumb sm"></div>
-                    <div class="cat-info">
-                        <div class="cat-name-row">
-                            <span class="cat-name">@child.Name</span>
-                            @if (child.IsFeatured)  { <span class="badge badge-featured">Featured</span> }
-                            @if (child.Status == "Active")   { <span class="badge badge-active">Active</span> }
-                            @if (child.Status == "Inactive") { <span class="badge badge-inactive">Inactive</span> }
-                        </div>
-                        <div class="cat-desc">@child.Description</div>
-                    </div>
-                    <div class="cat-stats">
+                    @if (cat.SubcategoryCount.HasValue)
+                    {
                         <div class="cat-stat">
-                            <div class="val">@child.ProductCount</div>
-                            <div class="lbl">Products</div>
+                            <div class="val">@cat.SubcategoryCount</div>
+                            <div class="lbl">Subcategories</div>
                         </div>
+                    }
+                </div>
+                <div class="action-cell">
+                    <button class="action-btn" type="button" onclick="toggleCategoryMenu(this)"
+                        data-cat-id="@cat.CategoryId"
+                        data-cat-name="@cat.Name">
+                        ⋮
+                    </button>
+                    <div class="actions-dropdown" onclick="event.stopPropagation()">
+                        <button type="button" onclick="editCategory(this)">Edit</button>
+                        <button type="button" class="delete" onclick="deleteCategory(this)">Delete</button>
                     </div>
-                    <button class="menu-btn">···</button>
+                </div>
+            </div>
+
+            @if (cat.Products != null && cat.Products.Any())
+            {
+                <div class="category-product-list collapsible">
+                    <div class="product-list-header">Products in this category (@cat.ProductCount)</div>
+                    <div class="product-grid">
+                        @foreach (var product in cat.Products)
+                        {
+                            <div class="product-card">
+                                <div class="product-card-body">
+                                    <div class="product-card-title">@product.Name</div>
+                                    <div class="product-card-meta">
+                                        <span class="product-price">@product.Price.ToString("C2")</span>
+                                        <span class="product-stock @(product.StockQuantity > 0 ? "stock-available" : "stock-empty")">
+                                            @(product.StockQuantity > 0 ? "In stock" : "Out of stock")
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="product-card-footer">
+                                    <span class="product-qty">Qty: @product.StockQuantity</span>
+                                </div>
+                            </div>
+                        }
+                    </div>
                 </div>
             }
-        }
+
+            <!-- Child Rows -->
+            @if (cat.Children != null && cat.Children.Any())
+            {
+                <div class="child-group collapsible">
+                @foreach (var child in cat.Children)
+                {
+                    <div class="cat-row child">
+                        <div class="cat-thumb sm"></div>
+                        <div class="cat-info">
+                            <div class="cat-name-row">
+                                <span class="cat-name">@child.Name</span>
+                                @if (child.IsFeatured)  { <span class="badge badge-featured">Featured</span> }
+                                @if (child.Status == "Active")   { <span class="badge badge-active">Active</span> }
+                                @if (child.Status == "Inactive") { <span class="badge badge-inactive">Inactive</span> }
+                            </div>
+                            <div class="cat-desc">@child.Description</div>
+                        </div>
+                        <div class="cat-stats">
+                            <div class="cat-stat">
+                                <div class="val">@child.ProductCount</div>
+                                <div class="lbl">Products</div>
+                            </div>
+                        </div>
+                        <button class="menu-btn">···</button>
+                    </div>
+                }
+                </div>
+            }
+        </div>
     }
 </div>
 
@@ -145,41 +185,42 @@
                     required />
             </div>
 
-            <div class="form-group">
-                <label for="categoryDescription">Description</label>
-                <textarea 
-                    id="categoryDescription" 
-                    name="categoryDescription" 
-                    class="form-textarea" 
-                    placeholder="Enter category description"
-                    rows="3"></textarea>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="categoryStatus">Status *</label>
-                    <select id="categoryStatus" name="categoryStatus" class="form-select" required>
-                        <option value="">Select status</option>
-                        <option value="Active" selected>Active</option>
-                        <option value="Inactive">Inactive</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-checkbox-label">
-                        <input 
-                            type="checkbox" 
-                            id="categoryFeatured" 
-                            name="categoryFeatured" 
-                            class="form-checkbox" />
-                        Mark as Featured
-                    </label>
-                </div>
-            </div>
-
             <div class="modal-footer">
                 <button type="button" class="btn-cancel" onclick="closeAddCategoryModal()">Cancel</button>
                 <button type="submit" class="btn-submit">Add Category</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ── Edit Category Modal ── -->
+<div id="editCategoryModal" class="modal">
+    <div class="modal-overlay" onclick="closeEditCategoryModal()"></div>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="editCategoryModalTitle">Edit Category</h2>
+            <button class="modal-close" onclick="closeEditCategoryModal()">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                </svg>
+            </button>
+        </div>
+        <form id="editCategoryForm" class="modal-body">
+            <input type="hidden" id="editCategoryId" />
+            <div class="form-group">
+                <label for="editCategoryName">Category Name *</label>
+                <input
+                    type="text"
+                    id="editCategoryName"
+                    name="editCategoryName"
+                    class="form-input"
+                    placeholder="Enter category name"
+                    required />
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn-cancel" onclick="closeEditCategoryModal()">Cancel</button>
+                <button type="submit" class="btn-submit">Save Changes</button>
             </div>
         </form>
     </div>
@@ -197,33 +238,173 @@
 
     document.getElementById('addCategoryForm').addEventListener('submit', function(e) {
         e.preventDefault();
-        
         const formData = {
-            name: document.getElementById('categoryName').value,
-            description: document.getElementById('categoryDescription').value,
-            status: document.getElementById('categoryStatus').value,
-            isFeatured: document.getElementById('categoryFeatured').checked
+            name: document.getElementById('categoryName').value.trim()
         };
 
-        console.log('Category Data:', formData);
-        
-        // TODO: Send data to backend API
-        // fetch('/Admin/AddCategory', {
-        //     method: 'POST',
-        //     headers: { 'Content-Type': 'application/json' },
-        //     body: JSON.stringify(formData)
-        // }).then(response => response.json())
-        //   .then(data => { /* handle response */ });
+        if (!formData.name) {
+            alert('Please enter a category name.');
+            return;
+        }
 
-        closeAddCategoryModal();
-        alert('Form submitted! (Connected to API handle needed)');
+        fetch('/Admin/AddCategory', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert(data.message || 'Could not add category.');
+            }
+        })
+        .catch(() => alert('Could not add category.'));
     });
+
+    document.getElementById('editCategoryForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = {
+            categoryId: parseInt(document.getElementById('editCategoryId').value, 10),
+            name: document.getElementById('editCategoryName').value.trim()
+        };
+
+        if (!formData.categoryId || !formData.name) {
+            alert('Invalid category data.');
+            return;
+        }
+
+        fetch('/Admin/EditCategory', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert(data.message || 'Could not update category.');
+            }
+        })
+        .catch(() => alert('Could not update category.'));
+    });
+
+    function toggleCategoryMenu(btn) {
+        closeAllCategoryMenus();
+        var dropdown = btn.nextElementSibling;
+        if (dropdown) {
+            dropdown.classList.toggle('open');
+        }
+    }
+
+    function closeAllCategoryMenus() {
+        document.querySelectorAll('.actions-dropdown.open').forEach(function(menu) {
+            menu.classList.remove('open');
+        });
+    }
+
+    function editCategory(btn) {
+        var cell = btn.closest('.action-cell');
+        if (!cell) return;
+        var actionBtn = cell.querySelector('.action-btn');
+        openEditCategoryModal(actionBtn.dataset);
+        closeAllCategoryMenus();
+    }
+
+    function deleteCategory(btn) {
+        var cell = btn.closest('.action-cell');
+        if (!cell) return;
+        var data = cell.querySelector('.action-btn').dataset;
+        var name = data.catName || 'this category';
+        if (!data.catId) {
+            alert('Missing category id.');
+            return;
+        }
+        if (!confirm('Delete ' + name + '?')) return;
+
+        fetch('/Admin/DeleteCategory', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ categoryId: parseInt(data.catId, 10) })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.reload();
+            } else {
+                alert(data.message || 'Could not delete category.');
+            }
+        })
+        .catch(() => alert('Could not delete category.'));
+
+        closeAllCategoryMenus();
+    }
+
+    function openEditCategoryModal(dataset) {
+        document.getElementById('editCategoryId').value = dataset.catId || '';
+        document.getElementById('editCategoryName').value = dataset.catName || '';
+        document.getElementById('editCategoryModal').classList.add('active');
+    }
+
+    function closeEditCategoryModal() {
+        document.getElementById('editCategoryModal').classList.remove('active');
+        document.getElementById('editCategoryForm').reset();
+        closeAllCategoryMenus();
+    }
+
+    function applyCategoryFilters() {
+        var searchTerm = document.getElementById('categorySearch').value.trim().toLowerCase();
+        var status = document.getElementById('statusFilter').value;
+        var groups = document.querySelectorAll('.category-group');
+        var anyVisible = false;
+
+        groups.forEach(function(group) {
+            var name = (group.dataset.categoryName || '').toLowerCase();
+            var groupStatus = group.dataset.categoryStatus || '';
+            var isFeatured = group.dataset.categoryFeatured === 'true';
+
+            var matchesSearch = !searchTerm || name.includes(searchTerm);
+            var matchesStatus = !status || (status === 'Featured' ? isFeatured : groupStatus === status);
+            var visible = matchesSearch && matchesStatus;
+
+            group.style.display = visible ? '' : 'none';
+            if (visible) {
+                anyVisible = true;
+            }
+        });
+
+        var noResults = document.getElementById('categoryNoResults');
+        if (noResults) {
+            noResults.style.display = anyVisible ? 'none' : '';
+        }
+    }
+
+    document.getElementById('categorySearch').addEventListener('input', applyCategoryFilters);
+    document.getElementById('statusFilter').addEventListener('change', applyCategoryFilters);
 
     // Close modal when pressing Escape key
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             closeAddCategoryModal();
+            closeEditCategoryModal();
         }
+    });
+
+    document.addEventListener('click', function(event) {
+        if (!event.target.closest('.action-cell')) {
+            closeAllCategoryMenus();
+        }
+    });
+
+    document.querySelectorAll('.category-group .toggle-btn').forEach(function(button) {
+        button.addEventListener('click', function() {
+            var group = this.closest('.category-group');
+            if (!group) return;
+            group.classList.toggle('expanded');
+            this.classList.toggle('collapsed');
+        });
     });
 </script>
 
