@@ -1,5 +1,6 @@
 using System;
 using System.Data;
+using System.Globalization;
 using System.Net;
 using CloudinaryDotNet;
 using CloudinaryDotNet.Actions;
@@ -1154,6 +1155,42 @@ ORDER BY c.category_name, p.name";
                     });
                 }
             }
+
+            var promoCategories = new List<string> { "All Categories" };
+            const string categorySql = "SELECT category_name FROM Categories ORDER BY category_name;";
+            using (var categoryCmd = new MySqlCommand(categorySql, _connection))
+            using (var categoryReader = categoryCmd.ExecuteReader())
+            {
+                while (categoryReader.Read())
+                {
+                    var categoryName = categoryReader.GetString("category_name").Trim();
+                    if (!string.IsNullOrWhiteSpace(categoryName) && !promoCategories.Contains(categoryName))
+                        promoCategories.Add(categoryName);
+                }
+            }
+
+            var promoProducts = new List<Product>();
+            const string productSql = @"SELECT p.product_id, p.name, COALESCE(c.category_name, 'All Categories') AS category_name
+                                       FROM Products p
+                                       LEFT JOIN Categories c ON p.category_id = c.category_id
+                                       WHERE p.is_active = 1
+                                       ORDER BY p.name;";
+            using (var productCmd = new MySqlCommand(productSql, _connection))
+            using (var productReader = productCmd.ExecuteReader())
+            {
+                while (productReader.Read())
+                {
+                    promoProducts.Add(new Product
+                    {
+                        ProductId = productReader.GetInt32("product_id"),
+                        Name = productReader.IsDBNull(productReader.GetOrdinal("name")) ? string.Empty : productReader.GetString("name"),
+                        CategoryName = productReader.IsDBNull(productReader.GetOrdinal("category_name")) ? "All Categories" : productReader.GetString("category_name")
+                    });
+                }
+            }
+
+            ViewBag.PromoCategories = promoCategories;
+            ViewBag.PromoProducts = promoProducts;
         }
         finally
         {
@@ -1162,6 +1199,138 @@ ORDER BY c.category_name, p.name";
         }
 
         return View(promotions);
+    }
+
+    [HttpPost]
+    public IActionResult SavePromotion([FromBody] SavePromotionRequest request)
+    {
+        var accessCheck = CheckAdminAccess();
+        if (accessCheck != null) return accessCheck;
+        if (request == null)
+            return BadRequest(new { success = false, message = "Invalid promotion request." });
+
+        if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.StartDate) || string.IsNullOrWhiteSpace(request.EndDate))
+            return BadRequest(new { success = false, message = "Please complete the required promotion fields." });
+
+        if (request.Type == "coupon" && string.IsNullOrWhiteSpace(request.Code))
+            return BadRequest(new { success = false, message = "Coupon code is required for coupon promotions." });
+
+        if (request.Type == "system" && (request.Items == null || request.Items.Count == 0))
+            return BadRequest(new { success = false, message = "Please add at least one product or category requirement for system promotions." });
+
+        if (_connection.State == System.Data.ConnectionState.Closed)
+            _connection.Open();
+
+        using var transaction = _connection.BeginTransaction();
+        try
+        {
+            decimal discountValue = request.DiscountValue;
+            decimal minSpend = request.MinSpend;
+            if (minSpend < 0) minSpend = 0;
+            bool isActive = request.Status?.ToLower() != "expired";
+            DateTime? startDate = null;
+            DateTime? endDate = null;
+            DateTime? expiryDate = null;
+            var dateFormats = new[] { "yyyy-MM-dd", "MM/dd/yyyy", "yyyy/MM/dd" };
+
+            if (DateTime.TryParseExact(request.StartDate, dateFormats, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedStart))
+                startDate = parsedStart;
+            if (DateTime.TryParseExact(request.EndDate, dateFormats, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedEnd))
+                endDate = parsedEnd;
+            if (!string.IsNullOrWhiteSpace(request.Expiry) && DateTime.TryParseExact(request.Expiry, dateFormats, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedExpiry))
+                expiryDate = parsedExpiry;
+
+            if (request.Type == "coupon" && !expiryDate.HasValue)
+            {
+                if (endDate.HasValue)
+                    expiryDate = endDate;
+                else if (startDate.HasValue)
+                    expiryDate = startDate;
+                else
+                    return BadRequest(new { success = false, message = "Expiry date is required for coupon promotions." });
+            }
+
+            var couponDiscountType = (request.DiscountType?.ToLowerInvariant() == "percent" || request.DiscountType?.ToLowerInvariant() == "percentage")
+                ? "Percentage"
+                : "Fixed";
+
+            if (request.Type == "coupon")
+            {
+                const string insertCouponSql = @"INSERT INTO Coupons (code, discount_value, discount_type, expiry_date, usage_limit, used_count)
+                                                 VALUES (@code, @discountValue, @discountType, @expiryDate, @usageLimit, 0);";
+                using var couponCmd = new MySqlCommand(insertCouponSql, _connection, transaction);
+                couponCmd.Parameters.AddWithValue("@code", request.Code);
+                couponCmd.Parameters.AddWithValue("@discountValue", discountValue);
+                couponCmd.Parameters.AddWithValue("@discountType", couponDiscountType);
+                couponCmd.Parameters.AddWithValue("@expiryDate", expiryDate.HasValue ? (object)expiryDate.Value : DBNull.Value);
+                couponCmd.Parameters.AddWithValue("@usageLimit", request.Limit);
+                couponCmd.ExecuteNonQuery();
+            }
+            else
+            {
+                const string insertPromoSql = @"INSERT INTO Promotions (promo_name, min_spend, discount_amount, is_free_shipping, start_date, end_date, is_active)
+                                               VALUES (@name, @minSpend, @discountAmount, @freeShipping, @startDate, @endDate, @isActive);";
+                int promoId;
+                using (var promoCmd = new MySqlCommand(insertPromoSql, _connection, transaction))
+                {
+                    promoCmd.Parameters.AddWithValue("@name", request.Name);
+                    promoCmd.Parameters.AddWithValue("@minSpend", minSpend);
+                    promoCmd.Parameters.AddWithValue("@discountAmount", discountValue);
+                    promoCmd.Parameters.AddWithValue("@freeShipping", request.IsFreeShipping);
+                    promoCmd.Parameters.AddWithValue("@startDate", startDate.HasValue ? (object)startDate.Value : DBNull.Value);
+                    promoCmd.Parameters.AddWithValue("@endDate", endDate.HasValue ? (object)endDate.Value : DBNull.Value);
+                    promoCmd.Parameters.AddWithValue("@isActive", isActive);
+                    promoCmd.ExecuteNonQuery();
+                    promoId = Convert.ToInt32(promoCmd.LastInsertedId);
+                }
+
+                const string insertRequirementSql = @"INSERT INTO Promotion_Requirements (promo_id, category_id, product_id, min_quantity)
+                                                      VALUES (@promoId, @categoryId, @productId, @minQuantity);";
+                foreach (var item in request.Items)
+                {
+                    int? categoryId = null;
+                    if (!string.IsNullOrWhiteSpace(item.Category) && item.Category.ToLower() != "all categories")
+                    {
+                        const string categorySql = "SELECT category_id FROM Categories WHERE category_name = @categoryName LIMIT 1";
+                        using var categoryCmd = new MySqlCommand(categorySql, _connection, transaction);
+                        categoryCmd.Parameters.AddWithValue("@categoryName", item.Category);
+                        var categoryResult = categoryCmd.ExecuteScalar();
+                        if (categoryResult != null && categoryResult != DBNull.Value)
+                            categoryId = Convert.ToInt32(categoryResult);
+                    }
+
+                    if (!categoryId.HasValue && item.ProductId.HasValue)
+                    {
+                        const string productCategorySql = "SELECT category_id FROM Products WHERE product_id = @productId LIMIT 1";
+                        using var productCategoryCmd = new MySqlCommand(productCategorySql, _connection, transaction);
+                        productCategoryCmd.Parameters.AddWithValue("@productId", item.ProductId.Value);
+                        var categoryResult = productCategoryCmd.ExecuteScalar();
+                        if (categoryResult != null && categoryResult != DBNull.Value)
+                            categoryId = Convert.ToInt32(categoryResult);
+                    }
+
+                    using var reqCmd = new MySqlCommand(insertRequirementSql, _connection, transaction);
+                    reqCmd.Parameters.AddWithValue("@promoId", promoId);
+                    reqCmd.Parameters.AddWithValue("@categoryId", categoryId.HasValue ? (object)categoryId.Value : DBNull.Value);
+                    reqCmd.Parameters.AddWithValue("@productId", item.ProductId.HasValue ? (object)item.ProductId.Value : DBNull.Value);
+                    reqCmd.Parameters.AddWithValue("@minQuantity", item.MaxQty > 0 ? item.MaxQty : item.MinQty);
+                    reqCmd.ExecuteNonQuery();
+                }
+            }
+
+            transaction.Commit();
+            return Json(new { success = true });
+        }
+        catch (Exception ex)
+        {
+            transaction.Rollback();
+            return BadRequest(new { success = false, message = ex.Message });
+        }
+        finally
+        {
+            if (_connection.State == System.Data.ConnectionState.Open)
+                _connection.Close();
+        }
     }
 
     private string NormalizeImageUrl(string? imageUrl)
@@ -1659,6 +1828,32 @@ ORDER BY c.category_name, p.name";
                 _connection.Close();
             }
         }
+    }
+
+    public class SavePromotionRequest
+    {
+        public string Type { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Code { get; set; } = string.Empty;
+        public decimal DiscountValue { get; set; }
+        public string DiscountType { get; set; } = "percent";
+        public decimal MinSpend { get; set; }
+        public bool IsFreeShipping { get; set; }
+        public string Category { get; set; } = string.Empty;
+        public int Limit { get; set; }
+        public string StartDate { get; set; } = string.Empty;
+        public string EndDate { get; set; } = string.Empty;
+        public string Expiry { get; set; } = string.Empty;
+        public string Status { get; set; } = "active";
+        public List<PromotionRequirementRequest> Items { get; set; } = new();
+    }
+
+    public class PromotionRequirementRequest
+    {
+        public string Category { get; set; } = string.Empty;
+        public int? ProductId { get; set; }
+        public int MinQty { get; set; }
+        public int MaxQty { get; set; }
     }
 
     public class CategoryRequest

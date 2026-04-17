@@ -691,6 +691,11 @@ tbody td {
     font-weight: 600;
 }
 
+.field label.required::after {
+    content: " *";
+    color: var(--red);
+}
+
 .field input,
 .field select {
     padding: 10px 14px;

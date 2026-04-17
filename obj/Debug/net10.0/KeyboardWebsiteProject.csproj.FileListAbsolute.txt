@@ -703,4 +703,4 @@ C:\DATA\Coding\Github\CSI402_KeyboardWebsite\bin\Debug\net10.0\buildcheck\out_te
 C:\DATA\Coding\Github\CSI402_KeyboardWebsite\bin\Debug\net10.0\buildcheck\out_temp3\out_temp\KeyboardWebsiteProject.staticwebassets.endpoints.json
 C:\DATA\Coding\Github\CSI402_KeyboardWebsite\bin\Debug\net10.0\buildcheck\out_temp3\out_temp\KeyboardWebsiteProject.staticwebassets.runtime.json
 C:\DATA\Coding\Github\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\d01r68krg5-{0}-4jinsi73or-4jinsi73or.gz
-C:\DATA\Coding\Github\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\19x810m7fm-{0}-bnedmg2gd3-bnedmg2gd3.gz
+C:\DATA\Coding\Github\CSI402_KeyboardWebsite\obj\Debug\net10.0\compressed\19x810m7fm-{0}-ryvscq76rw-ryvscq76rw.gz

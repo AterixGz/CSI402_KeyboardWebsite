@@ -4,6 +4,8 @@
     Layout = "_AdminLayout";
 
     var promotions = Model ?? new List<KeyboardWebsiteProject.Models.PromotionViewModel>();
+    var promoCategories = ViewBag.PromoCategories as List<string> ?? new List<string> { "All Categories" };
+    var promoProducts = ViewBag.PromoProducts as List<KeyboardWebsiteProject.Models.Product> ?? new List<KeyboardWebsiteProject.Models.Product>();
     int totalAll      = promotions.Count;
     int totalActive   = promotions.Count(p => p.Status == "active");
     int totalUsed     = promotions.Sum(p => p.Used);
@@ -47,12 +49,12 @@
                 </div>
             </div>
             <div class="field">
-                <label>Promotion Name</label>
-                <input id="f-name" type="text" placeholder="e.g., Summer Sale Keyboards" />
+                <label class="required">Promotion Name</label>
+                <input id="f-name" type="text" placeholder="e.g., Summer Sale Keyboards" required />
             </div>
             <div class="field-row" id="coupon-fields">
                 <div class="field">
-                    <label>Promotion Code</label>
+                    <label class="required">Promotion Code</label>
                     <input id="f-code" type="text" placeholder="e.g., SUMMER2024" style="text-transform:uppercase" />
                 </div>
                 <div class="field">
@@ -64,13 +66,13 @@
                 <div class="field">
                     <label>Discount Type</label>
                     <select id="f-discount-type">
-                        <option value="percent">Percent</option>
+                        <option value="percentage">Percent</option>
                         <option value="fixed">Fixed Amount</option>
                     </select>
                 </div>
                 <div class="field">
-                    <label>Discount Amount</label>
-                    <input id="f-discount" type="text" placeholder="e.g., 20% or ฿500" />
+                    <label class="required">Discount Amount</label>
+                    <input id="f-discount" type="text" placeholder="e.g., 20% or ฿500" required />
                 </div>
             </div>
             <div class="field-row">
@@ -83,14 +85,14 @@
                 </div>
             </div>
             <div class="field">
-                <label>Product/Category Selection</label>
+                <label class="required">Product/Category Selection</label>
                 <div class="unified-selection">
                     <div class="selection-row">
                         <select id="f-category" onchange="refreshProductSelect()">
-                            <option value="Keyboard">Keyboard</option>
-                            <option value="Keycap">Keycap</option>
-                            <option value="Switch">Switch</option>
-                            <option value="All Categories">All Categories</option>
+                            @foreach (var category in promoCategories)
+                            {
+                                <option value="@category">@category</option>
+                            }
                         </select>
                         <select id="f-product-select">
                             <option value="" selected>Select product (optional)</option>
@@ -105,12 +107,12 @@
 
             <div class="field-row">
                 <div class="field">
-                    <label>Start Date</label>
-                    <input id="f-start" type="date" />
+                    <label class="required">Start Date</label>
+                    <input id="f-start" type="date" required />
                 </div>
                 <div class="field">
-                    <label>End Date</label>
-                    <input id="f-end" type="date" />
+                    <label class="required">End Date</label>
+                    <input id="f-end" type="date" required />
                 </div>
             </div>
             <div class="field" id="coupon-expiry-field">
@@ -359,8 +361,8 @@ function openModal(data = null) {
     document.getElementById('f-name').value      = promo.name      || '';
     document.getElementById('f-code').value      = promo.code      || '';
     document.getElementById('f-discount').value  = promo.discount  || '';
-    document.getElementById('f-discount-type').value = promo.discountType || 'percent';
-    document.getElementById('f-discount-type').value = promo.discountType || 'percent';
+    const discountTypeValue = promo.discountType === 'percent' ? 'percentage' : promo.discountType || 'percentage';
+    document.getElementById('f-discount-type').value = discountTypeValue;
     document.getElementById('f-min-spend').value = promo.minSpend  || '';
     document.getElementById('f-free-shipping').checked = promo.isFreeShipping === true || promo.isFreeShipping === 'true';
     document.getElementById('f-category').value  = promo.category  || 'Keyboard';
@@ -417,14 +419,7 @@ function togglePromotionFields() {
     }
 }
 
-const productCatalog = [
-    { id: 101, name: 'MecaKey Pro Keyboard', category: 'Keyboard' },
-    { id: 102, name: 'TKL RGB Keyboard', category: 'Keyboard' },
-    { id: 201, name: 'PBT Keycap Set', category: 'Keycap' },
-    { id: 202, name: 'Gradient Keycap Set', category: 'Keycap' },
-    { id: 301, name: 'Linear Switch Pack', category: 'Switch' },
-    { id: 302, name: 'Tactile Switch Bundle', category: 'Switch' }
-];
+const productCatalog = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(promoProducts.Select(p => new { id = p.ProductId, name = p.Name ?? string.Empty, category = p.CategoryName ?? "All Categories" })));
 let selectedPromoItems = [];
 
 function addSelectedItem() {
@@ -549,108 +544,158 @@ function deleteRow(btn) {
 function savePromo() {
     const type      = document.getElementById('f-type').value;
     const name      = document.getElementById('f-name').value.trim();
-        const code      = document.getElementById('f-code').value.trim().toUpperCase();
-        const discount  = document.getElementById('f-discount').value.trim();
-        const discountType = document.getElementById('f-discount-type').value;
-        const minSpend  = document.getElementById('f-min-spend').value.trim();
-        const freeShipping = document.getElementById('f-free-shipping').checked;
-        const cat       = document.getElementById('f-category').value;
-        const limit     = parseInt(document.getElementById('f-limit').value) || 0;
-        const start     = document.getElementById('f-start').value;
-        const end       = document.getElementById('f-end').value;
-        const expiry    = document.getElementById('f-expiry').value;
-        const status    = document.getElementById('f-status').value;
-        const items     = selectedPromoItems;
+    const code      = document.getElementById('f-code').value.trim().toUpperCase();
+    const discount  = document.getElementById('f-discount').value.trim();
+    const discountType = document.getElementById('f-discount-type').value;
+    const minSpend  = document.getElementById('f-min-spend').value.trim();
+    const freeShipping = document.getElementById('f-free-shipping').checked;
+    const cat       = document.getElementById('f-category').value;
+    const limit     = parseInt(document.getElementById('f-limit').value) || 0;
+    const start     = document.getElementById('f-start').value.trim();
+    const end       = document.getElementById('f-end').value.trim();
+    const expiry    = document.getElementById('f-expiry').value.trim();
+    const status    = document.getElementById('f-status').value;
+    const items     = selectedPromoItems;
 
-    if (!name || !discount || !start || !end) {
-        alert('Please fill in all required fields');
+    const missing = [];
+    if (!name) missing.push('Promotion Name');
+    if (!discount) missing.push('Discount Amount');
+    if (!start) missing.push('Start Date');
+    if (!end) missing.push('End Date');
+    if (missing.length > 0) {
+        alert('Please complete the required fields: ' + missing.join(', '));
         return;
     }
     if (type === 'coupon' && !code) {
         alert('Promotion code is required for coupon promotions');
         return;
     }
-    if (selectedPromoItems.length === 0) {
+    if (items.length === 0) {
         alert('Please add at least one product or category');
         return;
     }
 
-    const catIcons = { 'Keyboard':'💾', 'Keycap':'🎨', 'Switch':'⚡', 'All Categories':'📦' };
-    const icon = catIcons[cat] ?? '📦';
-    const statusMap = { active:'✓ Active', scheduled:'📅 Scheduled', expired:'✕ Expired' };
-    const statusClass = { active:'status-active', scheduled:'status-scheduled', expired:'status-expired' };
-    const displayType = type === 'coupon' ? 'Coupon' : 'System';
-
-    if (editingRow) {
-        // Update existing row
-        const cells = editingRow.querySelectorAll('td');
-        cells[0].querySelector('.promo-name').textContent = name;
-        cells[1].querySelector('.promo-code').textContent = code;
-        cells[2].querySelector('.promo-type').textContent = displayType;
-        cells[3].querySelector('.discount-val').textContent = discount;
-        const itemSummary = items.length ? `<div class="product-summary">${items.length} item(s)</div>` : '';
-        cells[4].innerHTML = `<span class="cat-badge">${icon} ${cat}</span>${itemSummary}`;
-        cells[5].innerHTML = `<div class="date-range"><span>📅</span><span>${start} – ${end}</span></div>`;
-        const sb = cells[6].querySelector('.status-badge');
-        editingRow.dataset.type = type;
-        editingRow.dataset.discountType = discountType;
-        editingRow.dataset.minSpend = minSpend;
-        editingRow.dataset.freeShipping = freeShipping;
-        editingRow.dataset.expiry = expiry;
-        editingRow.dataset.limit = limit;
-        editingRow.dataset.items = JSON.stringify(items);
-        sb.className = `status-badge ${statusClass[status]}`;
-        sb.textContent = statusMap[status];
-        editingRow.dataset.name   = name.toLowerCase();
-        editingRow.dataset.code   = code.toLowerCase();
-        editingRow.dataset.status = status;
-        editingRow.dataset.cat    = cat;
-        showToast(`✏️ Updated "${name}"`);
-    } else {
-        // Insert new row
-        const tbody = document.getElementById('promo-body');
-        const tr = document.createElement('tr');
-        tr.dataset.name   = name.toLowerCase();
-        tr.dataset.code   = code.toLowerCase();
-        tr.dataset.status = status;
-        tr.dataset.cat    = cat;
-        tr.dataset.type   = type;
-        tr.dataset.discountType = discountType;
-        tr.dataset.minSpend = minSpend;
-        tr.dataset.freeShipping = freeShipping;
-        tr.dataset.expiry = expiry;
-        tr.dataset.limit = limit;
-        tr.dataset.items = JSON.stringify(items);
-        const itemSummary = items.length ? `<div class="product-summary">${items.length} item(s)</div>` : '';
-        tr.innerHTML = `
-            <td><span class="promo-name">${name}</span></td>
-            <td><span class="promo-code">${code}</span></td>
-            <td><span class="promo-type">${displayType}</span></td>
-            <td><span class="discount-val">${discount}</span></td>
-            <td><span class="cat-badge">${icon} ${cat}</span>${itemSummary}</td>
-            <td><div class="date-range"><span>📅</span><span>${start} – ${end}</span></div></td>
-            <td><span class="status-badge ${statusClass[status]}">${statusMap[status]}</span></td>
-            <td>
-                <div class="usage-wrap">
-                    <span class="usage-text">0 / ${limit}</span>
-                    <div class="usage-track"><div class="usage-fill" style="width:0%"></div></div>
-                </div>
-            </td>
-            <td class="action-cell">
-                <button class="btn-action" onclick="toggleDropdown(this)">•••</button>
-                <div class="dropdown">
-                    <button onclick="editRow(this)">✏️ Edit</button>
-                    <button onclick="duplicateRow(this)">📋 Duplicate</button>
-                    <button class="danger" onclick="deleteRow(this)">🗑️ Delete</button>
-                </div>
-            </td>`;
-        tbody.appendChild(tr);
-        showToast(`✅ Added "${name}"`);
+    const discountValue = parseFloat(discount.replace(/[^0-9.-]/g, ''));
+    const minSpendValue = parseFloat(minSpend.replace(/[^0-9.-]/g, '')) || 0;
+    if (isNaN(discountValue)) {
+        alert('Please enter a valid discount amount');
+        return;
     }
 
-    updateStats();
-    closeModal();
-    filterTable();
+    const payload = {
+        type,
+        name,
+        code,
+        discountValue,
+        discountType,
+        minSpend: minSpendValue,
+        freeShipping,
+        category: cat,
+        limit,
+        startDate: start,
+        endDate: end,
+        expiry,
+        status,
+        items: items.map(item => ({
+            category: item.category,
+            productId: item.product ? item.product.id : null,
+            minQty: item.minQty || 0,
+            maxQty: item.maxQty || 0
+        }))
+    };
+
+    fetch('@Url.Action("SavePromotion", "Admin")', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (!result.success) {
+            showToast(result.message || 'Failed to save promotion');
+            return;
+        }
+
+        const catIcons = { 'Keyboard':'💾', 'Keycap':'🎨', 'Switch':'⚡', 'All Categories':'📦' };
+        const icon = catIcons[cat] ?? '📦';
+        const statusMap = { active:'✓ Active', scheduled:'📅 Scheduled', expired:'✕ Expired' };
+        const statusClass = { active:'status-active', scheduled:'status-scheduled', expired:'status-expired' };
+        const displayType = type === 'coupon' ? 'Coupon' : 'System';
+        const itemSummary = items.length ? `<div class="product-summary">${items.length} item(s)</div>` : '';
+
+        if (editingRow) {
+            const cells = editingRow.querySelectorAll('td');
+            cells[0].querySelector('.promo-name').textContent = name;
+            cells[1].querySelector('.promo-code').textContent = code;
+            cells[2].querySelector('.promo-type').textContent = displayType;
+            cells[3].querySelector('.discount-val').textContent = discount;
+            cells[4].innerHTML = `<span class="cat-badge">${icon} ${cat}</span>${itemSummary}`;
+            cells[5].innerHTML = `<div class="date-range"><span>📅</span><span>${start} – ${end}</span></div>`;
+            const sb = cells[6].querySelector('.status-badge');
+            editingRow.dataset.type = type;
+            editingRow.dataset.discountType = discountType;
+            editingRow.dataset.minSpend = minSpend;
+            editingRow.dataset.freeShipping = freeShipping;
+            editingRow.dataset.expiry = expiry;
+            editingRow.dataset.limit = limit;
+            editingRow.dataset.items = JSON.stringify(items);
+            sb.className = `status-badge ${statusClass[status]}`;
+            sb.textContent = statusMap[status];
+            editingRow.dataset.name   = name.toLowerCase();
+            editingRow.dataset.code   = code.toLowerCase();
+            editingRow.dataset.status = status;
+            editingRow.dataset.cat    = cat;
+            showToast(`✏️ Updated "${name}"`);
+        } else {
+            const tbody = document.getElementById('promo-body');
+            const tr = document.createElement('tr');
+            tr.dataset.name   = name.toLowerCase();
+            tr.dataset.code   = code.toLowerCase();
+            tr.dataset.status = status;
+            tr.dataset.cat    = cat;
+            tr.dataset.type   = type;
+            tr.dataset.discountType = discountType;
+            tr.dataset.minSpend = minSpend;
+            tr.dataset.freeShipping = freeShipping;
+            tr.dataset.expiry = expiry;
+            tr.dataset.limit = limit;
+            tr.dataset.items = JSON.stringify(items);
+            tr.innerHTML = `
+                <td><span class="promo-name">${name}</span></td>
+                <td><span class="promo-code">${code}</span></td>
+                <td><span class="promo-type">${displayType}</span></td>
+                <td><span class="discount-val">${discount}</span></td>
+                <td><span class="cat-badge">${icon} ${cat}</span>${itemSummary}</td>
+                <td><div class="date-range"><span>📅</span><span>${start} – ${end}</span></div></td>
+                <td><span class="status-badge ${statusClass[status]}">${statusMap[status]}</span></td>
+                <td>
+                    <div class="usage-wrap">
+                        <span class="usage-text">0 / ${limit}</span>
+                        <div class="usage-track"><div class="usage-fill" style="width:0%"></div></div>
+                    </div>
+                </td>
+                <td class="action-cell">
+                    <button class="btn-action" onclick="toggleDropdown(this)">•••</button>
+                    <div class="dropdown">
+                        <button onclick="editRow(this)">✏️ Edit</button>
+                        <button onclick="duplicateRow(this)">📋 Duplicate</button>
+                        <button class="danger" onclick="deleteRow(this)">🗑️ Delete</button>
+                    </div>
+                </td>`;
+            tbody.appendChild(tr);
+            showToast(`✅ Added "${name}"`);
+        }
+
+        updateStats();
+        closeModal();
+        filterTable();
+    })
+    .catch(error => {
+        console.error(error);
+        showToast('Failed to save promotion');
+    });
 }
 
 // ── Update stat cards ──
