@@ -1,6 +1,7 @@
 using System;
 using System.Data;
 using System.Globalization;
+using System.Linq;
 using System.Net;
 using CloudinaryDotNet;
 using CloudinaryDotNet.Actions;
@@ -1075,12 +1076,12 @@ ORDER BY c.category_name, p.name";
                         : reader.GetInt32("used_count");
                     var discountValue = reader.GetDecimal("discount_value");
                     var discountType = reader.GetString("discount_type")?.Trim().ToLower() ?? "percent";
-                    var status = "active";
+                    var status = "open";
 
                     if (expiryDate.HasValue && DateTime.UtcNow.Date > expiryDate.Value.Date)
-                        status = "expired";
+                        status = "closed";
                     else if (usageLimit > 0 && usedCount >= usageLimit)
-                        status = "expired";
+                        status = "closed";
 
                     var discountText = discountType == "fixed"
                         ? $"฿{discountValue:0.##}"
@@ -1097,18 +1098,21 @@ ORDER BY c.category_name, p.name";
                         MinSpend = "฿0",
                         IsFreeShipping = false,
                         Category = "All Categories",
-                        DateStart = expiryDate?.ToString("yyyy-MM-dd") ?? string.Empty,
-                        DateEnd = expiryDate?.ToString("yyyy-MM-dd") ?? string.Empty,
-                        ExpiryDate = expiryDate?.ToString("yyyy-MM-dd") ?? string.Empty,
+                        DateStart = expiryDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? string.Empty,
+                        DateEnd = expiryDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? string.Empty,
+                        ExpiryDate = expiryDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? string.Empty,
                         Status = status,
                         Used = usedCount,
-                        Limit = usageLimit
+                        Limit = usageLimit,
+                        ItemJson = "[]"
                     });
                 }
             }
 
             const string promoSql = @"SELECT promo_id, promo_name, min_spend, discount_amount, is_free_shipping, start_date, end_date, is_active
                                        FROM Promotions";
+
+            var systemPromotionCategories = new Dictionary<int, string>();
 
             using (var promoCmd = new MySqlCommand(promoSql, _connection))
             using (var reader = promoCmd.ExecuteReader())
@@ -1128,31 +1132,102 @@ ORDER BY c.category_name, p.name";
                         : reader.GetDateTime("end_date");
                     var isFreeShipping = !reader.IsDBNull(reader.GetOrdinal("is_free_shipping")) && reader.GetBoolean("is_free_shipping");
                     var isActive = !reader.IsDBNull(reader.GetOrdinal("is_active")) && reader.GetBoolean("is_active");
-                    var status = "active";
-
-                    if (starts.HasValue && DateTime.UtcNow.Date < starts.Value.Date)
-                        status = "scheduled";
-                    else if (!isActive || (ends.HasValue && DateTime.UtcNow.Date > ends.Value.Date))
-                        status = "expired";
+                    var status = isActive ? "open" : "closed";
 
                     promotions.Add(new PromotionViewModel
                     {
                         Id = reader.GetInt32("promo_id"),
                         Type = "system",
                         Name = name,
-                        Code = "SYSTEM",
-                        Discount = $"{discountAmount:0.##}%",
-                        DiscountType = "percent",
+                        Code = string.Empty,
+                        Discount = $"฿{discountAmount:0.##}",
+                        DiscountType = "fixed",
                         MinSpend = minSpend,
                         IsFreeShipping = isFreeShipping,
                         Category = "All Categories",
-                        DateStart = starts?.ToString("yyyy-MM-dd") ?? string.Empty,
-                        DateEnd = ends?.ToString("yyyy-MM-dd") ?? string.Empty,
-                        ExpiryDate = ends?.ToString("yyyy-MM-dd") ?? string.Empty,
+                        DateStart = starts?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? string.Empty,
+                        DateEnd = ends?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? string.Empty,
+                        ExpiryDate = ends?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? string.Empty,
                         Status = status,
                         Used = 0,
                         Limit = 0
                     });
+                }
+            }
+
+            var systemPromotionRequirements = new Dictionary<int, List<PromotionRequirementViewModel>>();
+            const string promoReqSql = @"SELECT pr.promo_id,
+                                                pr.category_id,
+                                                pr.product_id,
+                                                pr.min_quantity,
+                                                COALESCE(c.category_name, pc.category_name, 'All Categories') AS category_name,
+                                                p.name AS product_name
+                                           FROM Promotion_Requirements pr
+                                           LEFT JOIN Categories c ON pr.category_id = c.category_id
+                                           LEFT JOIN Products p ON pr.product_id = p.product_id
+                                           LEFT JOIN Categories pc ON p.category_id = pc.category_id;";
+
+            using (var reqCmd = new MySqlCommand(promoReqSql, _connection))
+            using (var reqReader = reqCmd.ExecuteReader())
+            {
+                while (reqReader.Read())
+                {
+                    var promoId = reqReader.GetInt32("promo_id");
+                    var categoryName = reqReader.IsDBNull(reqReader.GetOrdinal("category_name"))
+                        ? "All Categories"
+                        : reqReader.GetString("category_name").Trim();
+                    var productName = reqReader.IsDBNull(reqReader.GetOrdinal("product_name"))
+                        ? string.Empty
+                        : reqReader.GetString("product_name").Trim();
+                    var productId = reqReader.IsDBNull(reqReader.GetOrdinal("product_id"))
+                        ? (int?)null
+                        : reqReader.GetInt32("product_id");
+                    var minQuantity = reqReader.IsDBNull(reqReader.GetOrdinal("min_quantity"))
+                        ? 0
+                        : reqReader.GetInt32("min_quantity");
+
+                    if (!systemPromotionRequirements.TryGetValue(promoId, out var list))
+                    {
+                        list = new List<PromotionRequirementViewModel>();
+                        systemPromotionRequirements[promoId] = list;
+                    }
+
+                    list.Add(new PromotionRequirementViewModel
+                    {
+                        Category = categoryName,
+                        ProductId = productId,
+                        ProductName = productName,
+                        MinQty = minQuantity,
+                        MaxQty = 0
+                    });
+                }
+            }
+
+            foreach (var promo in promotions.Where(p => p.Type == "system"))
+            {
+                if (systemPromotionRequirements.TryGetValue(promo.Id, out var requirements) && requirements.Any())
+                {
+                    promo.Items = requirements;
+                    promo.ItemJson = System.Text.Json.JsonSerializer.Serialize(requirements, new System.Text.Json.JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+                    });
+                    var distinctCategories = requirements
+                        .Select(i => i.Category)
+                        .Where(c => !string.IsNullOrWhiteSpace(c))
+                        .Distinct(StringComparer.OrdinalIgnoreCase);
+                    promo.Category = distinctCategories.Any()
+                        ? string.Join(", ", distinctCategories)
+                        : "All Categories";
+                }
+                else if (systemPromotionCategories.TryGetValue(promo.Id, out var categoryName))
+                {
+                    promo.Category = string.IsNullOrWhiteSpace(categoryName) ? "All Categories" : categoryName;
+                    promo.ItemJson = "[]";
+                }
+                else
+                {
+                    promo.ItemJson = "[]";
                 }
             }
 
@@ -1209,7 +1284,7 @@ ORDER BY c.category_name, p.name";
         if (request == null)
             return BadRequest(new { success = false, message = "Invalid promotion request." });
 
-        if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.StartDate) || string.IsNullOrWhiteSpace(request.EndDate))
+        if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.StartDate) || (request.Type != "coupon" && string.IsNullOrWhiteSpace(request.EndDate)))
             return BadRequest(new { success = false, message = "Please complete the required promotion fields." });
 
         if (request.Type == "coupon" && string.IsNullOrWhiteSpace(request.Code))
@@ -1227,7 +1302,7 @@ ORDER BY c.category_name, p.name";
             decimal discountValue = request.DiscountValue;
             decimal minSpend = request.MinSpend;
             if (minSpend < 0) minSpend = 0;
-            bool isActive = request.Status?.ToLower() != "expired";
+            bool isActive = request.Status?.Trim().ToLowerInvariant() == "open";
             DateTime? startDate = null;
             DateTime? endDate = null;
             DateTime? expiryDate = null;
@@ -1240,39 +1315,80 @@ ORDER BY c.category_name, p.name";
             if (!string.IsNullOrWhiteSpace(request.Expiry) && DateTime.TryParseExact(request.Expiry, dateFormats, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedExpiry))
                 expiryDate = parsedExpiry;
 
-            if (request.Type == "coupon" && !expiryDate.HasValue)
+            // Coupons may have no expiry date. Do not auto-fill it from the start or end date.
+            if (request.Type == "coupon" && request.Status?.Trim().ToLowerInvariant() == "closed")
             {
-                if (endDate.HasValue)
-                    expiryDate = endDate;
-                else if (startDate.HasValue)
-                    expiryDate = startDate;
-                else
-                    return BadRequest(new { success = false, message = "Expiry date is required for coupon promotions." });
+                if (!expiryDate.HasValue || expiryDate.Value.Date >= DateTime.UtcNow.Date)
+                    expiryDate = DateTime.UtcNow.Date.AddDays(-1);
             }
 
             var couponDiscountType = (request.DiscountType?.ToLowerInvariant() == "percent" || request.DiscountType?.ToLowerInvariant() == "percentage")
                 ? "Percentage"
                 : "Fixed";
 
+            var isUpdate = request.Id > 0;
+            var oldType = request.OldType?.Trim().ToLowerInvariant() ?? request.Type;
+
             if (request.Type == "coupon")
             {
-                const string insertCouponSql = @"INSERT INTO Coupons (code, discount_value, discount_type, expiry_date, usage_limit, used_count)
-                                                 VALUES (@code, @discountValue, @discountType, @expiryDate, @usageLimit, 0);";
-                using var couponCmd = new MySqlCommand(insertCouponSql, _connection, transaction);
-                couponCmd.Parameters.AddWithValue("@code", request.Code);
-                couponCmd.Parameters.AddWithValue("@discountValue", discountValue);
-                couponCmd.Parameters.AddWithValue("@discountType", couponDiscountType);
-                couponCmd.Parameters.AddWithValue("@expiryDate", expiryDate.HasValue ? (object)expiryDate.Value : DBNull.Value);
-                couponCmd.Parameters.AddWithValue("@usageLimit", request.Limit);
-                couponCmd.ExecuteNonQuery();
+                if (isUpdate && oldType == "coupon")
+                {
+                    const string updateCouponSql = @"UPDATE Coupons
+                                                     SET code = @code,
+                                                         discount_value = @discountValue,
+                                                         discount_type = @discountType,
+                                                         expiry_date = @expiryDate,
+                                                         usage_limit = @usageLimit
+                                                     WHERE coupon_id = @id;";
+                    using var couponCmd = new MySqlCommand(updateCouponSql, _connection, transaction);
+                    couponCmd.Parameters.AddWithValue("@code", request.Code);
+                    couponCmd.Parameters.AddWithValue("@discountValue", discountValue);
+                    couponCmd.Parameters.AddWithValue("@discountType", couponDiscountType);
+                    couponCmd.Parameters.AddWithValue("@expiryDate", expiryDate.HasValue ? (object)expiryDate.Value : DBNull.Value);
+                    couponCmd.Parameters.AddWithValue("@usageLimit", request.Limit);
+                    couponCmd.Parameters.AddWithValue("@id", request.Id);
+                    couponCmd.ExecuteNonQuery();
+                }
+                else
+                {
+                    if (isUpdate && oldType == "system")
+                    {
+                        const string deleteRequirementsSql = @"DELETE FROM Promotion_Requirements WHERE promo_id = @id;";
+                        using var deleteReqCmd = new MySqlCommand(deleteRequirementsSql, _connection, transaction);
+                        deleteReqCmd.Parameters.AddWithValue("@id", request.Id);
+                        deleteReqCmd.ExecuteNonQuery();
+
+                        const string deletePromoSql = @"DELETE FROM Promotions WHERE promo_id = @id;";
+                        using var deletePromoCmd = new MySqlCommand(deletePromoSql, _connection, transaction);
+                        deletePromoCmd.Parameters.AddWithValue("@id", request.Id);
+                        deletePromoCmd.ExecuteNonQuery();
+                    }
+
+                    const string insertCouponSql = @"INSERT INTO Coupons (code, discount_value, discount_type, expiry_date, usage_limit, used_count)
+                                                     VALUES (@code, @discountValue, @discountType, @expiryDate, @usageLimit, 0);";
+                    using var couponCmd = new MySqlCommand(insertCouponSql, _connection, transaction);
+                    couponCmd.Parameters.AddWithValue("@code", request.Code);
+                    couponCmd.Parameters.AddWithValue("@discountValue", discountValue);
+                    couponCmd.Parameters.AddWithValue("@discountType", couponDiscountType);
+                    couponCmd.Parameters.AddWithValue("@expiryDate", expiryDate.HasValue ? (object)expiryDate.Value : DBNull.Value);
+                    couponCmd.Parameters.AddWithValue("@usageLimit", request.Limit);
+                    couponCmd.ExecuteNonQuery();
+                }
             }
             else
             {
-                const string insertPromoSql = @"INSERT INTO Promotions (promo_name, min_spend, discount_amount, is_free_shipping, start_date, end_date, is_active)
-                                               VALUES (@name, @minSpend, @discountAmount, @freeShipping, @startDate, @endDate, @isActive);";
-                int promoId;
-                using (var promoCmd = new MySqlCommand(insertPromoSql, _connection, transaction))
+                if (isUpdate && oldType == "system")
                 {
+                    const string updatePromoSql = @"UPDATE Promotions
+                                                   SET promo_name = @name,
+                                                       min_spend = @minSpend,
+                                                       discount_amount = @discountAmount,
+                                                       is_free_shipping = @freeShipping,
+                                                       start_date = @startDate,
+                                                       end_date = @endDate,
+                                                       is_active = @isActive
+                                                   WHERE promo_id = @id;";
+                    using var promoCmd = new MySqlCommand(updatePromoSql, _connection, transaction);
                     promoCmd.Parameters.AddWithValue("@name", request.Name);
                     promoCmd.Parameters.AddWithValue("@minSpend", minSpend);
                     promoCmd.Parameters.AddWithValue("@discountAmount", discountValue);
@@ -1280,42 +1396,214 @@ ORDER BY c.category_name, p.name";
                     promoCmd.Parameters.AddWithValue("@startDate", startDate.HasValue ? (object)startDate.Value : DBNull.Value);
                     promoCmd.Parameters.AddWithValue("@endDate", endDate.HasValue ? (object)endDate.Value : DBNull.Value);
                     promoCmd.Parameters.AddWithValue("@isActive", isActive);
+                    promoCmd.Parameters.AddWithValue("@id", request.Id);
                     promoCmd.ExecuteNonQuery();
-                    promoId = Convert.ToInt32(promoCmd.LastInsertedId);
+
+                    const string deleteRequirementsSql = @"DELETE FROM Promotion_Requirements WHERE promo_id = @id;";
+                    using var deleteReqCmd = new MySqlCommand(deleteRequirementsSql, _connection, transaction);
+                    deleteReqCmd.Parameters.AddWithValue("@id", request.Id);
+                    deleteReqCmd.ExecuteNonQuery();
+
+                    const string insertRequirementSql = @"INSERT INTO Promotion_Requirements (promo_id, category_id, product_id, min_quantity)
+                                                          VALUES (@promoId, @categoryId, @productId, @minQuantity);";
+                    foreach (var item in request.Items)
+                    {
+                        int? categoryId = null;
+                        if (!string.IsNullOrWhiteSpace(item.Category) && item.Category.ToLower() != "all categories")
+                        {
+                            const string categorySql = "SELECT category_id FROM Categories WHERE category_name = @categoryName LIMIT 1";
+                            using var categoryCmd = new MySqlCommand(categorySql, _connection, transaction);
+                            categoryCmd.Parameters.AddWithValue("@categoryName", item.Category);
+                            var categoryResult = categoryCmd.ExecuteScalar();
+                            if (categoryResult != null && categoryResult != DBNull.Value)
+                                categoryId = Convert.ToInt32(categoryResult);
+                        }
+
+                        if (!categoryId.HasValue && item.ProductId.HasValue)
+                        {
+                            const string productCategorySql = "SELECT category_id FROM Products WHERE product_id = @productId LIMIT 1";
+                            using var productCategoryCmd = new MySqlCommand(productCategorySql, _connection, transaction);
+                            productCategoryCmd.Parameters.AddWithValue("@productId", item.ProductId.Value);
+                            var categoryResult = productCategoryCmd.ExecuteScalar();
+                            if (categoryResult != null && categoryResult != DBNull.Value)
+                                categoryId = Convert.ToInt32(categoryResult);
+                        }
+
+                        using var reqCmd = new MySqlCommand(insertRequirementSql, _connection, transaction);
+                        reqCmd.Parameters.AddWithValue("@promoId", request.Id);
+                        reqCmd.Parameters.AddWithValue("@categoryId", categoryId.HasValue ? (object)categoryId.Value : DBNull.Value);
+                        reqCmd.Parameters.AddWithValue("@productId", item.ProductId.HasValue ? (object)item.ProductId.Value : DBNull.Value);
+                        reqCmd.Parameters.AddWithValue("@minQuantity", item.MaxQty > 0 ? item.MaxQty : item.MinQty);
+                        reqCmd.ExecuteNonQuery();
+                    }
                 }
-
-                const string insertRequirementSql = @"INSERT INTO Promotion_Requirements (promo_id, category_id, product_id, min_quantity)
-                                                      VALUES (@promoId, @categoryId, @productId, @minQuantity);";
-                foreach (var item in request.Items)
+                else if (isUpdate && oldType == "coupon")
                 {
-                    int? categoryId = null;
-                    if (!string.IsNullOrWhiteSpace(item.Category) && item.Category.ToLower() != "all categories")
+                    const string deleteCouponSql = @"DELETE FROM Coupons WHERE coupon_id = @id;";
+                    using var deleteCouponCmd = new MySqlCommand(deleteCouponSql, _connection, transaction);
+                    deleteCouponCmd.Parameters.AddWithValue("@id", request.Id);
+                    deleteCouponCmd.ExecuteNonQuery();
+
+                    const string insertPromoSql = @"INSERT INTO Promotions (promo_name, min_spend, discount_amount, is_free_shipping, start_date, end_date, is_active)
+                                                   VALUES (@name, @minSpend, @discountAmount, @freeShipping, @startDate, @endDate, @isActive);";
+                    int promoId;
+                    using (var promoCmd = new MySqlCommand(insertPromoSql, _connection, transaction))
                     {
-                        const string categorySql = "SELECT category_id FROM Categories WHERE category_name = @categoryName LIMIT 1";
-                        using var categoryCmd = new MySqlCommand(categorySql, _connection, transaction);
-                        categoryCmd.Parameters.AddWithValue("@categoryName", item.Category);
-                        var categoryResult = categoryCmd.ExecuteScalar();
-                        if (categoryResult != null && categoryResult != DBNull.Value)
-                            categoryId = Convert.ToInt32(categoryResult);
+                        promoCmd.Parameters.AddWithValue("@name", request.Name);
+                        promoCmd.Parameters.AddWithValue("@minSpend", minSpend);
+                        promoCmd.Parameters.AddWithValue("@discountAmount", discountValue);
+                        promoCmd.Parameters.AddWithValue("@freeShipping", request.IsFreeShipping);
+                        promoCmd.Parameters.AddWithValue("@startDate", startDate.HasValue ? (object)startDate.Value : DBNull.Value);
+                        promoCmd.Parameters.AddWithValue("@endDate", endDate.HasValue ? (object)endDate.Value : DBNull.Value);
+                        promoCmd.Parameters.AddWithValue("@isActive", isActive);
+                        promoCmd.ExecuteNonQuery();
+                        promoId = Convert.ToInt32(promoCmd.LastInsertedId);
                     }
 
-                    if (!categoryId.HasValue && item.ProductId.HasValue)
+                    const string insertRequirementSql = @"INSERT INTO Promotion_Requirements (promo_id, category_id, product_id, min_quantity)
+                                                          VALUES (@promoId, @categoryId, @productId, @minQuantity);";
+                    foreach (var item in request.Items)
                     {
-                        const string productCategorySql = "SELECT category_id FROM Products WHERE product_id = @productId LIMIT 1";
-                        using var productCategoryCmd = new MySqlCommand(productCategorySql, _connection, transaction);
-                        productCategoryCmd.Parameters.AddWithValue("@productId", item.ProductId.Value);
-                        var categoryResult = productCategoryCmd.ExecuteScalar();
-                        if (categoryResult != null && categoryResult != DBNull.Value)
-                            categoryId = Convert.ToInt32(categoryResult);
+                        int? categoryId = null;
+                        if (!string.IsNullOrWhiteSpace(item.Category) && item.Category.ToLower() != "all categories")
+                        {
+                            const string categorySql = "SELECT category_id FROM Categories WHERE category_name = @categoryName LIMIT 1";
+                            using var categoryCmd = new MySqlCommand(categorySql, _connection, transaction);
+                            categoryCmd.Parameters.AddWithValue("@categoryName", item.Category);
+                            var categoryResult = categoryCmd.ExecuteScalar();
+                            if (categoryResult != null && categoryResult != DBNull.Value)
+                                categoryId = Convert.ToInt32(categoryResult);
+                        }
+
+                        if (!categoryId.HasValue && item.ProductId.HasValue)
+                        {
+                            const string productCategorySql = "SELECT category_id FROM Products WHERE product_id = @productId LIMIT 1";
+                            using var productCategoryCmd = new MySqlCommand(productCategorySql, _connection, transaction);
+                            productCategoryCmd.Parameters.AddWithValue("@productId", item.ProductId.Value);
+                            var categoryResult = productCategoryCmd.ExecuteScalar();
+                            if (categoryResult != null && categoryResult != DBNull.Value)
+                                categoryId = Convert.ToInt32(categoryResult);
+                        }
+
+                        using var reqCmd = new MySqlCommand(insertRequirementSql, _connection, transaction);
+                        reqCmd.Parameters.AddWithValue("@promoId", promoId);
+                        reqCmd.Parameters.AddWithValue("@categoryId", categoryId.HasValue ? (object)categoryId.Value : DBNull.Value);
+                        reqCmd.Parameters.AddWithValue("@productId", item.ProductId.HasValue ? (object)item.ProductId.Value : DBNull.Value);
+                        reqCmd.Parameters.AddWithValue("@minQuantity", item.MaxQty > 0 ? item.MaxQty : item.MinQty);
+                        reqCmd.ExecuteNonQuery();
+                    }
+                }
+                else
+                {
+                    const string insertPromoSql = @"INSERT INTO Promotions (promo_name, min_spend, discount_amount, is_free_shipping, start_date, end_date, is_active)
+                                                   VALUES (@name, @minSpend, @discountAmount, @freeShipping, @startDate, @endDate, @isActive);";
+                    int promoId;
+                    using (var promoCmd = new MySqlCommand(insertPromoSql, _connection, transaction))
+                    {
+                        promoCmd.Parameters.AddWithValue("@name", request.Name);
+                        promoCmd.Parameters.AddWithValue("@minSpend", minSpend);
+                        promoCmd.Parameters.AddWithValue("@discountAmount", discountValue);
+                        promoCmd.Parameters.AddWithValue("@freeShipping", request.IsFreeShipping);
+                        promoCmd.Parameters.AddWithValue("@startDate", startDate.HasValue ? (object)startDate.Value : DBNull.Value);
+                        promoCmd.Parameters.AddWithValue("@endDate", endDate.HasValue ? (object)endDate.Value : DBNull.Value);
+                        promoCmd.Parameters.AddWithValue("@isActive", isActive);
+                        promoCmd.ExecuteNonQuery();
+                        promoId = Convert.ToInt32(promoCmd.LastInsertedId);
                     }
 
-                    using var reqCmd = new MySqlCommand(insertRequirementSql, _connection, transaction);
-                    reqCmd.Parameters.AddWithValue("@promoId", promoId);
-                    reqCmd.Parameters.AddWithValue("@categoryId", categoryId.HasValue ? (object)categoryId.Value : DBNull.Value);
-                    reqCmd.Parameters.AddWithValue("@productId", item.ProductId.HasValue ? (object)item.ProductId.Value : DBNull.Value);
-                    reqCmd.Parameters.AddWithValue("@minQuantity", item.MaxQty > 0 ? item.MaxQty : item.MinQty);
+                    const string insertRequirementSql = @"INSERT INTO Promotion_Requirements (promo_id, category_id, product_id, min_quantity)
+                                                          VALUES (@promoId, @categoryId, @productId, @minQuantity);";
+                    foreach (var item in request.Items)
+                    {
+                        int? categoryId = null;
+                        if (!string.IsNullOrWhiteSpace(item.Category) && item.Category.ToLower() != "all categories")
+                        {
+                            const string categorySql = "SELECT category_id FROM Categories WHERE category_name = @categoryName LIMIT 1";
+                            using var categoryCmd = new MySqlCommand(categorySql, _connection, transaction);
+                            categoryCmd.Parameters.AddWithValue("@categoryName", item.Category);
+                            var categoryResult = categoryCmd.ExecuteScalar();
+                            if (categoryResult != null && categoryResult != DBNull.Value)
+                                categoryId = Convert.ToInt32(categoryResult);
+                        }
+
+                        if (!categoryId.HasValue && item.ProductId.HasValue)
+                        {
+                            const string productCategorySql = "SELECT category_id FROM Products WHERE product_id = @productId LIMIT 1";
+                            using var productCategoryCmd = new MySqlCommand(productCategorySql, _connection, transaction);
+                            productCategoryCmd.Parameters.AddWithValue("@productId", item.ProductId.Value);
+                            var categoryResult = productCategoryCmd.ExecuteScalar();
+                            if (categoryResult != null && categoryResult != DBNull.Value)
+                                categoryId = Convert.ToInt32(categoryResult);
+                        }
+
+                        using var reqCmd = new MySqlCommand(insertRequirementSql, _connection, transaction);
+                        reqCmd.Parameters.AddWithValue("@promoId", promoId);
+                        reqCmd.Parameters.AddWithValue("@categoryId", categoryId.HasValue ? (object)categoryId.Value : DBNull.Value);
+                        reqCmd.Parameters.AddWithValue("@productId", item.ProductId.HasValue ? (object)item.ProductId.Value : DBNull.Value);
+                        reqCmd.Parameters.AddWithValue("@minQuantity", item.MaxQty > 0 ? item.MaxQty : item.MinQty);
+                        reqCmd.ExecuteNonQuery();
+                    }
+                }
+            }
+
+            transaction.Commit();
+            return Json(new { success = true });
+        }
+        catch (Exception ex)
+        {
+            transaction.Rollback();
+            return BadRequest(new { success = false, message = ex.Message });
+        }
+        finally
+        {
+            if (_connection.State == System.Data.ConnectionState.Open)
+                _connection.Close();
+        }
+    }
+
+    [HttpPost]
+    public IActionResult DeletePromotion([FromBody] DeletePromotionRequest request)
+    {
+        var accessCheck = CheckAdminAccess();
+        if (accessCheck != null) return accessCheck;
+
+        if (request == null || request.PromotionId <= 0 || string.IsNullOrWhiteSpace(request.Type))
+            return BadRequest(new { success = false, message = "Invalid promotion delete request." });
+
+        if (_connection.State == System.Data.ConnectionState.Closed)
+            _connection.Open();
+
+        using var transaction = _connection.BeginTransaction();
+        try
+        {
+            if (request.Type == "coupon")
+            {
+                const string deleteCouponSql = "DELETE FROM Coupons WHERE coupon_id = @id";
+                using var cmd = new MySqlCommand(deleteCouponSql, _connection, transaction);
+                cmd.Parameters.AddWithValue("@id", request.PromotionId);
+                var rows = cmd.ExecuteNonQuery();
+                if (rows == 0)
+                    return NotFound(new { success = false, message = "Coupon not found." });
+            }
+            else if (request.Type == "system")
+            {
+                const string deleteRequirementsSql = "DELETE FROM Promotion_Requirements WHERE promo_id = @id";
+                using (var reqCmd = new MySqlCommand(deleteRequirementsSql, _connection, transaction))
+                {
+                    reqCmd.Parameters.AddWithValue("@id", request.PromotionId);
                     reqCmd.ExecuteNonQuery();
                 }
+
+                const string deletePromoSql = "DELETE FROM Promotions WHERE promo_id = @id";
+                using var promoCmd = new MySqlCommand(deletePromoSql, _connection, transaction);
+                promoCmd.Parameters.AddWithValue("@id", request.PromotionId);
+                var rows = promoCmd.ExecuteNonQuery();
+                if (rows == 0)
+                    return NotFound(new { success = false, message = "System promotion not found." });
+            }
+            else
+            {
+                return BadRequest(new { success = false, message = "Unsupported promotion type." });
             }
 
             transaction.Commit();
@@ -1844,7 +2132,9 @@ ORDER BY c.category_name, p.name";
         public string StartDate { get; set; } = string.Empty;
         public string EndDate { get; set; } = string.Empty;
         public string Expiry { get; set; } = string.Empty;
-        public string Status { get; set; } = "active";
+        public string Status { get; set; } = "open";
+        public int Id { get; set; }
+        public string OldType { get; set; } = string.Empty;
         public List<PromotionRequirementRequest> Items { get; set; } = new();
     }
 
@@ -1872,5 +2162,11 @@ ORDER BY c.category_name, p.name";
         public int ProductId { get; set; }
         public int QuantityChange { get; set; }
         public string? Note { get; set; }
+    }
+
+    public class DeletePromotionRequest
+    {
+        public int PromotionId { get; set; }
+        public string Type { get; set; } = string.Empty;
     }
 }

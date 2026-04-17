@@ -17,4 +17,15 @@ public class PromotionViewModel
     public string Status { get; set; } = "active";
     public int Used { get; set; }
     public int Limit { get; set; }
+    public List<PromotionRequirementViewModel> Items { get; set; } = new();
+    public string ItemJson { get; set; } = "[]";
+}
+
+public class PromotionRequirementViewModel
+{
+    public string Category { get; set; } = string.Empty;
+    public int? ProductId { get; set; }
+    public string ProductName { get; set; } = string.Empty;
+    public int MinQty { get; set; }
+    public int MaxQty { get; set; }
 }

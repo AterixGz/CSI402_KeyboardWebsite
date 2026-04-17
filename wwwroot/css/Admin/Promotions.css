@@ -499,9 +499,16 @@ tbody td {
     white-space: nowrap;
 }
 
+.status-open,
 .status-active {
     background: var(--green-bg);
     color: var(--green);
+}
+
+.status-closed,
+.status-expired {
+    background: var(--red-bg);
+    color: var(--red);
 }
 
 .status-scheduled {
@@ -726,6 +733,29 @@ tbody td {
     justify-content: flex-end;
     padding: 18px 24px;
     border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+}
+
+.validation-errors {
+    width: 100%;
+    background: var(--red-bg);
+    border: 1px solid var(--red);
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 12px;
+    color: var(--red-text);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.field.error input,
+.field.error select {
+    border-color: var(--red) !important;
+    background-color: var(--red-bg);
+}
+
+.field.error label {
+    color: var(--red);
 }
 
 .btn-cancel {
@@ -742,6 +772,23 @@ tbody td {
 
 .btn-cancel:hover {
     background: var(--bg);
+}
+
+.btn-delete {
+    padding: 10px 24px;
+    border: none;
+    border-radius: 8px;
+    background: var(--red);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background .15s;
+}
+
+.btn-delete:hover {
+    background: #b91c1c;
 }
 
 .btn-save {

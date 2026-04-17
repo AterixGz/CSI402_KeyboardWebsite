@@ -7,7 +7,7 @@
     var promoCategories = ViewBag.PromoCategories as List<string> ?? new List<string> { "All Categories" };
     var promoProducts = ViewBag.PromoProducts as List<KeyboardWebsiteProject.Models.Product> ?? new List<KeyboardWebsiteProject.Models.Product>();
     int totalAll      = promotions.Count;
-    int totalActive   = promotions.Count(p => p.Status == "active");
+    int totalOpen     = promotions.Count(p => p.Status == "open");
     int totalUsed     = promotions.Sum(p => p.Used);
     int totalLimit    = promotions.Sum(p => p.Limit);
     int avgDiscount   = totalLimit > 0 ? totalUsed * 100 / totalLimit : 0;
@@ -42,9 +42,8 @@
                 <div class="field">
                     <label>Status</label>
                     <select id="f-status">
-                        <option value="active">Active</option>
-                        <option value="scheduled">Scheduled</option>
-                        <option value="expired">Expired</option>
+                        <option value="open">Open</option>
+                        <option value="closed">Closed</option>
                     </select>
                 </div>
             </div>
@@ -63,7 +62,7 @@
                 </div>
             </div>
             <div class="field-row">
-                <div class="field">
+                <div class="field" id="discount-type-field">
                     <label>Discount Type</label>
                     <select id="f-discount-type">
                         <option value="percentage">Percent</option>
@@ -75,7 +74,7 @@
                     <input id="f-discount" type="text" placeholder="e.g., 20% or ฿500" required />
                 </div>
             </div>
-            <div class="field-row">
+            <div class="field-row" id="system-settings-row">
                 <div class="field">
                     <label>Minimum Spend</label>
                     <input id="f-min-spend" type="text" placeholder="e.g., ฿1,000" />
@@ -84,7 +83,7 @@
                     <label class="checkbox-label"><input id="f-free-shipping" type="checkbox" /> Free Shipping</label>
                 </div>
             </div>
-            <div class="field">
+            <div class="field" id="product-selection-field">
                 <label class="required">Product/Category Selection</label>
                 <div class="unified-selection">
                     <div class="selection-row">
@@ -108,19 +107,21 @@
             <div class="field-row">
                 <div class="field">
                     <label class="required">Start Date</label>
-                    <input id="f-start" type="date" required />
+                    <input id="f-start" type="date" lang="en-US" required />
                 </div>
-                <div class="field">
-                    <label class="required">End Date</label>
-                    <input id="f-end" type="date" required />
+                <div class="field" id="coupon-expiry-field">
+                    <label>Expiry Date</label>
+                    <input id="f-expiry" type="date" lang="en-US" />
                 </div>
             </div>
-            <div class="field" id="coupon-expiry-field">
-                <label>Expiry Date</label>
-                <input id="f-expiry" type="date" />
+            <div class="field" id="end-date-field">
+                <label class="required">End Date</label>
+                <input id="f-end" type="date" lang="en-US" required />
             </div>
         </div>
         <div class="modal-footer">
+            <div id="validation-errors" class="validation-errors" style="display:none;"></div>
+            <button type="button" class="btn-delete" id="btn-delete-promo" onclick="deletePromotion()" style="display:none;">Delete</button>
             <button type="button" class="btn-cancel" onclick="closeModal()">Cancel</button>
             <button type="button" class="btn-save" onclick="savePromo()">Save</button>
         </div>
@@ -153,8 +154,8 @@
                 </svg>
             </div>
             <div>
-                <div class="stat-label">Active</div>
-                <div class="stat-value" id="stat-active">@totalActive</div>
+                <div class="stat-label">Open</div>
+                <div class="stat-value" id="stat-active">@totalOpen</div>
             </div>
         </div>
         <div class="stat-card">
@@ -204,9 +205,8 @@
             </div>
             <select class="filter-select" id="filter-status" onchange="filterTable()">
                 <option value="">All Status</option>
-                <option value="active">Active</option>
-                <option value="scheduled">Scheduled</option>
-                <option value="expired">Expired</option>
+                <option value="open">Open</option>
+                <option value="closed">Closed</option>
             </select>
             <select class="filter-select" id="filter-cat" onchange="filterTable()">
                 <option value="">All Categories</option>
@@ -226,7 +226,7 @@
                     <th>Type</th>
                     <th>Discount</th>
                     <th>Category</th>
-                    <th>Duration</th>
+                    <th>Expiry Date</th>
                     <th>Status</th>
                     <th>Usage</th>
                     <th>Actions</th>
@@ -241,25 +241,48 @@
                 @foreach (var p in promotions)
                 {
                     int pct = p.Limit > 0 ? p.Used * 100 / p.Limit : 0;
-                    string statusClass = p.Status == "active" ? "status-active"
-                                      : p.Status == "scheduled" ? "status-scheduled"
-                                      : "status-expired";
-                    string statusLabel = p.Status == "active" ? "✓ Active"
-                                      : p.Status == "scheduled" ? "📅 Scheduled"
-                                      : "✕ Expired";
-                    string icon = catIcons.ContainsKey(p.Category) ? catIcons[p.Category] : "📦";
-                    <tr data-name="@p.Name.ToLower()" data-code="@p.Code.ToLower()" data-status="@p.Status" data-cat="@p.Category" data-type="@p.Type" data-discount-type="@p.DiscountType" data-min-spend="@p.MinSpend" data-free-shipping="@p.IsFreeShipping" data-expiry="@p.ExpiryDate" data-limit="@p.Limit">
+                    string statusClass = p.Status == "open" ? "status-open"
+                                      : "status-closed";
+                    string statusLabel = p.Status == "open" ? "✓ Open"
+                                      : "✕ Closed";
+                    string icon = p.Type == "coupon" ? "🌐" : (catIcons.ContainsKey(p.Category) ? catIcons[p.Category] : "📦");
+                    string displayCategory = p.Type == "coupon"
+                        ? "<span class=\"cat-badge\">🌐 GLOBAL</span>"
+                        : $"<span class=\"cat-badge\">{icon} {p.Category}</span>";
+                    <tr data-id="@p.Id" data-name="@p.Name.ToLower()" data-code="@(p.Type == "coupon" ? p.Code.ToLower() : string.Empty)" data-status="@p.Status" data-cat="@(p.Type == "coupon" ? "GLOBAL" : p.Category)" data-type="@p.Type" data-discount-type="@p.DiscountType" data-min-spend="@p.MinSpend" data-free-shipping="@(p.IsFreeShipping ? "true" : "false")" data-expiry="@p.ExpiryDate" data-limit="@p.Limit" data-items='@Html.Raw(p.ItemJson)'>
                         <td><span class="promo-name">@p.Name</span></td>
-                        <td><span class="promo-code">@p.Code</span></td>
+                        <td><span class="promo-code">@(p.Type == "coupon" ? p.Code : string.Empty)</span></td>
                         <td><span class="promo-type">@(p.Type == "coupon" ? "Coupon" : "System")</span></td>
                         <td><span class="discount-val">@p.Discount</span></td>
                         <td>
-                            <span class="cat-badge">@icon @p.Category</span>
+                            @Html.Raw(displayCategory)
                         </td>
                         <td>
                             <div class="date-range">
                                 <span>📅</span>
-                                <span>@p.DateStart – @p.DateEnd</span>
+                                @if (p.Type == "coupon")
+                                {
+                                    if (string.IsNullOrWhiteSpace(p.ExpiryDate))
+                                    {
+                                        <span>Permanently</span>
+                                    }
+                                    else
+                                    {
+                                        if (System.DateTime.TryParseExact(p.ExpiryDate, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var expiryDate))
+                                        {
+                                            var daysLeft = (expiryDate.Date - System.DateTime.UtcNow.Date).Days;
+                                            <span>@p.ExpiryDate @if (daysLeft >= 0) { <text>(@daysLeft day@(daysLeft == 1 ? "" : "s") left)</text> }</span>
+                                        }
+                                        else
+                                        {
+                                            <span>@p.ExpiryDate</span>
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    <span>@p.DateStart – @(string.IsNullOrWhiteSpace(p.DateEnd) ? "" : p.DateEnd)</span>
+                                }
                             </div>
                         </td>
                         <td>
@@ -267,10 +290,17 @@
                         </td>
                         <td>
                             <div class="usage-wrap">
-                                <span class="usage-text">@p.Used / @p.Limit</span>
-                                <div class="usage-track">
-                                    <div class="usage-fill @(pct >= 90 ? "full" : "")" style="width:@pct%"></div>
-                                </div>
+                                @if (p.Limit == 0)
+                                {
+                                    <span class="usage-text">No limit</span>
+                                }
+                                else
+                                {
+                                    <span class="usage-text">@p.Used / @p.Limit</span>
+                                    <div class="usage-track">
+                                        <div class="usage-fill @(pct >= 90 ? "full" : "")" style="width:@pct%"></div>
+                                    </div>
+                                }
                             </div>
                         </td>
                         <td class="action-cell">
@@ -341,7 +371,8 @@ function filterTable() {
         const matchType = row.dataset.type === currentPromoTab;
         const matchQ   = !q      || row.dataset.name.includes(q) || row.dataset.code.includes(q);
         const matchSt  = !status || row.dataset.status === status;
-        const matchCat = !cat    || row.dataset.cat === cat;
+        const categories = (row.dataset.cat || '').split(',').map(value => value.trim().toLowerCase());
+        const matchCat = !cat || categories.includes(cat.toLowerCase());
         const show = matchType && matchQ && matchSt && matchCat;
         row.style.display = show ? '' : 'none';
         if (show) visible++;
@@ -360,21 +391,35 @@ function openModal(data = null) {
     document.getElementById('f-type').value      = promo.type      || 'coupon';
     document.getElementById('f-name').value      = promo.name      || '';
     document.getElementById('f-code').value      = promo.code      || '';
-    document.getElementById('f-discount').value  = promo.discount  || '';
+    document.getElementById('f-discount').value  = promo.discount ? promo.discount.toString().replace(/[^0-9.-]/g, '') : '';
     const discountTypeValue = promo.discountType === 'percent' ? 'percentage' : promo.discountType || 'percentage';
     document.getElementById('f-discount-type').value = discountTypeValue;
     document.getElementById('f-min-spend').value = promo.minSpend  || '';
-    document.getElementById('f-free-shipping').checked = promo.isFreeShipping === true || promo.isFreeShipping === 'true';
-    document.getElementById('f-category').value  = promo.category  || 'Keyboard';
+    document.getElementById('f-free-shipping').checked = promo.isFreeShipping === true || String(promo.isFreeShipping).toLowerCase() === 'true';
+    let categoryValue = promo.category || 'All Categories';
+    if (Array.isArray(promo.items) && promo.items.length) {
+        categoryValue = promo.items[0].category || categoryValue;
+    } else if (typeof categoryValue === 'string' && categoryValue.includes(',')) {
+        categoryValue = categoryValue.split(',')[0].trim();
+    }
+    document.getElementById('f-category').value  = categoryValue;
     document.getElementById('f-limit').value     = promo.limit     || '';
     document.getElementById('f-start').value     = promo.dateStart || '';
     document.getElementById('f-end').value       = promo.dateEnd   || '';
     document.getElementById('f-expiry').value    = promo.expiry    || promo.dateEnd || '';
-    document.getElementById('f-status').value    = promo.status    || 'active';
-    selectedPromoItems = Array.isArray(promo.items) ? promo.items : [];
+    document.getElementById('f-status').value    = promo.status    || 'open';
+    selectedPromoItems = Array.isArray(promo.items) ? promo.items.map(item => {
+        const mapped = { ...item };
+        if (item.productId) {
+            const product = productCatalog.find(p => p.id === item.productId);
+            if (product) mapped.product = product;
+        }
+        return mapped;
+    }) : [];
     refreshProductSelect();
     renderSelectedItems();
     togglePromotionFields();
+    showDeleteButton(Boolean(data));
     document.getElementById('modal').classList.add('open');
 }
 
@@ -388,19 +433,20 @@ function editRow(btn) {
     const cells = row.querySelectorAll('td');
     const dateText = cells[5].querySelector('.date-range span:last-child').textContent.split(' – ');
     const items = row.dataset.items ? JSON.parse(row.dataset.items) : [];
+    const freeShippingValue = String(row.dataset.freeShipping || '').toLowerCase() === 'true';
     openModal({
         type:      row.dataset.type || 'coupon',
         name:      cells[0].querySelector('.promo-name').textContent,
         code:      cells[1].querySelector('.promo-code').textContent,
-        discount:  cells[3].querySelector('.discount-val').textContent,
+        discount:  cells[3].querySelector('.discount-val').textContent.replace(/[^0-9.-]/g, ''),
         discountType: row.dataset.discountType || 'percent',
         minSpend:  row.dataset.minSpend || '',
-        isFreeShipping: row.dataset.freeShipping === 'true',
+        isFreeShipping: freeShippingValue,
         category:  row.dataset.cat,
         limit:     row.dataset.limit || '',
         dateStart: dateText[0]?.trim(),
         dateEnd:   dateText[1]?.trim(),
-        expiry:    row.dataset.expiry || dateText[1]?.trim(),
+        expiry:    row.dataset.expiry || (dateText[1]?.trim() === 'Permanently' ? '' : dateText[1]?.trim()),
         status:    row.dataset.status,
         items: items
     });
@@ -410,12 +456,44 @@ function togglePromotionFields() {
     const promoType = document.getElementById('f-type').value;
     const couponFields = document.getElementById('coupon-fields');
     const expiryField = document.getElementById('coupon-expiry-field');
+    const productSelection = document.getElementById('product-selection-field');
+    const discountTypeField = document.getElementById('discount-type-field');
+    const systemSettings = document.getElementById('system-settings-row');
+    const endDateField = document.getElementById('end-date-field');
+    const minSpendInput = document.getElementById('f-min-spend');
+    const freeShippingInput = document.getElementById('f-free-shipping');
+
     if (promoType === 'coupon') {
         couponFields.style.display = 'flex';
         expiryField.style.display = '';
+        if (endDateField) endDateField.style.display = 'none';
+        if (productSelection) productSelection.style.display = 'none';
+        if (discountTypeField) discountTypeField.style.display = '';
+        if (systemSettings) systemSettings.style.display = 'none';
+        if (minSpendInput) minSpendInput.value = '';
+        if (freeShippingInput) freeShippingInput.checked = false;
     } else {
         couponFields.style.display = 'none';
         expiryField.style.display = 'none';
+        if (endDateField) endDateField.style.display = '';
+        if (productSelection) productSelection.style.display = '';
+        if (discountTypeField) discountTypeField.style.display = 'none';
+        if (systemSettings) systemSettings.style.display = '';
+    }
+}
+
+function showDeleteButton(show) {
+    const btn = document.getElementById('btn-delete-promo');
+    if (btn) btn.style.display = show ? 'inline-flex' : 'none';
+}
+
+function formatDiscountDisplay(type, discountValue, discountType) {
+    const isPercent = discountType === 'percentage' || discountType === 'percent';
+    
+    if (type === 'coupon') {
+        return isPercent ? `${discountValue}%` : `฿${discountValue}`;
+    } else {
+        return isPercent ? `${discountValue}%` : `฿${discountValue}`;
     }
 }
 
@@ -533,11 +611,56 @@ function deleteRow(btn) {
     const name = row.querySelector('.promo-name').textContent;
     btn.closest('.dropdown').classList.remove('open');
     if (!confirm(`Delete promotion "${name}"?`)) return;
-    row.style.transition = 'opacity .3s, transform .3s';
-    row.style.opacity = '0';
-    row.style.transform = 'translateX(20px)';
-    setTimeout(() => { row.remove(); updateStats(); filterTable(); }, 300);
-    showToast(`🗑️ Deleted "${name}"`);
+    deletePromoRow(row);
+}
+
+function deletePromotion() {
+    if (!editingRow) return;
+    const name = editingRow.querySelector('.promo-name')?.textContent || 'this promotion';
+    if (!confirm(`Delete promotion "${name}"?`)) return;
+    deletePromoRow(editingRow);
+}
+
+function deletePromoRow(row) {
+    const name = row.querySelector('.promo-name')?.textContent || 'Promotion';
+    const id = parseInt(row.dataset.id || '', 10);
+    const type = row.dataset.type;
+
+    if (!id || !type) {
+        row.style.transition = 'opacity .3s, transform .3s';
+        row.style.opacity = '0';
+        row.style.transform = 'translateX(20px)';
+        setTimeout(() => { row.remove(); updateStats(); filterTable(); }, 300);
+        if (editingRow === row) closeModal();
+        showToast(`🗑️ Deleted "${name}"`);
+        return;
+    }
+
+    fetch('@Url.Action("DeletePromotion", "Admin")', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ promotionId: id, type: type })
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (!result.success) {
+            showToast(result.message || 'Failed to delete promotion');
+            return;
+        }
+
+        row.style.transition = 'opacity .3s, transform .3s';
+        row.style.opacity = '0';
+        row.style.transform = 'translateX(20px)';
+        setTimeout(() => { row.remove(); updateStats(); filterTable(); }, 300);
+        if (editingRow === row) closeModal();
+        showToast(`🗑️ Deleted "${name}"`);
+    })
+    .catch(error => {
+        console.error(error);
+        showToast('Failed to delete promotion');
+    });
 }
 
 // ── Save (add/edit) ──
@@ -546,50 +669,93 @@ function savePromo() {
     const name      = document.getElementById('f-name').value.trim();
     const code      = document.getElementById('f-code').value.trim().toUpperCase();
     const discount  = document.getElementById('f-discount').value.trim();
-    const discountType = document.getElementById('f-discount-type').value;
+    const discountType = type === 'coupon' ? document.getElementById('f-discount-type').value : 'fixed';
     const minSpend  = document.getElementById('f-min-spend').value.trim();
     const freeShipping = document.getElementById('f-free-shipping').checked;
-    const cat       = document.getElementById('f-category').value;
+    const cat       = type === 'system' ? document.getElementById('f-category').value : 'GLOBAL';
     const limit     = parseInt(document.getElementById('f-limit').value) || 0;
     const start     = document.getElementById('f-start').value.trim();
     const end       = document.getElementById('f-end').value.trim();
     const expiry    = document.getElementById('f-expiry').value.trim();
     const status    = document.getElementById('f-status').value;
-    const items     = selectedPromoItems;
+    const items     = type === 'system' ? selectedPromoItems : [];
+    const promoId   = editingRow ? parseInt(editingRow.dataset.id || '0', 10) : 0;
+    const oldType   = editingRow ? editingRow.dataset.type : type;
+
+    // Clear previous error states
+    document.querySelectorAll('.field.error').forEach(f => f.classList.remove('error'));
+    document.getElementById('validation-errors').style.display = 'none';
 
     const missing = [];
-    if (!name) missing.push('Promotion Name');
-    if (!discount) missing.push('Discount Amount');
-    if (!start) missing.push('Start Date');
-    if (!end) missing.push('End Date');
+    const errorFields = {};
+
+    if (!name) {
+        missing.push('Promotion Name');
+        errorFields['f-name'] = true;
+    }
+    if (!discount) {
+        missing.push('Discount Amount');
+        errorFields['f-discount'] = true;
+    }
+    if (!start) {
+        missing.push('Start Date');
+        errorFields['f-start'] = true;
+    }
+    
+    if (type === 'coupon') {
+        if (!code) {
+            missing.push('Promotion Code');
+            errorFields['f-code'] = true;
+        }
+    } else {
+        if (!end) {
+            missing.push('End Date');
+            errorFields['f-end'] = true;
+        }
+    }
+    
+    if (type === 'system' && items.length === 0) {
+        missing.push('At least one product or category');
+    }
+    
     if (missing.length > 0) {
-        alert('Please complete the required fields: ' + missing.join(', '));
-        return;
-    }
-    if (type === 'coupon' && !code) {
-        alert('Promotion code is required for coupon promotions');
-        return;
-    }
-    if (items.length === 0) {
-        alert('Please add at least one product or category');
+        // Show error message and highlight fields
+        const errDiv = document.getElementById('validation-errors');
+        errDiv.innerHTML = '<strong>❌ Please complete required fields:</strong><br>' + missing.map(m => '• ' + m).join('<br>');
+        errDiv.style.display = 'block';
+        
+        // Add error class to invalid fields
+        Object.keys(errorFields).forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                field.closest('.field')?.classList.add('error');
+            }
+        });
         return;
     }
 
     const discountValue = parseFloat(discount.replace(/[^0-9.-]/g, ''));
     const minSpendValue = parseFloat(minSpend.replace(/[^0-9.-]/g, '')) || 0;
     if (isNaN(discountValue)) {
-        alert('Please enter a valid discount amount');
+        const errDiv = document.getElementById('validation-errors');
+        errDiv.innerHTML = '<strong>❌ Error:</strong><br>• Please enter a valid discount amount';
+        errDiv.style.display = 'block';
+        document.getElementById('f-discount').closest('.field')?.classList.add('error');
         return;
     }
 
+    const displayDiscount = formatDiscountDisplay(type, discountValue, discountType);
+
     const payload = {
+        id: promoId,
         type,
+        oldType,
         name,
         code,
         discountValue,
         discountType,
         minSpend: minSpendValue,
-        freeShipping,
+        isFreeShipping: freeShipping,
         category: cat,
         limit,
         startDate: start,
@@ -618,10 +784,10 @@ function savePromo() {
             return;
         }
 
-        const catIcons = { 'Keyboard':'💾', 'Keycap':'🎨', 'Switch':'⚡', 'All Categories':'📦' };
+        const catIcons = { 'Keyboard':'💾', 'Keycap':'🎨', 'Switch':'⚡', 'All Categories':'📦', 'GLOBAL':'🌐' };
         const icon = catIcons[cat] ?? '📦';
-        const statusMap = { active:'✓ Active', scheduled:'📅 Scheduled', expired:'✕ Expired' };
-        const statusClass = { active:'status-active', scheduled:'status-scheduled', expired:'status-expired' };
+        const statusMap = { open:'✓ Open', closed:'✕ Closed' };
+        const statusClass = { open:'status-open', closed:'status-closed' };
         const displayType = type === 'coupon' ? 'Coupon' : 'System';
         const itemSummary = items.length ? `<div class="product-summary">${items.length} item(s)</div>` : '';
 
@@ -630,14 +796,14 @@ function savePromo() {
             cells[0].querySelector('.promo-name').textContent = name;
             cells[1].querySelector('.promo-code').textContent = code;
             cells[2].querySelector('.promo-type').textContent = displayType;
-            cells[3].querySelector('.discount-val').textContent = discount;
-            cells[4].innerHTML = `<span class="cat-badge">${icon} ${cat}</span>${itemSummary}`;
+            cells[3].querySelector('.discount-val').textContent = displayDiscount;
+            cells[4].innerHTML = type === 'coupon' ? `<span class="cat-badge">🌐 GLOBAL</span>` : `<span class="cat-badge">${icon} ${cat}</span>${itemSummary}`;
             cells[5].innerHTML = `<div class="date-range"><span>📅</span><span>${start} – ${end}</span></div>`;
             const sb = cells[6].querySelector('.status-badge');
             editingRow.dataset.type = type;
             editingRow.dataset.discountType = discountType;
             editingRow.dataset.minSpend = minSpend;
-            editingRow.dataset.freeShipping = freeShipping;
+            editingRow.dataset.freeShipping = String(freeShipping);
             editingRow.dataset.expiry = expiry;
             editingRow.dataset.limit = limit;
             editingRow.dataset.items = JSON.stringify(items);
@@ -651,6 +817,7 @@ function savePromo() {
         } else {
             const tbody = document.getElementById('promo-body');
             const tr = document.createElement('tr');
+            tr.dataset.id     = '';
             tr.dataset.name   = name.toLowerCase();
             tr.dataset.code   = code.toLowerCase();
             tr.dataset.status = status;
@@ -658,7 +825,7 @@ function savePromo() {
             tr.dataset.type   = type;
             tr.dataset.discountType = discountType;
             tr.dataset.minSpend = minSpend;
-            tr.dataset.freeShipping = freeShipping;
+            tr.dataset.freeShipping = String(freeShipping);
             tr.dataset.expiry = expiry;
             tr.dataset.limit = limit;
             tr.dataset.items = JSON.stringify(items);
@@ -666,8 +833,8 @@ function savePromo() {
                 <td><span class="promo-name">${name}</span></td>
                 <td><span class="promo-code">${code}</span></td>
                 <td><span class="promo-type">${displayType}</span></td>
-                <td><span class="discount-val">${discount}</span></td>
-                <td><span class="cat-badge">${icon} ${cat}</span>${itemSummary}</td>
+                <td><span class="discount-val">${displayDiscount}</span></td>
+                <td>${type === 'coupon' ? `<span class="cat-badge">🌐 GLOBAL</span>` : `<span class="cat-badge">${icon} ${cat}</span>${itemSummary}`}</td>
                 <td><div class="date-range"><span>📅</span><span>${start} – ${end}</span></div></td>
                 <td><span class="status-badge ${statusClass[status]}">${statusMap[status]}</span></td>
                 <td>
@@ -701,16 +868,16 @@ function savePromo() {
 // ── Update stat cards ──
 function updateStats() {
     const rows = document.querySelectorAll('#promo-body tr');
-    let total = 0, active = 0, used = 0, limit = 0;
+    let total = 0, openCount = 0, used = 0, limit = 0;
     rows.forEach(r => {
         total++;
-        if (r.dataset.status === 'active') active++;
+        if (r.dataset.status === 'open') openCount++;
         const ut = (r.querySelector('.usage-text') || { textContent: '0 / 0' }).textContent || '0 / 0';
         const [u, l] = ut.split('/').map(s => parseInt(s.trim()) || 0);
         used += u; limit += l;
     });
     document.getElementById('stat-total').textContent  = total;
-    document.getElementById('stat-active').textContent = active;
+    document.getElementById('stat-active').textContent = openCount;
     document.getElementById('stat-used').textContent   = used;
     document.getElementById('stat-avg').textContent    = (limit > 0 ? Math.round(used * 100 / limit) : 0) + '%';
 }
