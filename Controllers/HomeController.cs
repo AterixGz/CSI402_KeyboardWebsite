@@ -90,7 +90,7 @@ public class HomeController : Controller
         return View(products);
     }
 
-    public IActionResult Shop(string category = null)
+    public IActionResult Shop(string? category = null)
     {
         var products = new List<Product>();
 
@@ -389,6 +389,7 @@ public class HomeController : Controller
             string query = @"SELECT c.cart_id, c.product_id, c.quantity, c.is_selected,
                                    p.name, p.price, p.stock_quantity,
                                    COALESCE(pi.image_url, '~/image/default.png') AS image_url,
+                                   p.category_id AS category_id,
                                    COALESCE(cat.category_name, 'Uncategorized') AS category_name,
                                    COALESCE(b.brand_name, '') AS brand_name
                              FROM Cart c
@@ -416,6 +417,7 @@ public class HomeController : Controller
                             Price = reader.GetDecimal("price"),
                             StockQuantity = reader.GetInt32("stock_quantity"),
                             ImageUrl = reader.IsDBNull(reader.GetOrdinal("image_url")) ? "~/image/default.png" : reader.GetString("image_url"),
+                            CategoryId = reader.IsDBNull(reader.GetOrdinal("category_id")) ? (int?)null : reader.GetInt32("category_id"),
                             CategoryName = reader.GetString("category_name"),
                             BrandName = reader.GetString("brand_name")
                         });
@@ -462,6 +464,7 @@ public class HomeController : Controller
 
             ViewBag.UserAddresses = userAddresses;
             ViewBag.SelectedUserAddress = selectedAddress;
+            ViewBag.SystemPromotions = GetActiveSystemPromotions();
             ViewBag.CartMessage = TempData["CartMessage"];
             return View(cartItems);
         }
@@ -612,6 +615,7 @@ public class HomeController : Controller
         string query = @"SELECT c.cart_id, c.product_id, c.quantity, c.is_selected,
                                    p.name, p.price, p.stock_quantity,
                                    COALESCE(pi.image_url, '~/image/default.png') AS image_url,
+                                   p.category_id AS category_id,
                                    COALESCE(cat.category_name, 'Uncategorized') AS category_name,
                                    COALESCE(b.brand_name, '') AS brand_name
                              FROM Cart c
@@ -638,6 +642,7 @@ public class HomeController : Controller
                         Price = reader.GetDecimal("price"),
                         StockQuantity = reader.GetInt32("stock_quantity"),
                         ImageUrl = reader.IsDBNull(reader.GetOrdinal("image_url")) ? "~/image/default.png" : reader.GetString("image_url"),
+                        CategoryId = reader.IsDBNull(reader.GetOrdinal("category_id")) ? (int?)null : reader.GetInt32("category_id"),
                         CategoryName = reader.GetString("category_name"),
                         BrandName = reader.GetString("brand_name")
                     });
@@ -651,6 +656,173 @@ public class HomeController : Controller
     private List<CartItem> GetSelectedCartItems(int userId)
     {
         return GetCartItems(userId).Where(item => item.IsSelected).ToList();
+    }
+
+    private List<CartPromotion> GetActiveSystemPromotions()
+    {
+        var promotionsById = new Dictionary<int, CartPromotion>();
+        bool openedHere = false;
+
+        try
+        {
+            if (_connection.State == System.Data.ConnectionState.Closed)
+            {
+                _connection.Open();
+                openedHere = true;
+            }
+
+            const string promoSql = @"SELECT promo_id, promo_name, COALESCE(min_spend, 0) AS min_spend,
+                                           COALESCE(discount_amount, 0) AS discount_amount,
+                                           COALESCE(is_free_shipping, 0) AS is_free_shipping,
+                                           COALESCE(is_active, 0) AS is_active
+                                      FROM Promotions
+                                     WHERE is_active = 1
+                                       AND (start_date IS NULL OR start_date <= NOW())
+                                       AND (end_date IS NULL OR end_date >= NOW())";
+
+            using (var promoCmd = new MySqlCommand(promoSql, _connection))
+            using (var reader = promoCmd.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    var promotion = new CartPromotion
+                    {
+                        PromotionId = reader.GetInt32("promo_id"),
+                        Name = reader.IsDBNull(reader.GetOrdinal("promo_name")) ? string.Empty : reader.GetString("promo_name"),
+                        MinSpend = reader.IsDBNull(reader.GetOrdinal("min_spend")) ? 0m : reader.GetDecimal("min_spend"),
+                        DiscountAmount = reader.IsDBNull(reader.GetOrdinal("discount_amount")) ? 0m : reader.GetDecimal("discount_amount"),
+                        IsFreeShipping = reader.IsDBNull(reader.GetOrdinal("is_free_shipping")) ? false : reader.GetBoolean("is_free_shipping"),
+                        IsActive = reader.IsDBNull(reader.GetOrdinal("is_active")) ? false : reader.GetBoolean("is_active")
+                    };
+
+                    promotionsById[promotion.PromotionId] = promotion;
+                }
+            }
+
+            const string reqSql = @"SELECT pr.promo_id, pr.category_id, pr.product_id, pr.min_quantity,
+                                           COALESCE(c.category_name, pc.category_name, '') AS category_name
+                                      FROM Promotion_Requirements pr
+                                      LEFT JOIN Categories c ON pr.category_id = c.category_id
+                                      LEFT JOIN Products p ON pr.product_id = p.product_id
+                                      LEFT JOIN Categories pc ON p.category_id = pc.category_id";
+
+            using (var reqCmd = new MySqlCommand(reqSql, _connection))
+            using (var reqReader = reqCmd.ExecuteReader())
+            {
+                while (reqReader.Read())
+                {
+                    var promoId = reqReader.GetInt32("promo_id");
+                    if (!promotionsById.TryGetValue(promoId, out var promotion))
+                    {
+                        continue;
+                    }
+
+                    var requirement = new CartPromotionRequirement
+                    {
+                        ProductId = reqReader.IsDBNull(reqReader.GetOrdinal("product_id"))
+                            ? (int?)null
+                            : reqReader.GetInt32("product_id"),
+                        CategoryId = reqReader.IsDBNull(reqReader.GetOrdinal("category_id"))
+                            ? (int?)null
+                            : reqReader.GetInt32("category_id"),
+                        CategoryName = reqReader.IsDBNull(reqReader.GetOrdinal("category_name"))
+                            ? string.Empty
+                            : reqReader.GetString("category_name"),
+                        MinQuantity = reqReader.IsDBNull(reqReader.GetOrdinal("min_quantity"))
+                            ? 0
+                            : reqReader.GetInt32("min_quantity")
+                    };
+
+                    promotion.Requirements.Add(requirement);
+                }
+            }
+        }
+        finally
+        {
+            if (openedHere && _connection.State == System.Data.ConnectionState.Open)
+                _connection.Close();
+        }
+
+        return promotionsById.Values.ToList();
+    }
+
+    private bool IsPromotionEligible(CartPromotion promotion, List<CartItem> selectedItems, decimal subtotal)
+    {
+        if (promotion == null || !promotion.IsActive) return false;
+        if (subtotal < promotion.MinSpend) return false;
+        if (promotion.Requirements == null || promotion.Requirements.Count == 0) return true;
+
+        return promotion.Requirements.All(req =>
+        {
+            var requiredQty = req.MinQuantity;
+
+            if (req.ProductId.HasValue)
+            {
+                var item = selectedItems.FirstOrDefault(i => i.ProductId == req.ProductId.Value);
+                return item != null && item.Quantity >= requiredQty;
+            }
+
+            if (req.CategoryId.HasValue)
+            {
+                var totalQty = selectedItems
+                    .Where(i => i.CategoryId == req.CategoryId.Value)
+                    .Sum(i => i.Quantity);
+                return totalQty >= requiredQty;
+            }
+
+            var categoryName = (req.CategoryName ?? string.Empty).Trim();
+            if (!string.IsNullOrEmpty(categoryName) && !string.Equals(categoryName, "all categories", StringComparison.OrdinalIgnoreCase))
+            {
+                var normalizedCategory = categoryName.ToLowerInvariant();
+                var totalQty = selectedItems
+                    .Where(i => (i.CategoryName ?? string.Empty).Trim().ToLowerInvariant() == normalizedCategory)
+                    .Sum(i => i.Quantity);
+                return totalQty >= requiredQty;
+            }
+
+            var totalSelectedQty = selectedItems.Sum(i => i.Quantity);
+            return totalSelectedQty >= requiredQty;
+        });
+    }
+
+    private (CartPromotion? selectedDiscountPromotion, CartPromotion? selectedFreeShippingPromotion, decimal promotionDiscount, decimal shippingFee) GetSelectedCheckoutPromotions(List<CartItem> selectedItems, decimal subtotal, int? discountPromotionId, int? freeShippingPromotionId)
+    {
+        var activePromotions = GetActiveSystemPromotions();
+        var eligiblePromotions = activePromotions.Where(p => IsPromotionEligible(p, selectedItems, subtotal)).ToList();
+
+        CartPromotion? selectedDiscountPromotion = null;
+        CartPromotion? selectedFreeShippingPromotion = null;
+
+        if (discountPromotionId.HasValue)
+        {
+            selectedDiscountPromotion = eligiblePromotions.FirstOrDefault(p => p.PromotionId == discountPromotionId.Value && !p.IsFreeShipping && p.DiscountAmount > 0);
+        }
+
+        if (selectedDiscountPromotion == null)
+        {
+            selectedDiscountPromotion = eligiblePromotions
+                .Where(p => !p.IsFreeShipping && p.DiscountAmount > 0)
+                .OrderByDescending(p => p.DiscountAmount)
+                .FirstOrDefault();
+        }
+
+        if (freeShippingPromotionId.HasValue)
+        {
+            selectedFreeShippingPromotion = eligiblePromotions.FirstOrDefault(p => p.PromotionId == freeShippingPromotionId.Value && p.IsFreeShipping);
+        }
+
+        if (selectedFreeShippingPromotion == null)
+        {
+            selectedFreeShippingPromotion = eligiblePromotions.FirstOrDefault(p => p.IsFreeShipping);
+        }
+
+        var promotionDiscount = selectedDiscountPromotion != null
+            ? Math.Min(subtotal, selectedDiscountPromotion.DiscountAmount)
+            : 0m;
+
+        var shippingFee = selectedFreeShippingPromotion != null ? 0m : 150m;
+
+        return (selectedDiscountPromotion, selectedFreeShippingPromotion, promotionDiscount, shippingFee);
     }
 
     private bool TryGetCouponByCode(string code, int userId, out int couponId, out decimal discountValue, out string discountType, out string errorMessage)
@@ -792,7 +964,7 @@ public class HomeController : Controller
     }
 
     [HttpPost]
-    public IActionResult Checkout(int? addressId, string couponCode)
+    public IActionResult Checkout(int? addressId, string couponCode, int? discountPromotionId, int? freeShippingPromotionId)
     {
         var userId = HttpContext.Session.GetInt32("UserId");
         if (userId == null)
@@ -847,16 +1019,6 @@ public class HomeController : Controller
             }
 
             var subtotal = cartItems.Sum(item => item.Price * item.Quantity);
-            if (couponId.HasValue)
-            {
-                // Revalidate discount in case the coupon was just created or changed
-                if (!TryGetCouponByCode(couponCodeStored, userId.Value, out _, out decimal discountValue, out string discountType, out _))
-                {
-                    TempData["CartMessage"] = "คูปองไม่สามารถใช้งานได้ในขณะนี้";
-                    return RedirectToAction("Cart");
-                }
-                couponDiscount = CalculateCouponAmount(subtotal, discountType, discountValue);
-            }
 
             HttpContext.Session.SetInt32("CheckoutAddressId", addressId.Value);
             if (couponId.HasValue)
@@ -870,11 +1032,43 @@ public class HomeController : Controller
                 HttpContext.Session.Remove("CheckoutCouponCode");
             }
 
-            var totalAmount = Math.Max(0, subtotal - couponDiscount);
+            if (discountPromotionId.HasValue)
+            {
+                HttpContext.Session.SetInt32("CheckoutDiscountPromotionId", discountPromotionId.Value);
+            }
+            else
+            {
+                HttpContext.Session.Remove("CheckoutDiscountPromotionId");
+            }
+
+            if (freeShippingPromotionId.HasValue)
+            {
+                HttpContext.Session.SetInt32("CheckoutFreeShippingPromotionId", freeShippingPromotionId.Value);
+            }
+            else
+            {
+                HttpContext.Session.Remove("CheckoutFreeShippingPromotionId");
+            }
+
+            var promotionResult = GetSelectedCheckoutPromotions(cartItems, subtotal, discountPromotionId, freeShippingPromotionId);
+            var promotionDiscount = promotionResult.promotionDiscount;
+            var shippingFee = promotionResult.shippingFee;
+            var subtotalAfterPromotion = Math.Max(0, subtotal - promotionDiscount);
+            if (couponId.HasValue)
+            {
+                if (!TryGetCouponByCode(couponCodeStored, userId.Value, out _, out decimal discountValue, out string discountType, out _))
+                {
+                    TempData["CartMessage"] = "คูปองไม่สามารถใช้งานได้ในขณะนี้";
+                    return RedirectToAction("Cart");
+                }
+                couponDiscount = CalculateCouponAmount(subtotalAfterPromotion, discountType, discountValue);
+            }
+            var totalAmount = Math.Max(0, subtotalAfterPromotion - couponDiscount + shippingFee);
 
             if (totalAmount <= 0)
             {
-                var orderId = InsertOrder(userId.Value, addressId.Value, couponId, subtotal, couponDiscount, totalAmount, "paid");
+                var totalDiscount = couponDiscount + promotionDiscount;
+                var orderId = InsertOrder(userId.Value, addressId.Value, couponId, subtotal, totalDiscount, totalAmount, "paid");
                 InsertOrderDetails(orderId, cartItems);
                 if (couponId.HasValue)
                 {
@@ -885,6 +1079,8 @@ public class HomeController : Controller
                 HttpContext.Session.Remove("CheckoutAddressId");
                 HttpContext.Session.Remove("CheckoutCouponId");
                 HttpContext.Session.Remove("CheckoutCouponCode");
+                HttpContext.Session.Remove("CheckoutDiscountPromotionId");
+                HttpContext.Session.Remove("CheckoutFreeShippingPromotionId");
                 TempData["CartMessage"] = "ชำระเงินเรียบร้อยแล้ว";
                 return RedirectToAction("Cart");
             }
@@ -924,7 +1120,11 @@ public class HomeController : Controller
             ViewBag.StripePublishableKey = _configuration["Stripe:PublishableKey"] ?? string.Empty;
             ViewBag.SubTotal = subtotal;
             ViewBag.Discount = couponDiscount;
+            ViewBag.PromotionDiscount = promotionDiscount;
+            ViewBag.ShippingFee = shippingFee;
             ViewBag.TotalAmount = totalAmount;
+            ViewBag.SelectedPromotionName = promotionResult.selectedDiscountPromotion?.Name ?? string.Empty;
+            ViewBag.SelectedFreeShippingPromotionName = promotionResult.selectedFreeShippingPromotion?.Name ?? string.Empty;
             ViewBag.CartItems = cartItems;
             ViewBag.CouponCode = couponCodeStored;
             ViewBag.SelectedAddress = selectedAddress;
@@ -1544,6 +1744,12 @@ public class HomeController : Controller
 
             var subtotal = cartItems.Sum(item => item.Price * item.Quantity);
             decimal couponDiscount = 0m;
+            var discountPromotionId = HttpContext.Session.GetInt32("CheckoutDiscountPromotionId");
+            var freeShippingPromotionId = HttpContext.Session.GetInt32("CheckoutFreeShippingPromotionId");
+            var promotionResult = GetSelectedCheckoutPromotions(cartItems, subtotal, discountPromotionId, freeShippingPromotionId);
+            var promotionDiscount = promotionResult.promotionDiscount;
+            var shippingFee = promotionResult.shippingFee;
+            var subtotalAfterPromotion = Math.Max(0, subtotal - promotionDiscount);
             if (couponId.HasValue)
             {
                 if (!TryGetCouponByCode(couponCodeStored, userId.Value, out _, out decimal discountValue, out string discountType, out _))
@@ -1552,11 +1758,10 @@ public class HomeController : Controller
                 }
                 else
                 {
-                    couponDiscount = CalculateCouponAmount(subtotal, discountType, discountValue);
+                    couponDiscount = CalculateCouponAmount(subtotalAfterPromotion, discountType, discountValue);
                 }
             }
-
-            var totalAmount = Math.Max(0, subtotal - couponDiscount);
+            var totalAmount = Math.Max(0, subtotalAfterPromotion - couponDiscount + shippingFee);
 
             Stripe.StripeConfiguration.ApiKey = _configuration["Stripe:SecretKey"] ?? string.Empty;
 
@@ -1569,7 +1774,9 @@ public class HomeController : Controller
                 {
                     { "userId", userId.Value.ToString() },
                     { "addressId", addressId.Value.ToString() },
-                    { "couponId", couponId?.ToString() ?? "" }
+                    { "couponId", couponId?.ToString() ?? string.Empty },
+                    { "discountPromotionId", discountPromotionId?.ToString() ?? string.Empty },
+                    { "freeShippingPromotionId", freeShippingPromotionId?.ToString() ?? string.Empty }
                 }
             };
 
@@ -1582,7 +1789,9 @@ public class HomeController : Controller
                 clientSecret = paymentIntent.ClientSecret,
                 totalAmount = totalAmount,
                 subtotal = subtotal,
-                discount = couponDiscount
+                discount = couponDiscount,
+                promotionDiscount = promotionDiscount,
+                shippingFee = shippingFee
             });
         }
         catch (Exception ex)
@@ -1640,6 +1849,12 @@ public class HomeController : Controller
 
             var subtotal = cartItems.Sum(item => item.Price * item.Quantity);
             decimal couponDiscount = 0m;
+            var discountPromotionId = HttpContext.Session.GetInt32("CheckoutDiscountPromotionId");
+            var freeShippingPromotionId = HttpContext.Session.GetInt32("CheckoutFreeShippingPromotionId");
+            var promotionResult = GetSelectedCheckoutPromotions(cartItems, subtotal, discountPromotionId, freeShippingPromotionId);
+            var promotionDiscount = promotionResult.promotionDiscount;
+            var shippingFee = promotionResult.shippingFee;
+            var subtotalAfterPromotion = Math.Max(0, subtotal - promotionDiscount);
             if (couponId.HasValue)
             {
                 if (!TryGetCouponByCode(couponCodeStored, userId.Value, out _, out decimal discountValue, out string discountType, out _))
@@ -1648,12 +1863,12 @@ public class HomeController : Controller
                 }
                 else
                 {
-                    couponDiscount = CalculateCouponAmount(subtotal, discountType, discountValue);
+                    couponDiscount = CalculateCouponAmount(subtotalAfterPromotion, discountType, discountValue);
                 }
             }
-
-            var totalAmount = Math.Max(0, subtotal - couponDiscount);
-            var orderId = InsertOrder(userId.Value, addressId.Value, couponId, subtotal, couponDiscount, totalAmount, "paid");
+            var totalAmount = Math.Max(0, subtotalAfterPromotion - couponDiscount + shippingFee);
+            var totalDiscount = couponDiscount + promotionDiscount;
+            var orderId = InsertOrder(userId.Value, addressId.Value, couponId, subtotal, totalDiscount, totalAmount, "paid");
             InsertOrderDetails(orderId, cartItems);
 
             if (couponId.HasValue)
@@ -1666,6 +1881,8 @@ public class HomeController : Controller
             HttpContext.Session.Remove("CheckoutAddressId");
             HttpContext.Session.Remove("CheckoutCouponId");
             HttpContext.Session.Remove("CheckoutCouponCode");
+            HttpContext.Session.Remove("CheckoutDiscountPromotionId");
+            HttpContext.Session.Remove("CheckoutFreeShippingPromotionId");
 
             return Json(new { success = true, orderId = orderId, message = "ชำระเงินเรียบร้อยแล้ว" });
         }

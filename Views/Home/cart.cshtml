@@ -128,7 +128,11 @@
                         📦 Selected: <span id="selectedCount">0</span> / @Model.Count item(s)
                     </div>
                 </div>
+                <div id="promotionMatches" class="promo-match-list" style="margin-bottom: 14px; font-size: 13px; color: #111827;"></div>
                 <div class="sum-row"><span class="sum-lbl">Subtotal</span><span class="sum-val" id="selectedSubtotal">฿0.00</span></div>
+                <div id="promoDiscountRow" class="sum-row" style="display:none;"><span class="sum-lbl">Promotion Discount</span><span class="sum-val" id="promoDiscountValue">-฿0.00</span></div>
+                <div id="subtotalAfterPromoRow" class="sum-row" style="display:none;"><span class="sum-lbl">Subtotal after Promotion</span><span class="sum-val" id="subtotalAfterPromoValue">฿0.00</span></div>
+                <div id="appliedPromotionRow" class="sum-row" style="display:none;"><span class="sum-lbl">Applied Promotion</span><span class="sum-val" id="appliedPromotionName"></span></div>
                 <div class="promo-label">Have a coupon?</div>
                 <div class="promo-row">
                     <div class="promo-ico">🏷️</div>
@@ -137,8 +141,8 @@
                 </div>
                 <div id="couponMessage" class="promo-hint" style="display:none; margin-top: 10px;"></div>
                 <div id="appliedCouponsList" class="applied-coupons" style="display:none; margin-top: 12px;"></div>
-                <div class="sum-row"><span class="sum-lbl">Shipping</span><span class="sum-val free">Free</span></div>
-                <div id="discountRow" class="sum-row" style="display:none;"><span class="sum-lbl">Discount</span><span class="sum-val" id="discountValue">-฿0.00</span></div>
+                <div class="sum-row"><span class="sum-lbl">Shipping</span><span class="sum-val" id="shippingValue">฿150.00</span></div>
+                <div id="discountRow" class="sum-row" style="display:none;"><span class="sum-lbl">Coupon Discount</span><span class="sum-val" id="discountValue">-฿0.00</span></div>
                 <div class="total-row"><span class="total-lbl">Total</span><span class="total-val" id="selectedTotal">฿0.00</span></div>
                 <button class="checkout-btn" type="button" onclick="proceedToCheckout()">Proceed to Checkout</button>
             }
@@ -183,15 +187,24 @@
 
 <script>
     // Cart items data from Razor model
-    const cartItemsData = [
-        @{
-            if (Model != null && Model.Any())
-            {
-                var itemList = Model.Select(x => $"{{cartId: {x.CartId}, price: {x.Price}, quantity: {x.Quantity}, total: {x.Total}}}").ToList();
-                @Html.Raw(string.Join(",", itemList))
-            }
-        }
-    ];
+    const cartItemsData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize<object>(
+        Model != null
+            ? Model.Select(x => new {
+                cartId = x.CartId,
+                productId = x.ProductId,
+                categoryId = x.CategoryId,
+                categoryName = (x.CategoryName ?? string.Empty).Trim(),
+                quantity = x.Quantity,
+                total = x.Total
+            })
+            : new object[0],
+        new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }
+    ));
+
+    const systemPromotions = @Html.Raw(System.Text.Json.JsonSerializer.Serialize<object>(
+        ViewBag.SystemPromotions ?? new List<KeyboardWebsiteProject.Models.CartPromotion>(),
+        new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }
+    ));
 
     // Initialize checkboxes
     function initializeCheckboxes() {
@@ -220,27 +233,67 @@
                 }
             });
 
-            // Update display
+            const selectedItems = getSelectedItems();
+            const matchedPromotions = getMatchedPromotions(selectedItems, selectedSubtotal);
+            const freeShippingPromos = matchedPromotions.filter(promo => promo.isFreeShipping);
+            const discountPromos = matchedPromotions.filter(promo => (promo.discountAmount || 0) > 0 && !promo.isFreeShipping);
+            const { bestDiscountPromotion, bestFreeShippingPromotion } = getBestPromotions(matchedPromotions);
+            const selectedPromotion = getSelectedPromotion(discountPromos, bestDiscountPromotion);
+            const selectedFreeShippingPromotion = getSelectedFreeShippingPromotion(freeShippingPromos, bestFreeShippingPromotion);
+            const selectedPromotionDiscount = selectedPromotion && selectedPromotion.discountAmount ? selectedPromotion.discountAmount : 0;
+            const promotionDiscount = Math.max(0, Math.min(selectedSubtotal, selectedPromotionDiscount));
+            const hasFreeShipping = Boolean(selectedFreeShippingPromotion);
+            const shippingFee = selectedItems.length === 0 ? 0 : (hasFreeShipping ? 0 : 150);
+
             document.getElementById('selectedCount').textContent = selectedCount;
             document.getElementById('selectedSubtotal').textContent = '฿' + selectedSubtotal.toFixed(2);
 
-            const discountRow = document.getElementById('discountRow');
-            const discountValue = document.getElementById('discountValue');
-            let total = selectedSubtotal;
-
-            if (appliedCoupons.length > 0) {
-                const totalDiscount = Math.min(selectedSubtotal, appliedCoupons.reduce((sum, coupon) => sum + getCouponAmount(coupon, selectedSubtotal), 0));
-                discountValue.textContent = `-฿${totalDiscount.toFixed(2)}`;
-                total = Math.max(0, selectedSubtotal - totalDiscount);
-                discountRow.style.display = totalDiscount > 0 ? 'flex' : 'none';
+            const promoDiscountRow = document.getElementById('promoDiscountRow');
+            const promoDiscountValue = document.getElementById('promoDiscountValue');
+            if (promotionDiscount > 0) {
+                promoDiscountValue.textContent = `-฿${promotionDiscount.toFixed(2)}`;
+                promoDiscountRow.style.display = 'flex';
             } else {
-                discountRow.style.display = 'none';
+                promoDiscountRow.style.display = 'none';
             }
+
+            const shippingValueEl = document.getElementById('shippingValue');
+            shippingValueEl.textContent = shippingFee === 0 ? 'Free' : `฿${shippingFee.toFixed(2)}`;
+            shippingValueEl.classList.toggle('free', shippingFee === 0);
+
+            const subtotalAfterPromotion = selectedSubtotal - promotionDiscount;
+            const subtotalAfterPromoRow = document.getElementById('subtotalAfterPromoRow');
+            const subtotalAfterPromoValue = document.getElementById('subtotalAfterPromoValue');
+            if (promotionDiscount > 0) {
+                subtotalAfterPromoValue.textContent = `฿${subtotalAfterPromotion.toFixed(2)}`;
+                subtotalAfterPromoRow.style.display = 'flex';
+            } else {
+                subtotalAfterPromoRow.style.display = 'none';
+            }
+
+            const couponDiscount = renderCouponSummary(subtotalAfterPromotion);
+            const totalBeforeShipping = subtotalAfterPromotion - couponDiscount;
+            const total = Math.max(0, totalBeforeShipping + shippingFee);
 
             document.getElementById('selectedTotal').textContent = `฿${total.toFixed(2)}`;
-            if (appliedCoupons.length > 0) {
-                renderCouponSummary(selectedSubtotal);
+
+            const appliedPromotionRow = document.getElementById('appliedPromotionRow');
+            const appliedPromotionName = document.getElementById('appliedPromotionName');
+            const appliedPromoNames = [];
+            if (selectedPromotion) {
+                appliedPromoNames.push(selectedPromotion.name || 'Promotion applied');
             }
+            if (selectedFreeShippingPromotion) {
+                appliedPromoNames.push(selectedFreeShippingPromotion.name || 'Free shipping promotion');
+            }
+            if (appliedPromoNames.length > 0) {
+                appliedPromotionName.textContent = appliedPromoNames.join(' + ');
+                appliedPromotionRow.style.display = 'flex';
+            } else {
+                appliedPromotionRow.style.display = 'none';
+            }
+
+            updatePromotionMatches(selectedItems, selectedSubtotal);
         }
 
         async function updateCartSelection(cartId, isSelected) {
@@ -263,6 +316,18 @@
 
         let couponLookupCache = {};
         let appliedCoupons = [];
+        let selectedDiscountPromotionId = null;
+        let selectedFreeShippingPromotionId = null;
+
+        function selectDiscountPromotion(promoId) {
+            selectedDiscountPromotionId = promoId;
+            updateOrderSummary();
+        }
+
+        function selectFreeShippingPromotion(promoId) {
+            selectedFreeShippingPromotionId = promoId;
+            updateOrderSummary();
+        }
 
         function proceedToCheckout() {
             const selectedCheckboxes = document.querySelectorAll('.item-checkbox:checked');
@@ -307,6 +372,22 @@
                 couponInput.name = 'couponCode';
                 couponInput.value = appliedCoupons[0].code;
                 form.appendChild(couponInput);
+            }
+
+            if (selectedDiscountPromotionId != null) {
+                const discountPromoInput = document.createElement('input');
+                discountPromoInput.type = 'hidden';
+                discountPromoInput.name = 'discountPromotionId';
+                discountPromoInput.value = selectedDiscountPromotionId;
+                form.appendChild(discountPromoInput);
+            }
+
+            if (selectedFreeShippingPromotionId != null) {
+                const freeShippingPromoInput = document.createElement('input');
+                freeShippingPromoInput.type = 'hidden';
+                freeShippingPromoInput.name = 'freeShippingPromotionId';
+                freeShippingPromoInput.value = selectedFreeShippingPromotionId;
+                form.appendChild(freeShippingPromoInput);
             }
 
             document.body.appendChild(form);
@@ -370,7 +451,7 @@
             }
 
             appliedCoupons.push(coupon);
-            renderCouponSummary(subtotal);
+            updateOrderSummary();
             codeInput.value = '';
         }
 
@@ -408,8 +489,7 @@
 
         function removeCoupon(code) {
             appliedCoupons = appliedCoupons.filter(coupon => coupon.code !== code);
-            const subtotal = parseFloat(document.getElementById('selectedSubtotal').textContent.replace(/[^0-9.-]+/g, '')) || 0;
-            renderCouponSummary(subtotal);
+            updateOrderSummary();
         }
 
         function renderAppliedCouponsList() {
@@ -436,19 +516,20 @@
             const couponMessage = document.getElementById('couponMessage');
             const discountRow = document.getElementById('discountRow');
             const discountValue = document.getElementById('discountValue');
-            const selectedTotalEl = document.getElementById('selectedTotal');
 
             if (appliedCoupons.length === 0) {
                 discountRow.style.display = 'none';
-                selectedTotalEl.textContent = `฿${subtotal.toFixed(2)}`;
                 couponMessage.style.display = 'none';
+                const appliedCouponsList = document.getElementById('appliedCouponsList');
+                if (appliedCouponsList) {
+                    appliedCouponsList.style.display = 'none';
+                }
                 renderAppliedCouponsList();
-                return;
+                return 0;
             }
 
             const codes = appliedCoupons.map(c => c.code).join(', ');
             const totalDiscount = Math.min(subtotal, appliedCoupons.reduce((sum, coupon) => sum + getCouponAmount(coupon, subtotal), 0));
-            const newTotal = Math.max(0, subtotal - totalDiscount);
 
             if (totalDiscount > 0) {
                 discountValue.textContent = `-฿${totalDiscount.toFixed(2)}`;
@@ -457,11 +538,208 @@
                 discountRow.style.display = 'none';
             }
 
-            selectedTotalEl.textContent = `฿${newTotal.toFixed(2)}`;
             couponMessage.textContent = `ใช้คูปอง: ${codes} | ${appliedCoupons.map(c => c.text).join(', ')}`;
             couponMessage.style.color = '#16a34a';
             couponMessage.style.display = 'block';
             renderAppliedCouponsList();
+            return totalDiscount;
+        }
+
+        function getSelectedItems() {
+            return Array.from(document.querySelectorAll('.item-checkbox:checked'))
+                .map(checkbox => {
+                    const cartId = parseInt(checkbox.getAttribute('data-cart-id'));
+                    const item = cartItemsData.find(item => item.cartId === cartId);
+                    return item ? { ...item, categoryId: item.categoryId ?? null, categoryName: (item.categoryName || '').trim() } : null;
+                })
+                .filter(item => item);
+        }
+
+        function getMatchedPromotions(selectedItems, subtotal) {
+            return systemPromotions.filter(promo => isPromotionEligible(promo, selectedItems, subtotal));
+        }
+
+        function getBestPromotions(promotions) {
+            const bestDiscountPromotion = promotions
+                .filter(promo => promo && (promo.discountAmount || 0) > 0)
+                .reduce((best, promo) => {
+                    if (!best) return promo;
+                    return (promo.discountAmount || 0) > (best.discountAmount || 0) ? promo : best;
+                }, null);
+
+            const bestFreeShippingPromotion = promotions
+                .filter(promo => promo && promo.isFreeShipping)
+                .reduce((best, promo) => {
+                    if (!best) return promo;
+                    return (promo.discountAmount || 0) > (best.discountAmount || 0) ? promo : best;
+                }, null);
+
+            return { bestDiscountPromotion, bestFreeShippingPromotion };
+        }
+
+        function getSelectedPromotion(promotions, defaultDiscountPromo) {
+            if (!promotions || promotions.length === 0) return null;
+
+            const selected = promotions.find(promo => promo && promo.promotionId === selectedDiscountPromotionId);
+            if (selected) {
+                return selected;
+            }
+
+            if (defaultDiscountPromo) {
+                selectedDiscountPromotionId = defaultDiscountPromo.promotionId;
+                return defaultDiscountPromo;
+            }
+
+            const fallbackPromo = promotions[0];
+            selectedDiscountPromotionId = fallbackPromo ? fallbackPromo.promotionId : null;
+            return fallbackPromo;
+        }
+
+        function getSelectedFreeShippingPromotion(promotions, defaultFreeShippingPromo) {
+            if (!promotions || promotions.length === 0) return null;
+
+            const selected = promotions.find(promo => promo && promo.promotionId === selectedFreeShippingPromotionId);
+            if (selected) {
+                return selected;
+            }
+
+            if (defaultFreeShippingPromo) {
+                selectedFreeShippingPromotionId = defaultFreeShippingPromo.promotionId;
+                return defaultFreeShippingPromo;
+            }
+
+            const fallbackPromo = promotions[0];
+            selectedFreeShippingPromotionId = fallbackPromo ? fallbackPromo.promotionId : null;
+            return fallbackPromo;
+        }
+
+        function findBestPromotion(promotions) {
+            if (!promotions || promotions.length === 0) return null;
+            return promotions.reduce((best, promo) => {
+                const currentValue = (promo.discountAmount || 0) + (promo.isFreeShipping ? 150 : 0);
+                const bestValue = (best.discountAmount || 0) + (best.isFreeShipping ? 150 : 0);
+                return currentValue > bestValue ? promo : best;
+            }, promotions[0]);
+        }
+
+        function isPromotionEligible(promotion, selectedItems, subtotal) {
+            if (!promotion || !promotion.isActive) return false;
+            if (subtotal < (promotion.minSpend || 0)) return false;
+            if (!promotion.requirements || promotion.requirements.length === 0) return true;
+
+            return promotion.requirements.every(req => {
+                const productId = req.productId;
+                const categoryName = (req.categoryName || '').trim();
+                const requiredQty = req.minQuantity || 0;
+
+                if (productId != null) {
+                    const item = selectedItems.find(i => i.productId === productId);
+                    return item && item.quantity >= requiredQty;
+                }
+
+                if (req.categoryId != null) {
+                    const totalQty = selectedItems
+                        .filter(i => i.categoryId === req.categoryId)
+                        .reduce((sum, item) => sum + item.quantity, 0);
+                    return totalQty >= requiredQty;
+                }
+
+                if (categoryName && categoryName.toLowerCase() !== 'all categories') {
+                    const normalizedCategory = categoryName.toLowerCase();
+                    const totalQty = selectedItems
+                        .filter(i => (i.categoryName || '').trim().toLowerCase() === normalizedCategory)
+                        .reduce((sum, item) => sum + item.quantity, 0);
+                    return totalQty >= requiredQty;
+                }
+
+                const totalQty = selectedItems.reduce((sum, item) => sum + item.quantity, 0);
+                return totalQty >= requiredQty;
+            });
+        }
+
+        function updatePromotionMatches(selectedItems, subtotal) {
+            const promotionMatches = document.getElementById('promotionMatches');
+            if (!promotionMatches) return;
+
+            if (!selectedItems.length) {
+                promotionMatches.innerHTML = '<div class="promo-hint">เลือกสินค้าที่ต้องการเพื่อดูโปรโมชั่นที่ตรงกับสินค้า</div>';
+                return;
+            }
+
+            const matched = systemPromotions.filter(promo => isPromotionEligible(promo, selectedItems, subtotal));
+            if (!matched.length) {
+                promotionMatches.innerHTML = '<div class="promo-hint">ไม่มีโปรโมชั่นที่ตรงกับสินค้าที่เลือกในขณะนี้</div>';
+                return;
+            }
+
+            const freeShippingPromos = matched
+                .filter(promo => promo.isFreeShipping)
+                .sort((a, b) => ((b.discountAmount || 0) - (a.discountAmount || 0)));
+            const discountPromos = matched
+                .filter(promo => !promo.isFreeShipping && (promo.discountAmount || 0) > 0)
+                .sort((a, b) => ((b.discountAmount || 0) - (a.discountAmount || 0)));
+            const otherPromos = matched
+                .filter(promo => !promo.isFreeShipping && !(promo.discountAmount || 0));
+
+            const defaultDiscount = getBestPromotions(discountPromos).bestDiscountPromotion || (discountPromos.length ? discountPromos[0] : null);
+            if (!selectedDiscountPromotionId || !discountPromos.some(promo => promo.promotionId === selectedDiscountPromotionId)) {
+                selectedDiscountPromotionId = defaultDiscount ? defaultDiscount.promotionId : null;
+            }
+
+            const defaultFreeShipping = freeShippingPromos.length ? freeShippingPromos[0] : null;
+            if (!selectedFreeShippingPromotionId || !freeShippingPromos.some(promo => promo.promotionId === selectedFreeShippingPromotionId)) {
+                selectedFreeShippingPromotionId = defaultFreeShipping ? defaultFreeShipping.promotionId : null;
+            }
+
+            const renderPromoCard = (promo, isSelected, inputHandler) => {
+                const conditionParts = [];
+                if (promo.minSpend && promo.minSpend > 0) {
+                    conditionParts.push(`min spend ฿${promo.minSpend.toFixed(2)}`);
+                }
+                if (promo.requirements && promo.requirements.length) {
+                    const requirementParts = promo.requirements.map(req => {
+                        if (req.productId != null) {
+                            return `product ${req.productId} ≥ ${req.minQuantity}`;
+                        }
+                        if (req.categoryName && req.categoryName.toLowerCase() !== 'all categories') {
+                            return `${req.categoryName} ≥ ${req.minQuantity}`;
+                        }
+                        return `any product ≥ ${req.minQuantity}`;
+                    });
+                    conditionParts.push(...requirementParts);
+                }
+                const conditions = conditionParts.length
+                    ? conditionParts.join(' · ')
+                    : 'Applies to selected items';
+
+                return `
+                    <label class="promo-match-card${isSelected ? ' promo-selected' : ''}" style="display:block; background:#ecfdf5; border:1px solid ${isSelected ? '#16a34a' : '#a7f3d0'}; padding:12px; border-radius:10px; margin-bottom:8px; cursor:pointer;">
+                        <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+                            <div style="font-weight:600; color:#14532d;">${promo.name}</div>
+                            ${promo.discountAmount > 0 || promo.isFreeShipping ? `<input type="radio" name="${inputHandler === 'free' ? 'selectedFreeShippingPromotion' : 'selectedDiscountPromotion'}" value="${promo.promotionId}" ${isSelected ? 'checked' : ''} onchange="${inputHandler === 'free' ? 'selectFreeShippingPromotion' : 'selectDiscountPromotion'}(${promo.promotionId})" />` : ''}
+                        </div>
+                        <div style="font-size:13px; color:#334155; margin-top:6px;">${promo.discountAmount > 0 ? `฿${promo.discountAmount.toFixed(2)} off` : promo.isFreeShipping ? 'Free shipping' : 'Special promotion'}</div>
+                        <div style="font-size:12px; color:#475569; margin-top:6px;">${promo.isFreeShipping ? 'Free shipping' : 'Applies to selected items'}</div>
+                        <div style="font-size:12px; color:#475569; margin-top:4px;">${conditions}</div>
+                    </label>
+                `;
+            };
+
+            let html = '';
+            if (freeShippingPromos.length) {
+                html += '<div class="promo-section-label">Free shipping promotions</div>';
+                html += freeShippingPromos.map(promo => renderPromoCard(promo, promo.promotionId === selectedFreeShippingPromotionId, 'free')).join('');
+            }
+            if (discountPromos.length) {
+                html += '<div class="promo-section-label">Discount promotions</div>';
+                html += discountPromos.map(promo => renderPromoCard(promo, promo.promotionId === selectedDiscountPromotionId, 'discount')).join('');
+            }
+            if (otherPromos.length) {
+                html += '<div class="promo-section-label">Other promotions</div>';
+                html += otherPromos.map(promo => renderPromoCard(promo, promo.promotionId === selectedDiscountPromotionId, 'discount')).join('');
+            }
+
+            promotionMatches.innerHTML = html;
         }
 
         // Initialize on page load

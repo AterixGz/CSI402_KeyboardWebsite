@@ -52,13 +52,17 @@
                     <span>Subtotal:</span>
                     <span id="subtotalDisplay">฿0.00</span>
                 </div>
+                <div class="total-row" id="promotionRowSummary" style="display: none;">
+                    <span>Promotion Discount:</span>
+                    <span id="promotionDisplay">-฿0.00</span>
+                </div>
                 <div class="total-row" id="discountRowSummary" style="display: none;">
-                    <span>Discount:</span>
+                    <span>Coupon Discount:</span>
                     <span id="discountDisplay">-฿0.00</span>
                 </div>
                 <div class="total-row shipping">
                     <span>Shipping:</span>
-                    <span>Free</span>
+                    <span id="shippingDisplay">Free</span>
                 </div>
                 <div class="total-row final">
                     <span>Total:</span>
@@ -149,20 +153,47 @@
 
     function initializeCheckout() {
         const subtotal = parseFloat('@ViewBag.SubTotal');
+        const promotionDiscount = parseFloat('@ViewBag.PromotionDiscount');
         const discount = parseFloat('@ViewBag.Discount');
         const totalAmount = parseFloat('@ViewBag.TotalAmount');
+        const shippingFee = parseFloat('@ViewBag.ShippingFee');
         const couponCode = '@ViewBag.CouponCode';
+        const selectedPromotionName = '@ViewBag.SelectedPromotionName';
+        const selectedFreeShippingPromotionName = '@ViewBag.SelectedFreeShippingPromotionName';
 
         // Update totals display
         document.getElementById('subtotalDisplay').textContent = '฿' + subtotal.toFixed(2);
         document.getElementById('totalDisplay').textContent = '฿' + totalAmount.toFixed(2);
         document.getElementById('submitAmount').textContent = totalAmount.toFixed(2);
 
+        if (promotionDiscount > 0) {
+            document.getElementById('promotionRowSummary').style.display = 'flex';
+            document.getElementById('promotionDisplay').textContent = '-฿' + promotionDiscount.toFixed(2);
+        }
+
         if (discount > 0) {
             document.getElementById('discountRowSummary').style.display = 'flex';
             document.getElementById('discountDisplay').textContent = '-฿' + discount.toFixed(2);
         }
 
+        document.getElementById('shippingDisplay').textContent = shippingFee === 0 ? 'Free' : '฿' + shippingFee.toFixed(2);
+
+        if (selectedPromotionName) {
+            const details = document.createElement('div');
+            details.style.fontSize = '13px';
+            details.style.color = '#4b5563';
+            details.style.marginTop = '6px';
+            details.textContent = `Promotion: ${selectedPromotionName}`;
+            document.querySelector('.summary-totals').appendChild(details);
+        }
+        if (selectedFreeShippingPromotionName) {
+            const details = document.createElement('div');
+            details.style.fontSize = '13px';
+            details.style.color = '#4b5563';
+            details.style.marginTop = '4px';
+            details.textContent = `Free shipping: ${selectedFreeShippingPromotionName}`;
+            document.querySelector('.summary-totals').appendChild(details);
+        }
         // Load cart items
         loadCartItems();
     }

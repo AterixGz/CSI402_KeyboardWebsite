@@ -49,9 +49,29 @@ public class CartItem
     public int StockQuantity { get; set; }
     public bool IsSelected { get; set; }
     public string? ImageUrl { get; set; }
+    public int? CategoryId { get; set; }
     public string? CategoryName { get; set; }
     public string? BrandName { get; set; }
     public decimal Total => Price * Quantity;
+}
+
+public class CartPromotion
+{
+    public int PromotionId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public decimal DiscountAmount { get; set; }
+    public decimal MinSpend { get; set; }
+    public bool IsFreeShipping { get; set; }
+    public bool IsActive { get; set; }
+    public List<CartPromotionRequirement> Requirements { get; set; } = new();
+}
+
+public class CartPromotionRequirement
+{
+    public int? ProductId { get; set; }
+    public int? CategoryId { get; set; }
+    public string CategoryName { get; set; } = string.Empty;
+    public int MinQuantity { get; set; }
 }
 
 public class AddToCartRequest
