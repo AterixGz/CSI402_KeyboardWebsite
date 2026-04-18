@@ -8,6 +8,7 @@
         public string Email { get; set; }
         public string PasswordHash { get; set; }
         public string Phone { get; set; }
+        public string RoleName { get; set; } = string.Empty;
     }
 
     public class LoginViewModel
@@ -61,4 +62,10 @@
         public int WishCount { get; set; }
         public int Points { get; set; }
         public List<Order> RecentOrders { get; set; } = new List<Order>();
+    }
+
+    public class AdminSettingsViewModel
+    {
+        public User User { get; set; }
+        public UserProfile Profile { get; set; }
     }

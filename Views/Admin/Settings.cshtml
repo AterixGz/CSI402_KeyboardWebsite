@@ -1,6 +1,18 @@
+@model KeyboardWebsiteProject.Models.AdminSettingsViewModel
 @{
     ViewData["Title"] = "Settings";
     Layout = "_AdminLayout";
+
+    var avatarUrl = Model?.Profile?.AvatarUrl ?? string.Empty;
+    var firstName = Model?.Profile?.FirstName ?? string.Empty;
+    var lastName = Model?.Profile?.LastName ?? string.Empty;
+    var email = Model?.User?.Email ?? string.Empty;
+    var phone = Model?.User?.Phone ?? string.Empty;
+    var role = !string.IsNullOrWhiteSpace(Model?.User?.RoleName) ? Model.User.RoleName : "Store Administrator";
+    var initials = string.Empty;
+    if (!string.IsNullOrWhiteSpace(firstName)) initials += firstName.Trim()[0].ToString().ToUpper();
+    if (!string.IsNullOrWhiteSpace(lastName)) initials += lastName.Trim()[0].ToString().ToUpper();
+    if (string.IsNullOrWhiteSpace(initials)) initials = "JD";
 }
 <div class="page">
 
@@ -28,13 +40,6 @@
                 </svg>
                 Store
             </a>
-            <a class="nav-item" onclick="switchTab(this, 'security')">
-                <!-- Shield icon -->
-                <svg width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                </svg>
-                Security
-            </a>
         </nav>
 
         <!-- ── Main Panel ── -->
@@ -47,18 +52,18 @@
             <!-- Avatar -->
             <div class="avatar-row">
                 <div class="avatar" id="avatarEl" onclick="document.getElementById('photoInput').click()">
-                    <span id="avatarInitials">JD</span>
-                    <img id="avatarImg" src="" style="display:none;" alt="avatar" />
+                    <span id="avatarInitials" style="display:@(string.IsNullOrWhiteSpace(avatarUrl) ? "flex" : "none")">@initials</span>
+                    <img id="avatarImg" src="@avatarUrl" style="display:@(string.IsNullOrWhiteSpace(avatarUrl) ? "none" : "block")" alt="avatar" />
                 </div>
                 <div class="upload-col">
-                    <button class="upload-btn" onclick="document.getElementById('photoInput').click()">
+                    <button class="upload-btn" onclick="document.getElementById('photoInput').click()" disabled>
                         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                             <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
                             <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
                         </svg>
                         Upload Photo
                     </button>
-                    <input type="file" id="photoInput" accept="image/*" style="display:none;" onchange="previewPhoto(event)" />
+                    <input type="file" id="photoInput" accept="image/*" style="display:none;" onchange="previewPhoto(event)" disabled />
                     <div class="upload-hint">JPG, PNG or GIF. Max 2MB.</div>
                 </div>
             </div>
@@ -69,11 +74,11 @@
             <div class="form-row two-col">
                 <div class="form-group">
                     <label for="firstName">First Name</label>
-                    <input type="text" id="firstName" value="John" placeholder="First name" />
+                    <input type="text" id="firstName" value="@firstName" placeholder="First name" disabled />
                 </div>
                 <div class="form-group">
                     <label for="lastName">Last Name</label>
-                    <input type="text" id="lastName" value="Doe" placeholder="Last name" />
+                    <input type="text" id="lastName" value="@lastName" placeholder="Last name" disabled />
                 </div>
             </div>
 
@@ -81,7 +86,7 @@
             <div class="form-row one-col">
                 <div class="form-group">
                     <label for="email">Email Address</label>
-                    <input type="email" id="email" value="john.doe@keycraft.com" placeholder="Email address" />
+                    <input type="email" id="email" value="@email" placeholder="Email address" disabled />
                 </div>
             </div>
 
@@ -89,25 +94,14 @@
             <div class="form-row two-col">
                 <div class="form-group">
                     <label for="phone">Phone Number</label>
-                    <input type="tel" id="phone" value="+1 (555) 123-4567" placeholder="Phone number" />
+                    <input type="tel" id="phone" value="@phone" placeholder="Phone number" disabled />
                 </div>
                 <div class="form-group">
                     <label for="role">Role</label>
-                    <input type="text" id="role" value="" placeholder="Store Administrator" readonly />
+                    <input type="text" id="role" value="@role" placeholder="Store Administrator" readonly disabled />
                 </div>
             </div>
 
-            <!-- Save -->
-            <div class="panel-footer">
-                <button class="save-btn" onclick="saveChanges()">
-                    <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
-                        <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
-                        <polyline points="17 21 17 13 7 13 7 21"/>
-                        <polyline points="7 3 7 8 15 8"/>
-                    </svg>
-                    Save Changes
-                </button>
-            </div>
         </div>
 
         <!-- Placeholder panels for other tabs -->
@@ -118,54 +112,21 @@
             <div class="form-row one-col">
                 <div class="form-group">
                     <label>Store Name</label>
-                    <input type="text" value="KeyCraft Store" />
+                    <input type="text" value="KeyCraft Store" disabled />
                 </div>
             </div>
             <div class="form-row two-col">
                 <div class="form-group">
                     <label>Currency</label>
-                    <input type="text" value="USD" />
+                    <input type="text" value="USD" disabled />
                 </div>
                 <div class="form-group">
                     <label>Timezone</label>
-                    <input type="text" value="UTC-5 (EST)" />
+                    <input type="text" value="UTC-5 (EST)" disabled />
                 </div>
-            </div>
-            <div class="panel-footer">
-                <button class="save-btn" onclick="saveChanges()">
-                    <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                    Save Changes
-                </button>
             </div>
         </div>
 
-        <div class="settings-panel" id="panel-security" style="display:none;">
-            <div class="panel-title">Security</div>
-            <div class="panel-sub">Manage your password and two-factor authentication.</div>
-            <hr class="divider"/>
-            <div class="form-row one-col">
-                <div class="form-group">
-                    <label>Current Password</label>
-                    <input type="password" placeholder="••••••••" />
-                </div>
-            </div>
-            <div class="form-row two-col">
-                <div class="form-group">
-                    <label>New Password</label>
-                    <input type="password" placeholder="••••••••" />
-                </div>
-                <div class="form-group">
-                    <label>Confirm Password</label>
-                    <input type="password" placeholder="••••••••" />
-                </div>
-            </div>
-            <div class="panel-footer">
-                <button class="save-btn" onclick="saveChanges()">
-                    <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-                    Update Password
-                </button>
-            </div>
-        </div>
 
     </div>
 </div>

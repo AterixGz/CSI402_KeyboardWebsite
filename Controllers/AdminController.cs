@@ -745,7 +745,105 @@ public class AdminController : Controller
         var accessCheck = CheckAdminAccess();
         if (accessCheck != null) return accessCheck;
 
-        return View();
+        int? userId = HttpContext.Session.GetInt32("UserId");
+        if (userId == null)
+        {
+            return RedirectToAction("Login", "Account");
+        }
+
+        var model = new AdminSettingsViewModel();
+
+        try
+        {
+            if (_connection.State == ConnectionState.Closed)
+            {
+                _connection.Open();
+            }
+
+            const string sql = @"
+                SELECT
+                    u.user_id,
+                    u.username,
+                    u.email,
+                    u.phone,
+                    u.role_id,
+                    COALESCE(r.role_name, '') AS role_name,
+                    COALESCE(up.profile_id, 0) AS profile_id,
+                    COALESCE(up.first_name, '') AS first_name,
+                    COALESCE(up.last_name, '') AS last_name,
+                    COALESCE(up.display_name, '') AS display_name,
+                    COALESCE(up.birth_date, NULL) AS birth_date,
+                    COALESCE(up.avatar_url, '') AS avatar_url,
+                    COALESCE(up.bio, '') AS bio
+                FROM Users u
+                LEFT JOIN Roles r ON u.role_id = r.role_id
+                LEFT JOIN User_Profiles up ON up.user_id = u.user_id
+                WHERE u.user_id = @userId";
+
+            using (var cmd = new MySqlCommand(sql, _connection))
+            {
+                cmd.Parameters.AddWithValue("@userId", userId.Value);
+                using (var reader = cmd.ExecuteReader())
+                {
+                    if (reader.Read())
+                    {
+                        model.User = new User
+                        {
+                            UserId = reader.GetInt32("user_id"),
+                            RoleId = reader.GetInt32("role_id"),
+                            Username = reader["username"] as string ?? string.Empty,
+                            Email = reader["email"] as string ?? string.Empty,
+                            Phone = reader["phone"] as string ?? string.Empty,
+                            RoleName = reader["role_name"] as string ?? string.Empty
+                        };
+
+                        model.Profile = new UserProfile
+                        {
+                            ProfileId = reader.GetInt32("profile_id"),
+                            UserId = reader.GetInt32("user_id"),
+                            FirstName = reader["first_name"] as string ?? string.Empty,
+                            LastName = reader["last_name"] as string ?? string.Empty,
+                            DisplayName = reader["display_name"] as string ?? string.Empty,
+                            BirthDate = reader.IsDBNull(reader.GetOrdinal("birth_date")) ? (DateTime?)null : reader.GetDateTime("birth_date"),
+                            AvatarUrl = reader["avatar_url"] as string ?? string.Empty,
+                            Bio = reader["bio"] as string ?? string.Empty
+                        };
+                    }
+                    else
+                    {
+                        model.User = new User
+                        {
+                            UserId = userId.Value,
+                            RoleId = 0,
+                            Username = string.Empty,
+                            Email = string.Empty,
+                            Phone = string.Empty,
+                            RoleName = string.Empty
+                        };
+                        model.Profile = new UserProfile
+                        {
+                            ProfileId = 0,
+                            UserId = userId.Value,
+                            FirstName = string.Empty,
+                            LastName = string.Empty,
+                            DisplayName = string.Empty,
+                            BirthDate = null,
+                            AvatarUrl = string.Empty,
+                            Bio = string.Empty
+                        };
+                    }
+                }
+            }
+        }
+        finally
+        {
+            if (_connection.State == ConnectionState.Open)
+            {
+                _connection.Close();
+            }
+        }
+
+        return View(model);
     }
 
     public IActionResult Customers()

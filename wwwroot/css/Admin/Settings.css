@@ -234,10 +234,12 @@
     box-shadow: 0 0 0 3px rgba(63, 235, 37, 0.12);
 }
 
-.form-group input[readonly] {
-    background: #f9fafb;
-    color: var(--text-muted);
-    cursor: default;
+.form-group input[readonly],
+.form-group input:disabled {
+    background: #f3f4f6;
+    color: #6b7280;
+    border-color: #d1d5db;
+    cursor: not-allowed;
 }
 
 .form-group input::placeholder {
