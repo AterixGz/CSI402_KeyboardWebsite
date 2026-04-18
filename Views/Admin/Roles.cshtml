@@ -1,3 +1,7 @@
+@using System.Linq
+@using System.Text.Json
+@model KeyboardWebsiteProject.Models.AdminRolesViewModel
+
 @{
     ViewData["Title"] = "Roles & Admin Management";
     Layout = "_AdminLayout";
@@ -28,7 +32,7 @@
                 </svg>
             </div>
             <div>
-                <div class="stat-value" id="statTotalRoles">5</div>
+                <div class="stat-value" id="statTotalRoles">@Model.Roles.Count</div>
                 <div class="stat-label">Total Roles</div>
             </div>
         </div>
@@ -41,7 +45,7 @@
                 </svg>
             </div>
             <div>
-                <div class="stat-value">7</div>
+                <div class="stat-value">@Model.AdminUsers.Count</div>
                 <div class="stat-label">Total Admins</div>
             </div>
         </div>
@@ -53,7 +57,7 @@
                 </svg>
             </div>
             <div>
-                <div class="stat-value">6</div>
+                <div class="stat-value">@Model.AdminUsers.Count</div>
                 <div class="stat-label">Active Admins</div>
             </div>
         </div>
@@ -65,8 +69,8 @@
                 </svg>
             </div>
             <div>
-                <div class="stat-value">1</div>
-                <div class="stat-label">Super Admins</div>
+                <div class="stat-value">@Model.AdminUsers.Count(u => u.RoleName == "Admin")</div>
+                <div class="stat-label">Admin Accounts</div>
             </div>
         </div>
     </div>
@@ -100,7 +104,7 @@
                     </svg>
                     <input type="text" placeholder="Search admins..." id="adminSearch" oninput="filterAdmins()" />
                 </div>
-                <button class="invite-btn">
+                <button class="invite-btn" type="button" onclick="openInviteModal()">
                     <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
                         <path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
                         <circle cx="8.5" cy="7" r="4"/>
@@ -114,221 +118,28 @@
                     <tr>
                         <th>Admin</th>
                         <th>Role</th>
-                        <th>Status</th>
                         <th>Last Active</th>
                         <th>Joined</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
+                <tbody id="adminsTable"></tbody>
             </table>
         </div>
     </div>
 
     <!-- ── PERMISSIONS PANEL ── -->
     <div class="tab-panel" id="panel-permissions">
-        <!-- ── Top bar ── -->
-        <div class="topbar">
-            <div>
-                <h1>Permissions</h1>
-                <p>Manage role-based access control and page visibility</p>
-            </div>
-            <button class="save-btn" onclick="savePermissions()">
-                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                    <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/>
-                    <polyline points="17 21 17 13 7 13 7 21"/>
-                    <polyline points="7 3 7 8 15 8"/>
-                </svg>
-                Save Changes
-            </button>
-        </div>
-
         <!-- ── Permissions Table ── -->
         <div class="permissions-card">
-            <div class="card-header">Role Access Matrix</div>
             <div class="permissions-table-wrapper">
                 <table class="permissions-table">
-                    <thead>
-                        <tr>
-                            <th>Page / Feature</th>
-                            <th class="role-header">
-                                <div class="role-name">Admin</div>
-                                <div class="role-id">role_id: 1</div>
-                            </th>
-                            <th class="role-header">
-                                <div class="role-name">Manager</div>
-                                <div class="role-id">role_id: 2</div>
-                            </th>
-                            <th class="role-header">
-                                <div class="role-name">Staff</div>
-                                <div class="role-id">role_id: 3</div>
-                            </th>
-                            <th class="role-header">
-                                <div class="role-name">Customer</div>
-                                <div class="role-id">role_id: 4</div>
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Dashboard -->
-                        <tr>
-                            <td class="feature-name">
-                                <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path d="M3 4a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm8 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V4zM3 12a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H4a1 1 0 01-1-1v-4zm8 0a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/></svg>
-                                Dashboard
-                            </td>
-                            <td><input type="checkbox" class="permission-check" checked /></td>
-                            <td><input type="checkbox" class="permission-check" checked /></td>
-                            <td><input type="checkbox" class="permission-check" /></td>
-                            <td><input type="checkbox" class="permission-check" /></td>
-                        </tr>
-
-                        <!-- Customers -->
-                        <tr>
-                            <td class="feature-name">
-                                <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"/></svg>
-                                Customers
-                            </td>
-                            <td><input type="checkbox" class="permission-check" checked /></td>
-                            <td><input type="checkbox" class="permission-check" checked /></td>
-                            <td><input type="checkbox" class="permission-check" /></td>
-                            <td><input type="checkbox" class="permission-check" /></td>
-                        </tr>
-
-                        <!-- Orders -->
-                        <tr>
-                            <td class="feature-name">
-                                <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4zM18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z"/></svg>
-                                Orders
-                            </td>
-                            <td><input type="checkbox" class="permission-check" checked /></td>
-                            <td><input type="checkbox" class="permission-check" checked /></td>
-                            <td><input type="checkbox" class="permission-check" checked /></td>
-                            <td><input type="checkbox" class="permission-check" /></td>
-                        </tr>
-
-                        <!-- Products -->
-                        <tr>
-                            <td class="feature-name">
-                                <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4z" clip-rule="evenodd"/></svg>
-                                Products
-                            </td>
-                            <td><input type="checkbox" class="permission-check" checked /></td>
-                            <td><input type="checkbox" class="permission-check" checked /></td>
-                            <td><input type="checkbox" class="permission-check" /></td>
-                            <td><input type="checkbox" class="permission-check" /></td>
-                        </tr>
-
-                        <!-- Categories -->
-                        <tr>
-                            <td class="feature-name">
-                                <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path d="M4 3a1 1 0 00-1 1v3h14V4a1 1 0 00-1-1H4zm0 6v7a1 1 0 001 1h10a1 1 0 001-1V9H4zm2 2h2v3H6v-3zm4 0h2v3h-2v-3z"/></svg>
-                                Categories
-                            </td>
-                            <td><input type="checkbox" class="permission-check" checked /></td>
-                            <td><input type="checkbox" class="permission-check" checked /></td>
-                            <td><input type="checkbox" class="permission-check" /></td>
-                            <td><input type="checkbox" class="permission-check" /></td>
-                        </tr>
-
-                        <!-- Promotions -->
-                        <tr>
-                            <td class="feature-name">
-                                <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4z" clip-rule="evenodd"/></svg>
-                                Promotions
-                            </td>
-                            <td><input type="checkbox" class="permission-check" checked /></td>
-                            <td><input type="checkbox" class="permission-check" checked /></td>
-                            <td><input type="checkbox" class="permission-check" /></td>
-                            <td><input type="checkbox" class="permission-check" /></td>
-                        </tr>
-
-                        <!-- Roles -->
-                        <tr>
-                            <td class="feature-name">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="6.5"/><path d="M21 2l-9.6 9.6"/><path d="M15.5 7.5l3 3"/></svg>
-                                Roles
-                            </td>
-                            <td><input type="checkbox" class="permission-check" checked /></td>
-                            <td><input type="checkbox" class="permission-check" /></td>
-                            <td><input type="checkbox" class="permission-check" /></td>
-                            <td><input type="checkbox" class="permission-check" /></td>
-                        </tr>
-
-                        <!-- Permissions -->
-                        <tr>
-                            <td class="feature-name">
-                                <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"/></svg>
-                                Permissions
-                            </td>
-                            <td><input type="checkbox" class="permission-check" checked /></td>
-                            <td><input type="checkbox" class="permission-check" /></td>
-                            <td><input type="checkbox" class="permission-check" /></td>
-                            <td><input type="checkbox" class="permission-check" /></td>
-                        </tr>
-
-                        <!-- Settings -->
-                        <tr>
-                            <td class="feature-name">
-                                <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd"/></svg>
-                                Settings
-                            </td>
-                            <td><input type="checkbox" class="permission-check" checked /></td>
-                            <td><input type="checkbox" class="permission-check" /></td>
-                            <td><input type="checkbox" class="permission-check" /></td>
-                            <td><input type="checkbox" class="permission-check" /></td>
-                        </tr>
-                    </tbody>
+                    <thead id="permissionsTableHead"></thead>
+                    <tbody id="permissionsTableBody"></tbody>
                 </table>
             </div>
-        </div>
-
-        <!-- ── Role Details ── -->
-        <div class="roles-grid">
-            <div class="role-detail-card">
-                <div class="role-badge admin">Admin</div>
-                <div class="card-header">Admin (role_id: 1)</div>
-                <p class="card-desc">Full system access. Can manage all features and user permissions.</p>
-                <ul class="permissions-list">
-                    <li>✓ View all pages</li>
-                    <li>✓ Create, edit, delete content</li>
-                    <li>✓ Manage users & roles</li>
-                    <li>✓ Configure system settings</li>
-                </ul>
-            </div>
-
-            <div class="role-detail-card">
-                <div class="role-badge manager">Manager</div>
-                <div class="card-header">Manager (role_id: 2)</div>
-                <p class="card-desc">Can manage content and orders but cannot access roles/permissions.</p>
-                <ul class="permissions-list">
-                    <li>✓ View dashboard & orders</li>
-                    <li>✓ Manage customers</li>
-                    <li>✓ Create & edit products</li>
-                    <li>✗ Cannot manage roles</li>
-                </ul>
-            </div>
-
-            <div class="role-detail-card">
-                <div class="role-badge staff">Staff</div>
-                <div class="card-header">Staff (role_id: 3)</div>
-                <p class="card-desc">Limited access. Can view orders and update order status.</p>
-                <ul class="permissions-list">
-                    <li>✓ View orders</li>
-                    <li>✓ View customers</li>
-                    <li>✓ Update order status</li>
-                    <li>✗ Cannot edit products</li>
-                </ul>
-            </div>
-
-            <div class="role-detail-card">
-                <div class="role-badge customer">Customer</div>
-                <div class="card-header">Customer (role_id: 4)</div>
-                <p class="card-desc">Regular users. Can only manage their own account and view own orders.</p>
-                <ul class="permissions-list">
-                    <li>✓ View own profile</li>
-                    <li>✓ View own orders</li>
-                    <li>✓ Browse products</li>
-                    <li>✗ No admin access</li>
-                </ul>
+            <div class="permissions-actions">
+                <button class="submit-btn" onclick="savePermissions()">Confirm & Save Permissions</button>
             </div>
         </div>
     </div>
@@ -345,6 +156,62 @@
     </div>
 </div>
 
+<!-- ── Invite Admin Modal ── -->
+<div class="modal-overlay" id="inviteModal" onclick="closeInviteOutside(event)">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title">Invite Admin</div>
+            <button class="modal-close" onclick="closeInviteModal()">✕</button>
+        </div>
+        <div class="mrow one">
+            <div class="fg"><label>Email address</label><input type="email" id="inviteEmail" placeholder="admin@example.com" /></div>
+        </div>
+        <div class="mrow one">
+            <div class="fg"><label>Select role</label><select id="inviteRole">
+                <option value="">Choose role</option>
+                @foreach (var role in Model.Roles.Where(r => r.RoleId != 4))
+                {
+                    <option value="@role.RoleId">@role.Name</option>
+                }
+            </select></div>
+        </div>
+        <div class="mrow one">
+            <div class="fg"><label>Message (optional)</label><textarea id="inviteMessage" placeholder="Add a note or instructions..."></textarea></div>
+        </div>
+        <div class="modal-footer" style="justify-content:flex-end;">
+            <button class="cancel-btn" onclick="closeInviteModal()">Cancel</button>
+            <button class="submit-btn" type="button" onclick="sendInvite()">Send Invite</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── Edit Admin Modal ── -->
+<div class="modal-overlay" id="editAdminModal" onclick="closeEditAdminOutside(event)">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title">Edit Admin</div>
+            <button class="modal-close" onclick="closeEditAdminModal()">✕</button>
+        </div>
+        <input type="hidden" id="editUserId" />
+        <div class="mrow one">
+            <div class="fg"><label>Email</label><input type="email" id="editUserEmail" disabled /></div>
+        </div>
+        <div class="mrow one">
+            <div class="fg"><label>Role</label><select id="editUserRole">
+                <option value="">Choose role</option>
+                @foreach (var role in Model.Roles.Where(r => r.RoleId != 4))
+                {
+                    <option value="@role.RoleId">@role.Name</option>
+                }
+            </select></div>
+        </div>
+        <div class="modal-footer" style="justify-content:flex-end;">
+            <button class="cancel-btn" onclick="closeEditAdminModal()">Cancel</button>
+            <button class="submit-btn" type="button" onclick="saveAdminEdit()">Save Changes</button>
+        </div>
+    </div>
+</div>
+
 <!-- ── Create Role Modal ── -->
 <div class="modal-overlay" id="createModal" onclick="closeCreateOutside(event)">
     <div class="modal">
@@ -356,27 +223,35 @@
             <div class="fg"><label>Role Name</label><input type="text" id="crName" placeholder="e.g. Marketing Manager" /></div>
         </div>
         <div class="mrow one">
-            <div class="fg"><label>Description</label><textarea id="crDesc" placeholder="Brief description of this role..."></textarea></div>
-        </div>
-        <div class="mrow two">
-            <div class="fg">
-                <label>Icon Color</label>
-                <select id="crColor">
+            <div class="fg"><label>Background Color</label><select id="crColor">
                     <option value="ri-blue">Blue</option>
                     <option value="ri-green">Green</option>
                     <option value="ri-red">Red</option>
                     <option value="ri-orange">Orange</option>
                     <option value="ri-gray">Gray</option>
-                </select>
-            </div>
-            <div class="fg">
-                <label>Initial Users</label>
-                <input type="number" id="crUsers" value="0" min="0" />
-            </div>
+                </select></div>
         </div>
         <div class="modal-footer">
             <button class="cancel-btn" onclick="closeCreateModal()">Cancel</button>
             <button class="submit-btn" onclick="createRole()">Create Role</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── Edit Role Mockup Modal ── -->
+<div class="modal-overlay" id="editRoleModal" onclick="closeEditRoleOutside(event)">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title">Edit Role</div>
+            <button class="modal-close" onclick="closeEditRoleModal()">✕</button>
+        </div>
+        <input type="hidden" id="editRoleId" />
+        <div class="mrow one">
+            <div class="fg"><label>Role Name</label><input type="text" id="editRoleName" placeholder="Enter role name" /></div>
+        </div>
+        <div class="modal-footer" style="justify-content:flex-end;">
+            <button class="cancel-btn" onclick="closeEditRoleModal()">Cancel</button>
+            <button class="submit-btn" type="button" onclick="saveRoleEdit()">Save</button>
         </div>
     </div>
 </div>
@@ -386,80 +261,31 @@
 
 <script>
     /* ── DATA ── */
-    const roles = [
-        {
-            name: 'Super Admin', desc: 'Full access to all features and settings',
-            icon: 'ri-red', iconStroke: '#dc2626', users: 2,
-            perms: {
-                'Products': ['View Products','Add Products','Edit Products','Delete Products'],
-                'Orders':   ['View Orders','Manage Orders','Refund Orders'],
-                'Users':    ['View Users','Manage Users','Delete Users'],
-                'Settings': ['Access Settings','Manage Roles'],
-            }
-        },
-        {
-            name: 'Store Manager', desc: 'Manage products, orders, and customers',
-            icon: 'ri-blue', iconStroke: '#2563eb', users: 5,
-            perms: {
-                'Products': ['View Products','Add Products','Edit Products'],
-                'Orders':   ['View Orders','Manage Orders'],
-                'Users':    ['View Users'],
-                'Settings': [],
-            }
-        },
-        {
-            name: 'Sales Staff', desc: 'Handle orders and customer inquiries',
-            icon: 'ri-green', iconStroke: '#16a34a', users: 12,
-            perms: {
-                'Products': ['View Products'],
-                'Orders':   ['View Orders','Manage Orders'],
-                'Users':    ['View Users'],
-                'Settings': [],
-            }
-        },
-        {
-            name: 'Inventory Manager', desc: 'Manage product inventory and stock',
-            icon: 'ri-orange', iconStroke: '#ea580c', users: 3,
-            perms: {
-                'Products': ['View Products','Add Products','Edit Products'],
-                'Orders':   ['View Orders'],
-                'Users':    [],
-                'Settings': [],
-            }
-        },
-        {
-            name: 'Viewer', desc: 'Read-only access to dashboard',
-            icon: 'ri-gray', iconStroke: '#6b7280', users: 8,
-            perms: {
-                'Products': ['View Products'],
-                'Orders':   ['View Orders'],
-                'Users':    [],
-                'Settings': [],
-            }
-        },
-    ];
-
-    const ALL_PERMS = {
-        'Products': ['View Products','Add Products','Edit Products','Delete Products'],
-        'Orders':   ['View Orders','Manage Orders','Refund Orders'],
-        'Users':    ['View Users','Manage Users','Delete Users'],
-        'Settings': ['Access Settings','Manage Roles'],
-    };
-
-    const admins = [
-        { f:'James',  l:'Wilson',  e:'james.wilson@keycraft.com', role:'Super Admin',       rtag:'rt-red',    status:'Active',   last:'Mar 23, 2026', joined:'Jan 15, 2024', av:'av-blue'   },
-        { f:'Sarah',  l:'Chen',    e:'sarah.chen@keycraft.com',   role:'Store Manager',     rtag:'rt-blue',   status:'Active',   last:'Mar 23, 2026', joined:'Feb 22, 2024', av:'av-green'  },
-        { f:'Michael',l:'Brown',   e:'m.brown@keycraft.com',      role:'Sales Staff',       rtag:'rt-green',  status:'Active',   last:'Mar 22, 2026', joined:'Mar 10, 2024', av:'av-purple' },
-        { f:'Emily',  l:'Davis',   e:'emily.davis@keycraft.com',  role:'Store Manager',     rtag:'rt-blue',   status:'Active',   last:'Mar 21, 2026', joined:'Nov 5, 2023',  av:'av-orange' },
-        { f:'Daniel', l:'Martinez',e:'d.martinez@keycraft.com',   role:'Inventory Manager', rtag:'rt-orange', status:'Active',   last:'Mar 20, 2026', joined:'Apr 18, 2024', av:'av-teal'   },
-        { f:'Olivia', l:'Taylor',  e:'olivia.t@keycraft.com',     role:'Viewer',            rtag:'rt-gray',   status:'Inactive', last:'Feb 10, 2026', joined:'May 30, 2024', av:'av-pink'   },
-        { f:'William',l:'Johnson', e:'will.j@keycraft.com',       role:'Sales Staff',       rtag:'rt-green',  status:'Active',   last:'Mar 19, 2026', joined:'Jan 3, 2024',  av:'av-blue'   },
-    ];
+    const currentUserId = @(ViewContext.HttpContext.Session.GetInt32("UserId") ?? 0);
+    const roles = @Html.Raw(JsonSerializer.Serialize(Model.Roles, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+    const admins = @Html.Raw(JsonSerializer.Serialize(Model.AdminUsers, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+    const permissions = @Html.Raw(JsonSerializer.Serialize(Model.Permissions, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
 
     let filteredRoles = [...roles];
     let filteredAdmins = [...admins];
 
     /* ── Render Roles ── */
+    function getRoleIconClass(name) {
+        return name.toLowerCase() === 'admin' ? 'ri-red'
+            : name.toLowerCase() === 'marketing' ? 'ri-blue'
+            : name.toLowerCase() === 'stockmanager' ? 'ri-green'
+            : name.toLowerCase() === 'customer' ? 'ri-orange'
+            : 'ri-gray';
+    }
+
+    function getRoleDescription(name) {
+        return name.toLowerCase() === 'admin' ? 'Full access to all system pages and settings'
+            : name.toLowerCase() === 'marketing' ? 'Manage promotions and marketing workflows'
+            : name.toLowerCase() === 'stockmanager' ? 'Monitor inventory and stock status'
+            : name.toLowerCase() === 'customer' ? 'Customer account with order access only'
+            : 'Role permissions and visibility';
+    }
+
     function shieldIcon(stroke) {
         return `<svg width="20" height="20" fill="none" stroke="${stroke}" stroke-width="1.8" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`;
     }
@@ -469,13 +295,18 @@
             <div class="role-card">
                 <div class="role-card-top">
                     <div class="role-icon-name">
-                        <div class="role-icon ${r.icon}">${shieldIcon(r.iconStroke)}</div>
+                        <div class="role-icon ${r.icon || getRoleIconClass(r.name)}">${shieldIcon('#000')}</div>
                         <div>
                             <div class="role-name">${r.name}</div>
-                            <div class="role-desc">${r.desc}</div>
                         </div>
                     </div>
-                    <button class="role-menu-btn">···</button>
+                    <div class="role-card-menu" onclick="event.stopPropagation()">
+                        <button class="role-menu-btn" type="button" onclick="toggleRoleMenu(${r.roleId})">···</button>
+                        <div class="role-menu-dropdown" id="roleMenu-${r.roleId}">
+                            <button type="button" class="role-menu-item" onclick="openEditRoleModal(${r.roleId})">Edit</button>
+                            <button type="button" class="role-menu-item delete-btn" onclick="deleteRoleMock(${r.roleId})">Delete</button>
+                        </div>
+                    </div>
                 </div>
                 <div class="role-card-footer">
                     <div class="role-users">
@@ -484,9 +315,8 @@
                             <circle cx="9" cy="7" r="4"/>
                             <path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/>
                         </svg>
-                        ${r.users} users
+                        ${r.userCount} users
                     </div>
-                    <button class="view-perms-btn" onclick="openPermModal(${roles.indexOf(r)})">View Permissions</button>
                 </div>
             </div>
         `).join('');
@@ -494,9 +324,10 @@
 
     function filterRoles() {
         const q = document.getElementById('roleSearch').value.toLowerCase();
-        filteredRoles = roles.filter(r =>
-            r.name.toLowerCase().includes(q) || r.desc.toLowerCase().includes(q)
-        );
+        filteredRoles = roles.filter(r => {
+            const desc = getRoleDescription(r.name) || '';
+            return r.name.toLowerCase().includes(q) || desc.toLowerCase().includes(q);
+        });
         renderRoles();
     }
 
@@ -506,23 +337,20 @@
             <tr>
                 <td>
                     <div class="user-cell">
-                        <div class="av ${a.av}">${a.f[0]}${a.l[0]}</div>
+                        <div class="av ${a.avatarClass}">${a.initials}</div>
                         <div>
-                            <div class="u-name">${a.f} ${a.l}</div>
-                            <div class="u-email">${a.e}</div>
+                            <div class="u-name">${a.firstName} ${a.lastName}</div>
+                            <div class="u-email">${a.email}</div>
                         </div>
                     </div>
                 </td>
-                <td><span class="role-tag ${a.rtag}">${a.role}</span></td>
+                <td><span class="role-tag ${a.tagClass}">${a.roleName}</span></td>
+                <td style="color:var(--text-muted);font-size:13px">${a.lastActive}</td>
+                <td style="color:var(--text-muted);font-size:13px">${a.joinedAt}</td>
                 <td>
-                    <div class="status-dot">
-                        <div class="dot ${a.status === 'Active' ? 'dot-active' : 'dot-inactive'}"></div>
-                        ${a.status}
-                    </div>
+                    <button class="axbtn action-btn" type="button" ${a.isOnlyAdmin ? 'disabled title="Cannot change role for the only Admin user"' : 'onclick="openEditAdminModal(' + a.userId + ')"'}>Edit</button>
+                    <button class="axbtn delete-btn" type="button" ${a.userId === currentUserId ? 'disabled title="Cannot delete yourself"' : 'onclick="deleteAdminMock(' + a.userId + ')"'}>Delete</button>
                 </td>
-                <td style="color:var(--text-muted);font-size:13px">${a.last}</td>
-                <td style="color:var(--text-muted);font-size:13px">${a.joined}</td>
-                <td><button class="axbtn">···</button></td>
             </tr>
         `).join('');
     }
@@ -530,7 +358,7 @@
     function filterAdmins() {
         const q = document.getElementById('adminSearch').value.toLowerCase();
         filteredAdmins = admins.filter(a =>
-            `${a.f} ${a.l} ${a.e} ${a.role}`.toLowerCase().includes(q)
+            `${a.firstName} ${a.lastName} ${a.email} ${a.roleName}`.toLowerCase().includes(q)
         );
         renderAdmins();
     }
@@ -545,24 +373,25 @@
 
     /* ── Permissions Modal ── */
     function openPermModal(idx) {
-        const r = roles[idx];
-        document.getElementById('permModalTitle').textContent = r.name + ' — Permissions';
-        const body = Object.entries(ALL_PERMS).map(([section, allPerms]) => {
-            const granted = r.perms[section] || [];
-            const items = allPerms.map(p => `
+        const role = roles[idx];
+        document.getElementById('permModalTitle').textContent = `${role.name} — Permissions`;
+        const rolePermissions = permissions.filter(p => p.roleIds.includes(role.roleId));
+        let body = '';
+
+        if (!rolePermissions.length) {
+            body = '<div class="perm-section"><p>No permissions assigned to this role.</p></div>';
+        } else {
+            body = rolePermissions.map(p => `
                 <div class="perm-item">
-                    <div class="perm-name">${p}</div>
-                    <div class="perm-check ${granted.includes(p) ? 'perm-yes' : 'perm-no'}">
-                        ${granted.includes(p)
-                            ? `<svg width="12" height="12" fill="none" stroke="#16a34a" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>`
-                            : `<svg width="12" height="12" fill="none" stroke="#9ca3af" stroke-width="2.5" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`
-                        }
+                    <div class="perm-name">${p.permissionName}</div>
+                    <div class="perm-check perm-yes">
+                        <svg width="12" height="12" fill="none" stroke="#16a34a" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
                     </div>
                 </div>
             `).join('');
-            return `<div class="perm-section"><h3>${section}</h3>${items}</div>`;
-        }).join('');
-        document.getElementById('permModalBody').innerHTML = body;
+        }
+
+        document.getElementById('permModalBody').innerHTML = `<div class="perm-section"><h3>Assigned permissions</h3>${body}</div>`;
         document.getElementById('permModal').classList.add('open');
     }
     function closePermModal()         { document.getElementById('permModal').classList.remove('open'); }
@@ -575,24 +404,59 @@
 
     function createRole() {
         const name  = document.getElementById('crName').value.trim();
-        const desc  = document.getElementById('crDesc').value.trim();
         const color = document.getElementById('crColor').value;
-        const users = parseInt(document.getElementById('crUsers').value) || 0;
         if (!name) return;
 
-        const strokeMap = { 'ri-blue':'#2563eb','ri-green':'#16a34a','ri-red':'#dc2626','ri-orange':'#ea580c','ri-gray':'#6b7280' };
-        roles.unshift({ name, desc: desc || 'Custom role', icon: color, iconStroke: strokeMap[color], users, perms:{} });
-        document.getElementById('statTotalRoles').textContent = roles.length;
-        filteredRoles = [...roles];
-        renderRoles();
-        closeCreateModal();
-        ['crName','crDesc','crUsers'].forEach(id => document.getElementById(id).value = id === 'crUsers' ? '0' : '');
-        showToast('Role created successfully!');
+        fetch('/Admin/CreateRole', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name })
+        })
+        .then(async res => {
+            const result = await res.json();
+            if (res.ok && result?.success) {
+                showToast(result.message || 'Role created successfully.');
+                closeCreateModal();
+                setTimeout(() => location.reload(), 800);
+            } else {
+                showToast(result?.message || 'Failed to create role.');
+            }
+        })
+        .catch(() => {
+            showToast('Failed to create role.');
+        });
     }
 
     function savePermissions() {
-        // TODO: Send permission changes to server
-        showToast('Permissions updated successfully!');
+        const confirmed = confirm('ยืนยันการบันทึกการเปลี่ยนแปลงสิทธิ์สำหรับทุก Role ใช่หรือไม่?');
+        if (!confirmed) return;
+
+        const assignments = roles.map(role => {
+            const permissionIds = Array.from(document.querySelectorAll(`.permission-check[data-role-id='${role.roleId}']`))
+                .filter(cb => cb.checked)
+                .map(cb => Number(cb.dataset.permissionId));
+
+            return { roleId: role.roleId, permissionIds };
+        });
+
+        fetch('/Admin/UpdateRolePermissions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ assignments })
+        })
+        .then(res => res.json())
+        .then(result => {
+            if (result?.success) {
+                showToast('Permissions updated successfully!');
+            } else {
+                showToast(result?.message || 'Failed to save permissions.');
+            }
+        })
+        .catch(() => {
+            showToast('Failed to save permissions.');
+        });
     }
 
     function showToast(msg) {
@@ -602,7 +466,307 @@
         setTimeout(() => t.classList.remove('show'), 2600);
     }
 
+    function openInviteModal() {
+        document.getElementById('inviteModal').classList.add('open');
+        document.getElementById('inviteEmail').focus();
+    }
+
+    function closeInviteModal() {
+        document.getElementById('inviteModal').classList.remove('open');
+    }
+
+    function closeInviteOutside(e) {
+        if (e.target === document.getElementById('inviteModal')) {
+            closeInviteModal();
+        }
+    }
+
+    function openEditAdminModal(userId) {
+        const admin = admins.find(a => a.userId === userId);
+        if (!admin) {
+            showToast('Admin user not found.');
+            return;
+        }
+
+        if (admin.isOnlyAdmin) {
+            showToast('Cannot change role for the only Admin user.');
+            return;
+        }
+
+        document.getElementById('editUserId').value = admin.userId;
+        document.getElementById('editUserEmail').value = admin.email;
+        document.getElementById('editUserRole').value = roles.find(r => r.name.toLowerCase() === admin.roleName.toLowerCase())?.roleId || '';
+        document.getElementById('editAdminModal').classList.add('open');
+    }
+
+    function closeEditAdminModal() {
+        document.getElementById('editAdminModal').classList.remove('open');
+    }
+
+    function closeEditAdminOutside(e) {
+        if (e.target === document.getElementById('editAdminModal')) {
+            closeEditAdminModal();
+        }
+    }
+
+    function saveAdminEdit() {
+        const userId = parseInt(document.getElementById('editUserId').value, 10);
+        const roleId = parseInt(document.getElementById('editUserRole').value, 10);
+
+        if (!userId || !roleId) {
+            showToast('Please select a valid role.');
+            return;
+        }
+
+        const role = roles.find(r => r.roleId === roleId);
+        if (!role) {
+            showToast('Unable to save admin details.');
+            return;
+        }
+
+        fetch('/Admin/UpdateAdminRole', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId, roleId })
+        })
+        .then(async res => {
+            const result = await res.json();
+            if (res.ok && result?.success) {
+                const admin = admins.find(a => a.userId === userId);
+                if (admin) {
+                    admin.roleName = role.name;
+                    admin.tagClass = role.name.trim().toLowerCase() === 'admin' ? 'rt-red'
+                        : role.name.trim().toLowerCase() === 'marketing' ? 'rt-blue'
+                        : role.name.trim().toLowerCase() === 'stockmanager' ? 'rt-green'
+                        : role.name.trim().toLowerCase() === 'customer' ? 'rt-orange'
+                        : 'rt-gray';
+                    admin.avatarClass = role.name.trim().toLowerCase() === 'admin' ? 'av-blue'
+                        : role.name.trim().toLowerCase() === 'marketing' ? 'av-green'
+                        : role.name.trim().toLowerCase() === 'stockmanager' ? 'av-teal'
+                        : role.name.trim().toLowerCase() === 'customer' ? 'av-orange'
+                        : 'av-purple';
+                }
+                renderAdmins();
+                closeEditAdminModal();
+                showToast(result.message || 'Admin role updated successfully.');
+            } else {
+                showToast(result?.message || 'Failed to update admin role.');
+            }
+        })
+        .catch(() => {
+            showToast('Failed to update admin role.');
+        });
+    }
+
+    function deleteAdminMock(userId) {
+        if (userId === currentUserId) {
+            showToast('You cannot delete yourself.');
+            return;
+        }
+
+        const admin = admins.find(a => a.userId === userId);
+        if (!admin) {
+            showToast('Admin user not found.');
+            return;
+        }
+
+        const confirmed = confirm(`Delete admin ${admin.email}?`);
+        if (!confirmed) return;
+
+        const index = admins.findIndex(a => a.userId === userId);
+        if (index >= 0) {
+            admins.splice(index, 1);
+            filteredAdmins = filteredAdmins.filter(a => a.userId !== userId);
+            renderAdmins();
+            showToast('Admin user deleted.');
+        }
+    }
+
+    function sendInvite() {
+        const email = document.getElementById('inviteEmail').value.trim();
+        const roleId = document.getElementById('inviteRole').value;
+        const message = document.getElementById('inviteMessage').value.trim();
+
+        if (!email || !roleId) {
+            showToast('Please enter an email and select a role.');
+            return;
+        }
+
+        fetch('/Admin/InviteAdmin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, roleId: Number(roleId), message })
+        })
+        .then(async res => {
+            const text = await res.text();
+            try {
+                const result = JSON.parse(text);
+                if (res.ok && result?.success) {
+                    showToast(result.message || `Invitation processed for ${email}`);
+                    closeInviteModal();
+                    setTimeout(() => location.reload(), 900);
+                } else {
+                    showToast(result?.message || 'Failed to invite admin.');
+                }
+            } catch (err) {
+                showToast('Unexpected server response.');
+                console.error('InviteAdmin response parse error:', err, text);
+            }
+        })
+        .catch(error => {
+            console.error('InviteAdmin fetch error:', error);
+            showToast('Failed to send invite.');
+        });
+    }
+
+    function openEditRoleModal(roleId) {
+        const role = roles.find(r => r.roleId === roleId);
+        if (!role) {
+            showToast('Role not found.');
+            return;
+        }
+
+        closeAllRoleMenus();
+        document.getElementById('editRoleId').value = role.roleId;
+        document.getElementById('editRoleName').value = role.name;
+        document.getElementById('editRoleModal').classList.add('open');
+    }
+
+    function closeEditRoleModal() {
+        document.getElementById('editRoleModal').classList.remove('open');
+    }
+
+    function closeEditRoleOutside(e) {
+        if (e.target === document.getElementById('editRoleModal')) {
+            closeEditRoleModal();
+        }
+    }
+
+    function toggleRoleMenu(roleId) {
+        closeAllRoleMenus();
+        const menu = document.getElementById(`roleMenu-${roleId}`);
+        if (menu) {
+            menu.classList.toggle('open');
+        }
+    }
+
+    function closeAllRoleMenus() {
+        document.querySelectorAll('.role-menu-dropdown.open').forEach(menu => menu.classList.remove('open'));
+    }
+
+    document.addEventListener('click', closeAllRoleMenus);
+
+    function saveRoleEdit() {
+        const roleId = parseInt(document.getElementById('editRoleId').value, 10);
+        const roleName = document.getElementById('editRoleName').value.trim();
+
+        if (!roleId || !roleName) {
+            showToast('Please enter a valid role name.');
+            return;
+        }
+
+        fetch('/Admin/UpdateRole', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ roleId, name: roleName })
+        })
+        .then(async res => {
+            const result = await res.json();
+            if (res.ok && result?.success) {
+                showToast(result.message || 'Role updated successfully.');
+                closeEditRoleModal();
+                setTimeout(() => location.reload(), 800);
+            } else {
+                showToast(result?.message || 'Failed to update role.');
+            }
+        })
+        .catch(() => {
+            showToast('Failed to update role.');
+        });
+    }
+
+    function deleteRoleMock(roleId) {
+        const role = roles.find(r => r.roleId === roleId);
+        if (!role) {
+            showToast('Role not found.');
+            return;
+        }
+
+        const confirmed = confirm(`Delete role ${role.name}?`);
+        if (!confirmed) return;
+
+        fetch('/Admin/DeleteRole', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ roleId })
+        })
+        .then(async res => {
+            const result = await res.json();
+            if (res.ok && result?.success) {
+                showToast(result.message || 'Role deleted successfully.');
+                setTimeout(() => location.reload(), 800);
+            } else {
+                showToast(result?.message || 'Failed to delete role.');
+            }
+        })
+        .catch(() => {
+            showToast('Failed to delete role.');
+        });
+    }
+
+    function prettyMenuName(code) {
+        const mapping = {
+            products: 'Products',
+            orders: 'Orders',
+            users: 'Users',
+            settings: 'Settings',
+            promotions: 'Promotions',
+            customers: 'Customers',
+            general: 'General'
+        };
+        return mapping[code.toLowerCase()] || code.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
+
+    /* ── Render Permissions ── */
+    function renderPermissions() {
+        document.getElementById('permissionsTableHead').innerHTML = `
+            <tr>
+                <th>Page / Feature</th>
+                ${roles.map(r => `
+                    <th class="role-header">
+                        <div class="role-name">${r.name}</div>
+                    </th>
+                `).join('')}
+            </tr>
+        `;
+
+        let rows = '';
+        let currentMenu = '';
+
+        permissions.forEach(p => {
+            const menu = p.menuCode || 'general';
+            if (menu !== currentMenu) {
+                currentMenu = menu;
+                rows += `<tr class="permission-group"><td colspan="${roles.length + 1}" class="permission-group-label">${prettyMenuName(menu)}</td></tr>`;
+            }
+
+            rows += `
+                <tr>
+                    <td class="feature-name">${p.permissionName}</td>
+                    ${roles.map(role => `
+                        <td>
+                            <input type="checkbox" class="permission-check" data-role-id="${role.roleId}" data-permission-id="${p.permissionId}" ${p.roleIds.includes(role.roleId) ? 'checked' : ''} />
+                        </td>
+                    `).join('')}
+                </tr>
+            `;
+        });
+
+        document.getElementById('permissionsTableBody').innerHTML = rows;
+    }
+
     /* ── Init ── */
     renderRoles();
     renderAdmins();
+    renderPermissions();
 </script>

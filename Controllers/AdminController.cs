@@ -21,6 +21,35 @@ public class AdminController : Controller
         _cloudinary = cloudinary;
     }
 
+    public class InviteAdminRequest
+    {
+        public string Email { get; set; } = string.Empty;
+        public int RoleId { get; set; }
+        public string Message { get; set; } = string.Empty;
+    }
+
+    public class UpdateAdminRoleRequest
+    {
+        public int UserId { get; set; }
+        public int RoleId { get; set; }
+    }
+
+    public class CreateRoleRequest
+    {
+        public string Name { get; set; } = string.Empty;
+    }
+
+    public class UpdateRoleRequest
+    {
+        public int RoleId { get; set; }
+        public string Name { get; set; } = string.Empty;
+    }
+
+    public class DeleteRoleRequest
+    {
+        public int RoleId { get; set; }
+    }
+
     private static string NormalizeStatus(string status)
     {
         return status?.Trim().ToLower() switch
@@ -67,6 +96,201 @@ public class AdminController : Controller
         return $"{sign}{change:0.#}% vs last month";
     }
 
+    private HashSet<string>? _currentRolePermissionTokens;
+
+    private static readonly Dictionary<string, string[]> ActionPermissionKeywordMap = new()
+    {
+        ["Dashboard"] = new[] { "dashboard", "general", "overview", "admin" },
+        ["Permissions"] = new[] { "permission", "permissions", "settings", "user", "role" },
+        ["Stock"] = new[] { "stock", "inventory", "products", "product" },
+        ["UpdateStock"] = new[] { "stock", "inventory", "products", "product" },
+        ["UpdateRolePermissions"] = new[] { "role", "roles", "user", "users", "permission", "permissions", "settings" },
+        ["Settings"] = new[] { "setting", "settings", "permission", "permissions" },
+        ["Customers"] = new[] { "customer", "customers" },
+        ["Orders"] = new[] { "order", "orders" },
+        ["Products"] = new[] { "product", "products" },
+        ["Categories"] = new[] { "category", "categories", "product", "products" },
+        ["AddCategory"] = new[] { "category", "categories", "product", "products" },
+        ["EditCategory"] = new[] { "category", "categories", "product", "products" },
+        ["DeleteCategory"] = new[] { "category", "categories", "product", "products" },
+        ["Roles"] = new[] { "role", "roles", "user", "users", "admin" },
+        ["CreateRole"] = new[] { "role", "roles", "user", "users", "admin" },
+        ["UpdateRole"] = new[] { "role", "roles", "user", "users", "admin" },
+        ["DeleteRole"] = new[] { "role", "roles", "user", "users", "admin" },
+        ["InviteAdmin"] = new[] { "role", "roles", "user", "users", "admin" },
+        ["UpdateAdminRole"] = new[] { "role", "roles", "user", "users", "admin" },
+        ["UploadProductImage"] = new[] { "product", "products" },
+        ["Promotions"] = new[] { "promotion", "promotions" },
+        ["SavePromotion"] = new[] { "promotion", "promotions" },
+        ["DeletePromotion"] = new[] { "promotion", "promotions" },
+        ["CreateProduct"] = new[] { "product", "products" },
+        ["UpdateProduct"] = new[] { "product", "products" },
+        ["DeleteProduct"] = new[] { "product", "products" },
+        ["GetProductImages"] = new[] { "product", "products" },
+        ["DeleteProductImage"] = new[] { "product", "products" },
+        ["SetMainProductImage"] = new[] { "product", "products" },
+        ["AddProductImage"] = new[] { "product", "products" }
+    };
+
+    private HashSet<string> GetCurrentRolePermissionTokens()
+    {
+        if (_currentRolePermissionTokens != null)
+        {
+            return _currentRolePermissionTokens;
+        }
+
+        _currentRolePermissionTokens = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var currentRoleId = HttpContext.Session.GetInt32("UserRole");
+        if (currentRoleId == null || currentRoleId <= 0)
+        {
+            return _currentRolePermissionTokens;
+        }
+
+        var opened = false;
+        try
+        {
+            if (_connection.State == ConnectionState.Closed)
+            {
+                _connection.Open();
+                opened = true;
+            }
+
+            const string sql = @"
+                SELECT
+                    COALESCE(p.menu_code, '') AS menu_code,
+                    COALESCE(p.permission_name, '') AS permission_name
+                FROM Permissions p
+                JOIN Role_Permissions rp ON rp.permission_id = p.permission_id
+                WHERE rp.role_id = @roleId";
+
+            using var cmd = new MySqlCommand(sql, _connection);
+            cmd.Parameters.AddWithValue("@roleId", currentRoleId.Value);
+
+            using var reader = cmd.ExecuteReader();
+            while (reader.Read())
+            {
+                var menuCode = reader.GetString("menu_code");
+                if (!string.IsNullOrWhiteSpace(menuCode))
+                {
+                    _currentRolePermissionTokens.Add(menuCode.Trim());
+                }
+
+                var permissionName = reader.GetString("permission_name");
+                if (!string.IsNullOrWhiteSpace(permissionName))
+                {
+                    var normalized = permissionName.Trim().ToLowerInvariant();
+                    _currentRolePermissionTokens.Add(normalized);
+
+                    foreach (var part in normalized.Split(new[] { ' ', '-', '_', '/' }, StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        _currentRolePermissionTokens.Add(part.Trim());
+                    }
+                }
+            }
+        }
+        finally
+        {
+            if (opened && _connection.State == ConnectionState.Open)
+            {
+                _connection.Close();
+            }
+        }
+
+        return _currentRolePermissionTokens;
+    }
+
+    private bool HasAnyAdminPermission()
+    {
+        return GetCurrentRolePermissionTokens().Any();
+    }
+
+    private bool HasPermissionForAction(string actionName)
+    {
+        if (string.IsNullOrWhiteSpace(actionName))
+        {
+            return false;
+        }
+
+        var menuTokens = GetCurrentRolePermissionTokens();
+        if (!menuTokens.Any())
+        {
+            return false;
+        }
+
+        if (!ActionPermissionKeywordMap.TryGetValue(actionName, out var keywords) || keywords == null || keywords.Length == 0)
+        {
+            keywords = new[] { actionName };
+        }
+
+        foreach (var keyword in keywords)
+        {
+            if (string.IsNullOrWhiteSpace(keyword))
+            {
+                continue;
+            }
+
+            foreach (var token in menuTokens)
+            {
+                if (string.IsNullOrWhiteSpace(token))
+                {
+                    continue;
+                }
+
+                if (token.Contains(keyword, StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private string? GetFirstAllowedAction()
+    {
+        var roleId = HttpContext.Session.GetInt32("UserRole");
+        var priorityActions = new[]
+        {
+            "Dashboard",
+            "Customers",
+            "Orders",
+            "Products",
+            "Categories",
+            "Promotions",
+            "Stock",
+            "Roles",
+            "Settings",
+            "Permissions"
+        };
+
+        if (roleId == 2 || HasPermissionForAction("Stock"))
+        {
+            priorityActions = new[]
+            {
+                "Stock",
+                "Dashboard",
+                "Customers",
+                "Orders",
+                "Products",
+                "Categories",
+                "Promotions",
+                "Roles",
+                "Settings",
+                "Permissions"
+            };
+        }
+
+        foreach (var action in priorityActions)
+        {
+            if (HasPermissionForAction(action))
+            {
+                return action;
+            }
+        }
+
+        return null;
+    }
+
     // ตรวจสอบว่า user เป็น admin หรือไม่
     private bool IsAdmin()
     {
@@ -83,7 +307,27 @@ public class AdminController : Controller
             TempData["ErrorMessage"] = "You do not have permission to access this page.";
             return RedirectToAction("Index", "Home");
         }
-        return null;
+
+        if (!HasAnyAdminPermission())
+        {
+            TempData["ErrorMessage"] = "You do not have permission to access this page.";
+            return RedirectToAction("Index", "Home");
+        }
+
+        var actionName = ControllerContext.ActionDescriptor.ActionName;
+        if (HasPermissionForAction(actionName))
+        {
+            return null;
+        }
+
+        var targetAction = GetFirstAllowedAction();
+        if (!string.IsNullOrWhiteSpace(targetAction))
+        {
+            return RedirectToAction(targetAction);
+        }
+
+        TempData["ErrorMessage"] = "You do not have permission to access this page.";
+        return RedirectToAction("Index", "Home");
     }
 
     public IActionResult Dashboard()
@@ -419,6 +663,68 @@ public class AdminController : Controller
             }
 
             return Ok(new { success = true, message = "Stock updated successfully", updatedStock });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { success = false, message = ex.Message });
+        }
+        finally
+        {
+            if (_connection.State == System.Data.ConnectionState.Open)
+            {
+                _connection.Close();
+            }
+        }
+    }
+
+    [HttpPost]
+    public IActionResult UpdateRolePermissions([FromBody] PermissionUpdateRequest request)
+    {
+        var accessCheck = CheckAdminAccess();
+        if (accessCheck != null) return accessCheck;
+
+        if (request == null || request.Assignments == null)
+        {
+            return BadRequest(new { success = false, message = "Invalid permissions request." });
+        }
+
+        try
+        {
+            if (_connection.State == System.Data.ConnectionState.Closed)
+            {
+                _connection.Open();
+            }
+
+            using var transaction = _connection.BeginTransaction();
+
+            const string deleteSql = @"
+                DELETE FROM Role_Permissions
+                WHERE role_id = @roleId";
+
+            const string insertSql = @"
+                INSERT INTO Role_Permissions (role_id, permission_id)
+                VALUES (@roleId, @permissionId)";
+
+            foreach (var assignment in request.Assignments)
+            {
+                using (var deleteCmd = new MySqlCommand(deleteSql, _connection, transaction))
+                {
+                    deleteCmd.Parameters.AddWithValue("@roleId", assignment.RoleId);
+                    deleteCmd.ExecuteNonQuery();
+                }
+
+                foreach (var permissionId in assignment.PermissionIds ?? new List<int>())
+                {
+                    using var insertCmd = new MySqlCommand(insertSql, _connection, transaction);
+                    insertCmd.Parameters.AddWithValue("@roleId", assignment.RoleId);
+                    insertCmd.Parameters.AddWithValue("@permissionId", permissionId);
+                    insertCmd.ExecuteNonQuery();
+                }
+            }
+
+            transaction.Commit();
+
+            return Ok(new { success = true, message = "Permissions updated successfully." });
         }
         catch (Exception ex)
         {
@@ -1007,7 +1313,537 @@ ORDER BY c.category_name, p.name";
         var accessCheck = CheckAdminAccess();
         if (accessCheck != null) return accessCheck;
 
-        return View();
+        var model = new AdminRolesViewModel();
+
+        try
+        {
+            if (_connection.State == ConnectionState.Closed)
+            {
+                _connection.Open();
+            }
+
+            const string rolesSql = @"
+                SELECT
+                    r.role_id,
+                    r.role_name,
+                    COALESCE(u.user_count, 0) AS user_count,
+                    COALESCE(rp.permission_count, 0) AS permission_count
+                FROM Roles r
+                LEFT JOIN (
+                    SELECT role_id, COUNT(*) AS user_count
+                    FROM Users
+                    GROUP BY role_id
+                ) u ON u.role_id = r.role_id
+                LEFT JOIN (
+                    SELECT role_id, COUNT(*) AS permission_count
+                    FROM Role_Permissions
+                    GROUP BY role_id
+                ) rp ON rp.role_id = r.role_id
+                ORDER BY r.role_id";
+
+            using (var cmd = new MySqlCommand(rolesSql, _connection))
+            using (var reader = cmd.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    model.Roles.Add(new AdminRoleItem
+                    {
+                        RoleId = reader.GetInt32("role_id"),
+                        Name = reader.GetString("role_name"),
+                        UserCount = reader.GetInt32("user_count"),
+                        PermissionCount = reader.GetInt32("permission_count")
+                    });
+                }
+            }
+
+            const string usersSql = @"
+                SELECT
+                    u.user_id,
+                    COALESCE(up.first_name, '') AS first_name,
+                    COALESCE(up.last_name, '') AS last_name,
+                    u.username,
+                    u.email,
+                    u.phone,
+                    u.created_at,
+                    u.last_order_at,
+                    u.role_id,
+                    r.role_name
+                FROM Users u
+                JOIN Roles r ON r.role_id = u.role_id
+                LEFT JOIN User_Profiles up ON up.user_id = u.user_id
+                WHERE u.role_id != 4
+                ORDER BY u.user_id";
+
+            using (var cmd = new MySqlCommand(usersSql, _connection))
+            using (var reader = cmd.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    var firstName = reader.GetString("first_name");
+                    var lastName = reader.GetString("last_name");
+                    var username = reader.GetString("username");
+                    var roleName = reader.GetString("role_name");
+                    var createdAt = reader.GetDateTime("created_at");
+                    var lastOrderAt = reader.IsDBNull(reader.GetOrdinal("last_order_at"))
+                        ? (DateTime?)null
+                        : reader.GetDateTime("last_order_at");
+
+                    var displayFirstName = string.IsNullOrWhiteSpace(firstName) ? username : firstName;
+                    var displayLastName = string.IsNullOrWhiteSpace(lastName) ? string.Empty : lastName;
+                    var initials = GetInitials($"{displayFirstName} {displayLastName}".Trim());
+
+                    var roleTag = roleName.Trim().ToLower() switch
+                    {
+                        "admin" => "rt-red",
+                        "marketing" => "rt-blue",
+                        "stockmanager" => "rt-green",
+                        "customer" => "rt-orange",
+                        _ => "rt-gray"
+                    };
+
+                    var avatarClass = roleName.Trim().ToLower() switch
+                    {
+                        "admin" => "av-blue",
+                        "marketing" => "av-green",
+                        "stockmanager" => "av-teal",
+                        "customer" => "av-orange",
+                        _ => "av-purple"
+                    };
+
+                    model.AdminUsers.Add(new AdminUserItem
+                    {
+                        UserId = reader.GetInt32("user_id"),
+                        FirstName = displayFirstName,
+                        LastName = displayLastName,
+                        Email = reader.GetString("email"),
+                        RoleName = roleName,
+                        Status = "Active",
+                        LastActive = lastOrderAt?.ToString("MMM dd, yyyy") ?? createdAt.ToString("MMM dd, yyyy"),
+                        JoinedAt = createdAt.ToString("MMM dd, yyyy"),
+                        TagClass = roleTag,
+                        AvatarClass = avatarClass,
+                        Initials = initials
+                    });
+                }
+            }
+
+            var adminCount = model.AdminUsers.Count(u => u.RoleName.Equals("Admin", StringComparison.OrdinalIgnoreCase));
+            if (adminCount == 1)
+            {
+                var onlyAdmin = model.AdminUsers.FirstOrDefault(u => u.RoleName.Equals("Admin", StringComparison.OrdinalIgnoreCase));
+                if (onlyAdmin != null)
+                {
+                    onlyAdmin.IsOnlyAdmin = true;
+                }
+            }
+
+            var currentRoleId = HttpContext.Session.GetInt32("UserRole") ?? 0;
+
+            const string permissionsSql = @"
+                SELECT
+                    p.permission_id,
+                    p.permission_name,
+                    COALESCE(p.menu_code, '') AS menu_code,
+                    COALESCE(p.description, '') AS description,
+                    rp.role_id
+                FROM Permissions p
+                JOIN Role_Permissions rp_current
+                    ON rp_current.permission_id = p.permission_id
+                    AND rp_current.role_id = @currentRoleId
+                LEFT JOIN Role_Permissions rp ON rp.permission_id = p.permission_id
+                ORDER BY p.menu_code, p.permission_name";
+
+            var permissionDictionary = new Dictionary<int, AdminPermissionItem>();
+            using (var cmd = new MySqlCommand(permissionsSql, _connection))
+            {
+                cmd.Parameters.AddWithValue("@currentRoleId", currentRoleId);
+                using var reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    var permissionId = reader.GetInt32("permission_id");
+                    if (!permissionDictionary.ContainsKey(permissionId))
+                    {
+                        permissionDictionary[permissionId] = new AdminPermissionItem
+                        {
+                            PermissionId = permissionId,
+                            PermissionName = reader.GetString("permission_name"),
+                            MenuCode = reader.GetString("menu_code"),
+                            Description = reader.GetString("description")
+                        };
+                    }
+
+                    if (!reader.IsDBNull(reader.GetOrdinal("role_id")))
+                    {
+                        permissionDictionary[permissionId].RoleIds.Add(reader.GetInt32("role_id"));
+                    }
+                }
+            }
+
+            model.Permissions = permissionDictionary.Values.ToList();
+        }
+        catch (Exception ex)
+        {
+            ViewBag.ErrorMessage = $"เกิดข้อผิดพลาดในการโหลดข้อมูล Roles: {ex.Message}";
+        }
+        finally
+        {
+            if (_connection.State == ConnectionState.Open)
+            {
+                _connection.Close();
+            }
+        }
+
+        return View(model);
+    }
+
+    [HttpPost]
+    public IActionResult CreateRole([FromBody] CreateRoleRequest request)
+    {
+        var accessCheck = CheckAdminAccess();
+        if (accessCheck != null) return accessCheck;
+
+        if (request == null || string.IsNullOrWhiteSpace(request.Name))
+        {
+            return BadRequest(new { success = false, message = "Please enter a valid role name." });
+        }
+
+        try
+        {
+            if (_connection.State == ConnectionState.Closed)
+            {
+                _connection.Open();
+            }
+
+            const string existsSql = @"SELECT COUNT(*) FROM Roles WHERE LOWER(role_name) = LOWER(@roleName)";
+            using (var cmd = new MySqlCommand(existsSql, _connection))
+            {
+                cmd.Parameters.AddWithValue("@roleName", request.Name.Trim());
+                var existing = Convert.ToInt32(cmd.ExecuteScalar());
+                if (existing > 0)
+                {
+                    return BadRequest(new { success = false, message = "Role already exists." });
+                }
+            }
+
+            const string insertSql = @"INSERT INTO Roles (role_name) VALUES (@roleName)";
+            using (var cmd = new MySqlCommand(insertSql, _connection))
+            {
+                cmd.Parameters.AddWithValue("@roleName", request.Name.Trim());
+                cmd.ExecuteNonQuery();
+                var newId = Convert.ToInt32(cmd.LastInsertedId);
+                return Json(new { success = true, roleId = newId, message = "Role created successfully." });
+            }
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { success = false, message = $"Failed to create role: {ex.Message}" });
+        }
+        finally
+        {
+            if (_connection.State == ConnectionState.Open)
+            {
+                _connection.Close();
+            }
+        }
+    }
+
+    [HttpPost]
+    public IActionResult UpdateRole([FromBody] UpdateRoleRequest request)
+    {
+        var accessCheck = CheckAdminAccess();
+        if (accessCheck != null) return accessCheck;
+
+        if (request == null || request.RoleId <= 0 || string.IsNullOrWhiteSpace(request.Name))
+        {
+            return BadRequest(new { success = false, message = "Please enter a valid role name." });
+        }
+
+        try
+        {
+            if (_connection.State == ConnectionState.Closed)
+            {
+                _connection.Open();
+            }
+
+            const string updateSql = @"UPDATE Roles SET role_name = @roleName WHERE role_id = @roleId";
+            using (var cmd = new MySqlCommand(updateSql, _connection))
+            {
+                cmd.Parameters.AddWithValue("@roleName", request.Name.Trim());
+                cmd.Parameters.AddWithValue("@roleId", request.RoleId);
+                var affected = cmd.ExecuteNonQuery();
+                if (affected == 0)
+                {
+                    return BadRequest(new { success = false, message = "Role not found." });
+                }
+            }
+
+            return Json(new { success = true, message = "Role updated successfully." });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { success = false, message = $"Failed to update role: {ex.Message}" });
+        }
+        finally
+        {
+            if (_connection.State == ConnectionState.Open)
+            {
+                _connection.Close();
+            }
+        }
+    }
+
+    [HttpPost]
+    public IActionResult DeleteRole([FromBody] DeleteRoleRequest request)
+    {
+        var accessCheck = CheckAdminAccess();
+        if (accessCheck != null) return accessCheck;
+
+        if (request == null || request.RoleId <= 0)
+        {
+            return BadRequest(new { success = false, message = "Invalid role selection." });
+        }
+
+        try
+        {
+            if (_connection.State == ConnectionState.Closed)
+            {
+                _connection.Open();
+            }
+
+            const string countSql = @"SELECT COUNT(*) FROM Users WHERE role_id = @roleId";
+            using (var cmd = new MySqlCommand(countSql, _connection))
+            {
+                cmd.Parameters.AddWithValue("@roleId", request.RoleId);
+                var userCount = Convert.ToInt32(cmd.ExecuteScalar());
+                if (userCount > 0)
+                {
+                    return BadRequest(new { success = false, message = "Cannot delete a role that has assigned users." });
+                }
+            }
+
+            const string deleteSql = @"DELETE FROM Roles WHERE role_id = @roleId";
+            using (var cmd = new MySqlCommand(deleteSql, _connection))
+            {
+                cmd.Parameters.AddWithValue("@roleId", request.RoleId);
+                var affected = cmd.ExecuteNonQuery();
+                if (affected == 0)
+                {
+                    return BadRequest(new { success = false, message = "Role not found." });
+                }
+            }
+
+            return Json(new { success = true, message = "Role deleted successfully." });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { success = false, message = $"Failed to delete role: {ex.Message}" });
+        }
+        finally
+        {
+            if (_connection.State == ConnectionState.Open)
+            {
+                _connection.Close();
+            }
+        }
+    }
+
+    [HttpPost]
+    public IActionResult InviteAdmin([FromBody] InviteAdminRequest request)
+    {
+        var accessCheck = CheckAdminAccess();
+        if (accessCheck != null) return accessCheck;
+
+        if (request == null || string.IsNullOrWhiteSpace(request.Email) || request.RoleId <= 0)
+        {
+            return BadRequest(new { success = false, message = "Invalid invitation request." });
+        }
+
+        try
+        {
+            if (_connection.State == ConnectionState.Closed)
+            {
+                _connection.Open();
+            }
+
+            const string userSql = @"
+                SELECT user_id
+                FROM Users
+                WHERE LOWER(email) = LOWER(@identifier)
+                   OR LOWER(username) = LOWER(@identifier)
+                LIMIT 1";
+
+            int userId;
+            using (var cmd = new MySqlCommand(userSql, _connection))
+            {
+                cmd.Parameters.AddWithValue("@identifier", request.Email.Trim());
+                using var reader = cmd.ExecuteReader();
+                if (!reader.Read())
+                {
+                    return BadRequest(new { success = false, message = "User not found with that email or username." });
+                }
+
+                userId = reader.GetInt32("user_id");
+            }
+
+            const string roleSql = @"
+                SELECT role_name
+                FROM Roles
+                WHERE role_id = @roleId
+                LIMIT 1";
+
+            string roleName;
+            using (var cmd = new MySqlCommand(roleSql, _connection))
+            {
+                cmd.Parameters.AddWithValue("@roleId", request.RoleId);
+                using var reader = cmd.ExecuteReader();
+                if (!reader.Read())
+                {
+                    return Ok(new { success = false, message = "Selected role does not exist." });
+                }
+
+                roleName = reader.GetString("role_name");
+            }
+
+            const string updateSql = @"
+                UPDATE Users
+                SET role_id = @roleId
+                WHERE user_id = @userId";
+
+            using (var cmd = new MySqlCommand(updateSql, _connection))
+            {
+                cmd.Parameters.AddWithValue("@roleId", request.RoleId);
+                cmd.Parameters.AddWithValue("@userId", userId);
+                var rowsAffected = cmd.ExecuteNonQuery();
+                if (rowsAffected == 0)
+                {
+                    return BadRequest(new { success = false, message = "No user record was updated." });
+                }
+            }
+
+            return Ok(new { success = true, message = $"Role for {request.Email.Trim()} updated to {roleName}." });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { success = false, message = ex.Message });
+        }
+        finally
+        {
+            if (_connection.State == ConnectionState.Open)
+            {
+                _connection.Close();
+            }
+        }
+    }
+
+    [HttpPost]
+    public IActionResult UpdateAdminRole([FromBody] UpdateAdminRoleRequest request)
+    {
+        var accessCheck = CheckAdminAccess();
+        if (accessCheck != null) return accessCheck;
+
+        if (request == null || request.UserId <= 0 || request.RoleId <= 0)
+        {
+            return BadRequest(new { success = false, message = "Invalid admin update request." });
+        }
+
+        try
+        {
+            if (_connection.State == ConnectionState.Closed)
+            {
+                _connection.Open();
+            }
+
+            const string roleSql = @"
+                SELECT role_name
+                FROM Roles
+                WHERE role_id = @roleId
+                LIMIT 1";
+
+            string roleName;
+            using (var cmd = new MySqlCommand(roleSql, _connection))
+            {
+                cmd.Parameters.AddWithValue("@roleId", request.RoleId);
+                using var reader = cmd.ExecuteReader();
+                if (!reader.Read())
+                {
+                    return BadRequest(new { success = false, message = "Selected role does not exist." });
+                }
+
+                roleName = reader.GetString("role_name");
+            }
+
+            const string currentUserSql = @"
+                SELECT u.role_id, COALESCE(r.role_name, '') AS role_name
+                FROM Users u
+                JOIN Roles r ON r.role_id = u.role_id
+                WHERE u.user_id = @userId
+                LIMIT 1";
+
+            int existingRoleId;
+            string existingRoleName;
+            using (var cmd = new MySqlCommand(currentUserSql, _connection))
+            {
+                cmd.Parameters.AddWithValue("@userId", request.UserId);
+                using var reader = cmd.ExecuteReader();
+                if (!reader.Read())
+                {
+                    return BadRequest(new { success = false, message = "Admin user was not found." });
+                }
+
+                existingRoleId = reader.GetInt32("role_id");
+                existingRoleName = reader.GetString("role_name");
+            }
+
+            if (existingRoleId == request.RoleId)
+            {
+                return Ok(new { success = true, message = $"Admin role is already set to {roleName}." });
+            }
+
+            if (existingRoleName.Equals("Admin", StringComparison.OrdinalIgnoreCase))
+            {
+                const string adminCountSql = @"
+                    SELECT COUNT(*)
+                    FROM Users u
+                    JOIN Roles r ON r.role_id = u.role_id
+                    WHERE LOWER(r.role_name) = 'admin'";
+
+                using var countCmd = new MySqlCommand(adminCountSql, _connection);
+                var adminCount = Convert.ToInt32(countCmd.ExecuteScalar() ?? 0);
+                if (adminCount <= 1)
+                {
+                    return BadRequest(new { success = false, message = "Cannot change role because at least one Admin account must remain." });
+                }
+            }
+
+            const string updateSql = @"
+                UPDATE Users
+                SET role_id = @roleId
+                WHERE user_id = @userId";
+
+            using (var cmd = new MySqlCommand(updateSql, _connection))
+            {
+                cmd.Parameters.AddWithValue("@roleId", request.RoleId);
+                cmd.Parameters.AddWithValue("@userId", request.UserId);
+                var rowsAffected = cmd.ExecuteNonQuery();
+                if (rowsAffected == 0)
+                {
+                    return BadRequest(new { success = false, message = "Failed to update the admin role in the database." });
+                }
+            }
+
+            return Ok(new { success = true, message = $"Admin role updated to {roleName}." });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { success = false, message = ex.Message });
+        }
+        finally
+        {
+            if (_connection.State == ConnectionState.Open)
+            {
+                _connection.Close();
+            }
+        }
     }
 
     [HttpPost]
@@ -2162,6 +2998,17 @@ ORDER BY c.category_name, p.name";
         public int ProductId { get; set; }
         public int QuantityChange { get; set; }
         public string? Note { get; set; }
+    }
+
+    public class PermissionUpdateRequest
+    {
+        public List<PermissionAssignment> Assignments { get; set; } = new();
+    }
+
+    public class PermissionAssignment
+    {
+        public int RoleId { get; set; }
+        public List<int> PermissionIds { get; set; } = new();
     }
 
     public class DeletePromotionRequest
