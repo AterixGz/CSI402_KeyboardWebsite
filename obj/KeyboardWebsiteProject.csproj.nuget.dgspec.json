@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "C:\\DATA\\Coding\\Github\\CSI402_KeyboardWebsite\\KeyboardWebsiteProject.csproj": {}
+    "D:\\Coding\\GithubRepo\\CSI402_KeyboardWebsite\\KeyboardWebsiteProject.csproj": {}
   },
   "projects": {
-    "C:\\DATA\\Coding\\Github\\CSI402_KeyboardWebsite\\KeyboardWebsiteProject.csproj": {
+    "D:\\Coding\\GithubRepo\\CSI402_KeyboardWebsite\\KeyboardWebsiteProject.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\DATA\\Coding\\Github\\CSI402_KeyboardWebsite\\KeyboardWebsiteProject.csproj",
+        "projectUniqueName": "D:\\Coding\\GithubRepo\\CSI402_KeyboardWebsite\\KeyboardWebsiteProject.csproj",
         "projectName": "KeyboardWebsiteProject",
-        "projectPath": "C:\\DATA\\Coding\\Github\\CSI402_KeyboardWebsite\\KeyboardWebsiteProject.csproj",
-        "packagesPath": "C:\\Users\\User\\.nuget\\packages\\",
-        "outputPath": "C:\\DATA\\Coding\\Github\\CSI402_KeyboardWebsite\\obj\\",
+        "projectPath": "D:\\Coding\\GithubRepo\\CSI402_KeyboardWebsite\\KeyboardWebsiteProject.csproj",
+        "packagesPath": "C:\\Users\\M's_Com\\.nuget\\packages\\",
+        "outputPath": "D:\\Coding\\GithubRepo\\CSI402_KeyboardWebsite\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\User\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\M's_Com\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0"
@@ -76,7 +76,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.103/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.102/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.AspNetCore": "(,10.0.32767]",
             "Microsoft.AspNetCore.Antiforgery": "(,10.0.32767]",

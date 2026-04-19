@@ -88,7 +88,7 @@
     bool canViewCustomers = HasSidebarPermission("customer");
     bool canViewOrders = HasSidebarPermission("order");
     bool canViewProducts = HasSidebarPermission("product");
-    bool canViewCategories = HasSidebarPermission("category");
+    bool canViewCategories = HasSidebarPermission("category") || HasSidebarPermission("categories");
     bool canViewPromotions = HasSidebarPermission("promotion");
     bool canViewStock = HasSidebarPermission("stock") || HasSidebarPermission("inventory");
     bool canViewRoles = HasSidebarPermission("role") || HasSidebarPermission("user") || HasSidebarPermission("admin");

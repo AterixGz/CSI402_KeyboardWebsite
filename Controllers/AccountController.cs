@@ -339,6 +339,34 @@ public class AccountController : Controller
                 }
             }
 
+            // Get reviews written by this user
+            var reviews = new List<dynamic>();
+            string reviewQuery = @"SELECT r.review_id, r.rating, r.comment, r.review_date,
+                                          p.name AS product_name
+                                   FROM Reviews r
+                                   LEFT JOIN Products p ON r.product_id = p.product_id
+                                   WHERE r.user_id = @userId
+                                   ORDER BY r.review_date DESC";
+            using (MySqlCommand cmd = new MySqlCommand(reviewQuery, _connection))
+            {
+                cmd.Parameters.AddWithValue("@userId", userId.Value);
+                using (MySqlDataReader reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        reviews.Add(new
+                        {
+                            ReviewId = reader.GetInt32("review_id"),
+                            ProductName = reader["product_name"] as string ?? "",
+                            Rating = reader.GetInt32("rating"),
+                            Comment = reader["comment"] as string ?? "",
+                            ReviewDate = reader.IsDBNull(reader.GetOrdinal("review_date")) ? "" : reader.GetDateTime("review_date").ToString("dd MMM yyyy"),
+                            Helpful = 0
+                        });
+                    }
+                }
+            }
+
             // Get recent orders (last 5)
             string orderQuery = @"SELECT o.order_id, o.order_date, o.total_amount, o.discount_amount, o.status, c.code AS coupon_code,
                                          COUNT(od.detail_id) as item_count,
@@ -424,15 +452,18 @@ public class AccountController : Controller
             int orderCount = orders.Count; // Or query total count
             int wishCount = wishlists.Count;
             int addressCount = addresses.Count;
+            int reviewCount = reviews.Count;
 
             ViewBag.User = user;
             ViewBag.Profile = profile;
             ViewBag.Addresses = addresses;
+            ViewBag.Reviews = reviews;
             ViewBag.RecentOrders = orders;
             ViewBag.Wishlists = wishlists;
             ViewBag.OrderCount = orderCount;
             ViewBag.WishCount = wishCount;
             ViewBag.AddressCount = addressCount;
+            ViewBag.ReviewCount = reviewCount;
 
             return View();
         }

@@ -11,109 +11,109 @@ build_property.EnforceExtendedAnalyzerRules =
 build_property._SupportedPlatformList = Linux,macOS,Windows
 build_property.RootNamespace = KeyboardWebsiteProject
 build_property.RootNamespace = KeyboardWebsiteProject
-build_property.ProjectDir = C:\DATA\Coding\Github\CSI402_KeyboardWebsite\
+build_property.ProjectDir = D:\Coding\GithubRepo\CSI402_KeyboardWebsite\
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = 
 build_property.RazorLangVersion = 9.0
 build_property.SupportLocalizedComponentNames = 
 build_property.GenerateRazorMetadataSourceChecksumAttributes = 
-build_property.MSBuildProjectDirectory = C:\DATA\Coding\Github\CSI402_KeyboardWebsite
+build_property.MSBuildProjectDirectory = D:\Coding\GithubRepo\CSI402_KeyboardWebsite
 build_property._RazorSourceGeneratorDebug = 
 build_property.EffectiveAnalysisLevelStyle = 10.0
 build_property.EnableCodeStyleSeverity = 
 
-[C:/DATA/Coding/Github/CSI402_KeyboardWebsite/Views/Account/login.cshtml]
+[D:/Coding/GithubRepo/CSI402_KeyboardWebsite/Views/Account/login.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWNjb3VudFxsb2dpbi5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/DATA/Coding/Github/CSI402_KeyboardWebsite/Views/Account/profile.cshtml]
+[D:/Coding/GithubRepo/CSI402_KeyboardWebsite/Views/Account/profile.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWNjb3VudFxwcm9maWxlLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/DATA/Coding/Github/CSI402_KeyboardWebsite/Views/Account/register.cshtml]
+[D:/Coding/GithubRepo/CSI402_KeyboardWebsite/Views/Account/register.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWNjb3VudFxyZWdpc3Rlci5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/DATA/Coding/Github/CSI402_KeyboardWebsite/Views/Admin/Categories.cshtml]
+[D:/Coding/GithubRepo/CSI402_KeyboardWebsite/Views/Admin/Categories.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWRtaW5cQ2F0ZWdvcmllcy5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/DATA/Coding/Github/CSI402_KeyboardWebsite/Views/Admin/Customers.cshtml]
+[D:/Coding/GithubRepo/CSI402_KeyboardWebsite/Views/Admin/Customers.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWRtaW5cQ3VzdG9tZXJzLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/DATA/Coding/Github/CSI402_KeyboardWebsite/Views/Admin/Dashboard.cshtml]
+[D:/Coding/GithubRepo/CSI402_KeyboardWebsite/Views/Admin/Dashboard.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWRtaW5cRGFzaGJvYXJkLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/DATA/Coding/Github/CSI402_KeyboardWebsite/Views/Admin/Orders.cshtml]
+[D:/Coding/GithubRepo/CSI402_KeyboardWebsite/Views/Admin/Orders.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWRtaW5cT3JkZXJzLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/DATA/Coding/Github/CSI402_KeyboardWebsite/Views/Admin/Products.cshtml]
+[D:/Coding/GithubRepo/CSI402_KeyboardWebsite/Views/Admin/Products.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWRtaW5cUHJvZHVjdHMuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/DATA/Coding/Github/CSI402_KeyboardWebsite/Views/Admin/Promotions.cshtml]
+[D:/Coding/GithubRepo/CSI402_KeyboardWebsite/Views/Admin/Promotions.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWRtaW5cUHJvbW90aW9ucy5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/DATA/Coding/Github/CSI402_KeyboardWebsite/Views/Admin/Roles.cshtml]
+[D:/Coding/GithubRepo/CSI402_KeyboardWebsite/Views/Admin/Roles.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWRtaW5cUm9sZXMuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/DATA/Coding/Github/CSI402_KeyboardWebsite/Views/Admin/Settings.cshtml]
+[D:/Coding/GithubRepo/CSI402_KeyboardWebsite/Views/Admin/Settings.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWRtaW5cU2V0dGluZ3MuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/DATA/Coding/Github/CSI402_KeyboardWebsite/Views/Admin/Stock.cshtml]
+[D:/Coding/GithubRepo/CSI402_KeyboardWebsite/Views/Admin/Stock.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQWRtaW5cU3RvY2suY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/DATA/Coding/Github/CSI402_KeyboardWebsite/Views/Home/cart.cshtml]
+[D:/Coding/GithubRepo/CSI402_KeyboardWebsite/Views/Home/cart.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxjYXJ0LmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/DATA/Coding/Github/CSI402_KeyboardWebsite/Views/Home/Checkout.cshtml]
+[D:/Coding/GithubRepo/CSI402_KeyboardWebsite/Views/Home/Checkout.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxDaGVja291dC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/DATA/Coding/Github/CSI402_KeyboardWebsite/Views/Home/index.cshtml]
+[D:/Coding/GithubRepo/CSI402_KeyboardWebsite/Views/Home/index.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxpbmRleC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/DATA/Coding/Github/CSI402_KeyboardWebsite/Views/Home/productdetails.cshtml]
+[D:/Coding/GithubRepo/CSI402_KeyboardWebsite/Views/Home/productdetails.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxwcm9kdWN0ZGV0YWlscy5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/DATA/Coding/Github/CSI402_KeyboardWebsite/Views/Home/shop.cshtml]
+[D:/Coding/GithubRepo/CSI402_KeyboardWebsite/Views/Home/shop.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxzaG9wLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/DATA/Coding/Github/CSI402_KeyboardWebsite/Views/Home/ThankYou.cshtml]
+[D:/Coding/GithubRepo/CSI402_KeyboardWebsite/Views/Home/ThankYou.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxUaGFua1lvdS5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/DATA/Coding/Github/CSI402_KeyboardWebsite/Views/Shared/Error.cshtml]
+[D:/Coding/GithubRepo/CSI402_KeyboardWebsite/Views/Shared/Error.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXEVycm9yLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/DATA/Coding/Github/CSI402_KeyboardWebsite/Views/Shared/_AdminLayout.cshtml]
+[D:/Coding/GithubRepo/CSI402_KeyboardWebsite/Views/Shared/_AdminLayout.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXF9BZG1pbkxheW91dC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/DATA/Coding/Github/CSI402_KeyboardWebsite/Views/Shared/_ValidationScriptsPartial.cshtml]
+[D:/Coding/GithubRepo/CSI402_KeyboardWebsite/Views/Shared/_ValidationScriptsPartial.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXF9WYWxpZGF0aW9uU2NyaXB0c1BhcnRpYWwuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/DATA/Coding/Github/CSI402_KeyboardWebsite/Views/_ViewImports.cshtml]
+[D:/Coding/GithubRepo/CSI402_KeyboardWebsite/Views/_ViewImports.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcX1ZpZXdJbXBvcnRzLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/DATA/Coding/Github/CSI402_KeyboardWebsite/Views/_ViewStart.cshtml]
+[D:/Coding/GithubRepo/CSI402_KeyboardWebsite/Views/_ViewStart.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcX1ZpZXdTdGFydC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/DATA/Coding/Github/CSI402_KeyboardWebsite/Views/Shared/_Layout.cshtml]
+[D:/Coding/GithubRepo/CSI402_KeyboardWebsite/Views/Shared/_Layout.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXF9MYXlvdXQuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = b-rp5t2igior

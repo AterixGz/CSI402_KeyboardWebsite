@@ -32,35 +32,9 @@
     // ── Wishlists (from database) ─────────────────────────────────────
     var wishlists = ViewBag.Wishlists as IEnumerable<dynamic> ?? Array.Empty<dynamic>();
 
-    // ── Reviews (Mock Data from Reviews table) ──────────────────────────
-    var reviews = new dynamic[]
-    {
-        new {
-            ReviewId = 1,
-            ProductName = "Delux Pro RGB Mechanical Keyboard",
-            Rating = 5,
-            Comment = "Great keyboard, high quality feel, RGB makes it even better and shipping was fast.",
-            ReviewDate = "Mar 10, 2026",
-            Helpful = 24
-        },
-        new {
-            ReviewId = 2,
-            ProductName = "Cherry MX Switch 3 Pack",
-            Rating = 4,
-            Comment = "Excellent switches at a good price; would love more color options.",
-            ReviewDate = "Mar 5, 2026",
-            Helpful = 12
-        },
-        new {
-            ReviewId = 3,
-            ProductName = "GMK Oceanic Keycap Set",
-            Rating = 5,
-            Comment = "Great material, beautiful colors, perfect for ocean blue lovers.",
-            ReviewDate = "Mar 1, 2026",
-            Helpful = 8
-        },
-    };
-
+    // ── Reviews (from database) ───────────────────────────────────────
+    var reviews = ViewBag.Reviews as IEnumerable<dynamic> ?? Array.Empty<dynamic>();
+    int reviewCount = ViewBag.ReviewCount ?? 0;
 
     // ── Recent Orders ──────────────────────────────────────────────────
     var orders = ViewBag.RecentOrders as IEnumerable<dynamic> ?? Array.Empty<dynamic>();
@@ -131,7 +105,7 @@
         new { Icon = "", Label = "My Orders",          Count = orderCount,  Href = "#orders"    },
         new { Icon = "", Label = "Wishlist",           Count = wishCount,   Href = "#wishlist"  },
         new { Icon = "", Label = "Shipping Addresses", Count = addressCount,Href = "#addresses" },
-        new { Icon = "", Label = "My Reviews",         Count = 0,           Href = "#reviews"   },
+        new { Icon = "", Label = "My Reviews",         Count = reviewCount, Href = "#reviews"   },
         new { Icon = "", Label = "Account Settings",   Count = 0,           Href = "#settings"  },
     };
 }
@@ -625,58 +599,13 @@
                 </div>
 
                 <div style="padding: 24px 22px;">
-                    <!-- Notification Settings -->
-                    <div style="margin-bottom: 28px;">
-                        <div style="font-weight: 700; font-size: 14px; margin-bottom: 12px;">📬 Notifications</div>
-                        <div style="display: flex; flex-direction: column; gap: 10px;">
-                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                                <input type="checkbox" checked style="width: 18px; height: 18px; cursor: pointer;" />
-                                <span style="font-size: 14px;">Order updates</span>
-                            </label>
-                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                                <input type="checkbox" checked style="width: 18px; height: 18px; cursor: pointer;" />
-                                <span style="font-size: 14px;">Promotions & offers</span>
-                            </label>
-                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                                <input type="checkbox" style="width: 18px; height: 18px; cursor: pointer;" />
-                                <span style="font-size: 14px;">Newsletter emails</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- Privacy Settings -->
-                    <div style="margin-bottom: 28px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
-                        <div style="font-weight: 700; font-size: 14px; margin-bottom: 12px;">🔒 Privacy</div>
-                        <div style="display: flex; flex-direction: column; gap: 10px;">
-                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                                <input type="checkbox" checked style="width: 18px; height: 18px; cursor: pointer;" />
-                                <span style="font-size: 14px;">Allow others to view my profile</span>
-                            </label>
-                            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;">
-                                <input type="checkbox" style="width: 18px; height: 18px; cursor: pointer;" />
-                                <span style="font-size: 14px;">Allow public display of my reviews</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <!-- Account Settings -->
-                    <div style="margin-bottom: 28px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
-                        <div style="font-weight: 700; font-size: 14px; margin-bottom: 12px;">⚙️ Account</div>
-                        <div style="display: flex; flex-direction: column; gap: 8px;">
-                            <button onclick="alert('🔐 Change password')" style="text-align: left; background: none; border: 1px solid #e5e7eb; padding: 10px 12px; border-radius: 6px; cursor: pointer; font-family: inherit; color: #1f2937; transition: background 0.15s;">
-                                🔐 Change password
-                            </button>
-                            <button onclick="alert('⚠️ Enable 2FA')" style="text-align: left; background: none; border: 1px solid #e5e7eb; padding: 10px 12px; border-radius: 6px; cursor: pointer; font-family: inherit; color: #1f2937; transition: background 0.15s;">
-                                ✅ Two-factor auth (not enabled)
-                            </button>
-                            <button onclick="alert('⚠️ Delete account')" style="text-align: left; background: none; border: 1px solid #fee2e2; padding: 10px 12px; border-radius: 6px; cursor: pointer; font-family: inherit; color: #dc2626; transition: background 0.15s;">
-                                🗑️ Delete account
-                            </button>
-                        </div>
-                    </div>
-
-                    <div style="padding-top: 20px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #6b7280;">
-                        <strong>App version:</strong> 1.0.0 | <strong>Last updated:</strong> Apr 1, 2026
+                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                        <button onclick="alert('🔐 Change password')" style="text-align: left; background: none; border: 1px solid #e5e7eb; padding: 10px 12px; border-radius: 6px; cursor: pointer; font-family: inherit; color: #1f2937; transition: background 0.15s;">
+                            🔐 Change password
+                        </button>
+                        <button onclick="alert('⚠️ Delete account')" style="text-align: left; background: none; border: 1px solid #fee2e2; padding: 10px 12px; border-radius: 6px; cursor: pointer; font-family: inherit; color: #dc2626; transition: background 0.15s;">
+                            🗑️ Delete account
+                        </button>
                     </div>
                 </div>
             </div>
